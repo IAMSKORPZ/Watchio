@@ -1,0 +1,78 @@
+import 'package:flutter/material.dart';
+
+class TvFocusable extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onPressed;
+  final BorderRadius borderRadius;
+  final EdgeInsets margin;
+  final bool autofocus;
+
+  const TvFocusable({
+    super.key,
+    required this.child,
+    this.onPressed,
+    this.borderRadius = const BorderRadius.all(Radius.circular(12)),
+    this.margin = EdgeInsets.zero,
+    this.autofocus = false,
+  });
+
+  @override
+  State<TvFocusable> createState() => _TvFocusableState();
+}
+
+class _TvFocusableState extends State<TvFocusable> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: widget.margin,
+      child: GestureDetector(
+        onTap: widget.onPressed,
+        child: FocusableActionDetector(
+          autofocus: widget.autofocus,
+          mouseCursor: widget.onPressed == null
+              ? MouseCursor.defer
+              : SystemMouseCursors.click,
+          onShowFocusHighlight: (focused) => setState(() => _focused = focused),
+          actions: {
+            ActivateIntent: CallbackAction<ActivateIntent>(
+              onInvoke: (_) {
+                widget.onPressed?.call();
+                return null;
+              },
+            ),
+          },
+          child: AnimatedScale(
+            scale: _focused ? 1.045 : 1,
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOut,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOut,
+              decoration: BoxDecoration(
+                borderRadius: widget.borderRadius,
+                border: Border.all(
+                  color: _focused ? colorScheme.primary : Colors.transparent,
+                  width: 2,
+                ),
+                boxShadow: _focused
+                    ? [
+                        BoxShadow(
+                          color: colorScheme.primary.withValues(alpha: 0.35),
+                          blurRadius: 14,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : null,
+              ),
+              child: widget.child,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
