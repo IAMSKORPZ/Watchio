@@ -4610,6 +4610,15 @@ class $SeriesInfosTable extends SeriesInfos
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _tmdbIdMeta = const VerificationMeta('tmdbId');
+  @override
+  late final GeneratedColumn<int> tmdbId = GeneratedColumn<int>(
+    'tmdb_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4629,6 +4638,7 @@ class $SeriesInfosTable extends SeriesInfos
     episodeRunTime,
     categoryId,
     playlistId,
+    tmdbId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4765,6 +4775,12 @@ class $SeriesInfosTable extends SeriesInfos
     } else if (isInserting) {
       context.missing(_playlistIdMeta);
     }
+    if (data.containsKey('tmdb_id')) {
+      context.handle(
+        _tmdbIdMeta,
+        tmdbId.isAcceptableOrUnknown(data['tmdb_id']!, _tmdbIdMeta),
+      );
+    }
     return context;
   }
 
@@ -4842,6 +4858,10 @@ class $SeriesInfosTable extends SeriesInfos
         DriftSqlType.string,
         data['${effectivePrefix}playlist_id'],
       )!,
+      tmdbId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}tmdb_id'],
+      ),
     );
   }
 
@@ -4869,6 +4889,7 @@ class SeriesInfosData extends DataClass implements Insertable<SeriesInfosData> {
   final String? episodeRunTime;
   final String? categoryId;
   final String playlistId;
+  final int? tmdbId;
   const SeriesInfosData({
     required this.id,
     required this.seriesId,
@@ -4887,6 +4908,7 @@ class SeriesInfosData extends DataClass implements Insertable<SeriesInfosData> {
     this.episodeRunTime,
     this.categoryId,
     required this.playlistId,
+    this.tmdbId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4934,6 +4956,9 @@ class SeriesInfosData extends DataClass implements Insertable<SeriesInfosData> {
       map['category_id'] = Variable<String>(categoryId);
     }
     map['playlist_id'] = Variable<String>(playlistId);
+    if (!nullToAbsent || tmdbId != null) {
+      map['tmdb_id'] = Variable<int>(tmdbId);
+    }
     return map;
   }
 
@@ -4978,6 +5003,9 @@ class SeriesInfosData extends DataClass implements Insertable<SeriesInfosData> {
           ? const Value.absent()
           : Value(categoryId),
       playlistId: Value(playlistId),
+      tmdbId: tmdbId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tmdbId),
     );
   }
 
@@ -5004,6 +5032,7 @@ class SeriesInfosData extends DataClass implements Insertable<SeriesInfosData> {
       episodeRunTime: serializer.fromJson<String?>(json['episodeRunTime']),
       categoryId: serializer.fromJson<String?>(json['categoryId']),
       playlistId: serializer.fromJson<String>(json['playlistId']),
+      tmdbId: serializer.fromJson<int?>(json['tmdbId']),
     );
   }
   @override
@@ -5027,6 +5056,7 @@ class SeriesInfosData extends DataClass implements Insertable<SeriesInfosData> {
       'episodeRunTime': serializer.toJson<String?>(episodeRunTime),
       'categoryId': serializer.toJson<String?>(categoryId),
       'playlistId': serializer.toJson<String>(playlistId),
+      'tmdbId': serializer.toJson<int?>(tmdbId),
     };
   }
 
@@ -5048,6 +5078,7 @@ class SeriesInfosData extends DataClass implements Insertable<SeriesInfosData> {
     Value<String?> episodeRunTime = const Value.absent(),
     Value<String?> categoryId = const Value.absent(),
     String? playlistId,
+    Value<int?> tmdbId = const Value.absent(),
   }) => SeriesInfosData(
     id: id ?? this.id,
     seriesId: seriesId ?? this.seriesId,
@@ -5070,6 +5101,7 @@ class SeriesInfosData extends DataClass implements Insertable<SeriesInfosData> {
         : this.episodeRunTime,
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
     playlistId: playlistId ?? this.playlistId,
+    tmdbId: tmdbId.present ? tmdbId.value : this.tmdbId,
   );
   SeriesInfosData copyWithCompanion(SeriesInfosCompanion data) {
     return SeriesInfosData(
@@ -5106,6 +5138,7 @@ class SeriesInfosData extends DataClass implements Insertable<SeriesInfosData> {
       playlistId: data.playlistId.present
           ? data.playlistId.value
           : this.playlistId,
+      tmdbId: data.tmdbId.present ? data.tmdbId.value : this.tmdbId,
     );
   }
 
@@ -5128,7 +5161,8 @@ class SeriesInfosData extends DataClass implements Insertable<SeriesInfosData> {
           ..write('youtubeTrailer: $youtubeTrailer, ')
           ..write('episodeRunTime: $episodeRunTime, ')
           ..write('categoryId: $categoryId, ')
-          ..write('playlistId: $playlistId')
+          ..write('playlistId: $playlistId, ')
+          ..write('tmdbId: $tmdbId')
           ..write(')'))
         .toString();
   }
@@ -5152,6 +5186,7 @@ class SeriesInfosData extends DataClass implements Insertable<SeriesInfosData> {
     episodeRunTime,
     categoryId,
     playlistId,
+    tmdbId,
   );
   @override
   bool operator ==(Object other) =>
@@ -5173,7 +5208,8 @@ class SeriesInfosData extends DataClass implements Insertable<SeriesInfosData> {
           other.youtubeTrailer == this.youtubeTrailer &&
           other.episodeRunTime == this.episodeRunTime &&
           other.categoryId == this.categoryId &&
-          other.playlistId == this.playlistId);
+          other.playlistId == this.playlistId &&
+          other.tmdbId == this.tmdbId);
 }
 
 class SeriesInfosCompanion extends UpdateCompanion<SeriesInfosData> {
@@ -5194,6 +5230,7 @@ class SeriesInfosCompanion extends UpdateCompanion<SeriesInfosData> {
   final Value<String?> episodeRunTime;
   final Value<String?> categoryId;
   final Value<String> playlistId;
+  final Value<int?> tmdbId;
   const SeriesInfosCompanion({
     this.id = const Value.absent(),
     this.seriesId = const Value.absent(),
@@ -5212,6 +5249,7 @@ class SeriesInfosCompanion extends UpdateCompanion<SeriesInfosData> {
     this.episodeRunTime = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.playlistId = const Value.absent(),
+    this.tmdbId = const Value.absent(),
   });
   SeriesInfosCompanion.insert({
     this.id = const Value.absent(),
@@ -5231,6 +5269,7 @@ class SeriesInfosCompanion extends UpdateCompanion<SeriesInfosData> {
     this.episodeRunTime = const Value.absent(),
     this.categoryId = const Value.absent(),
     required String playlistId,
+    this.tmdbId = const Value.absent(),
   }) : seriesId = Value(seriesId),
        name = Value(name),
        playlistId = Value(playlistId);
@@ -5252,6 +5291,7 @@ class SeriesInfosCompanion extends UpdateCompanion<SeriesInfosData> {
     Expression<String>? episodeRunTime,
     Expression<String>? categoryId,
     Expression<String>? playlistId,
+    Expression<int>? tmdbId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -5271,6 +5311,7 @@ class SeriesInfosCompanion extends UpdateCompanion<SeriesInfosData> {
       if (episodeRunTime != null) 'episode_run_time': episodeRunTime,
       if (categoryId != null) 'category_id': categoryId,
       if (playlistId != null) 'playlist_id': playlistId,
+      if (tmdbId != null) 'tmdb_id': tmdbId,
     });
   }
 
@@ -5292,6 +5333,7 @@ class SeriesInfosCompanion extends UpdateCompanion<SeriesInfosData> {
     Value<String?>? episodeRunTime,
     Value<String?>? categoryId,
     Value<String>? playlistId,
+    Value<int?>? tmdbId,
   }) {
     return SeriesInfosCompanion(
       id: id ?? this.id,
@@ -5311,6 +5353,7 @@ class SeriesInfosCompanion extends UpdateCompanion<SeriesInfosData> {
       episodeRunTime: episodeRunTime ?? this.episodeRunTime,
       categoryId: categoryId ?? this.categoryId,
       playlistId: playlistId ?? this.playlistId,
+      tmdbId: tmdbId ?? this.tmdbId,
     );
   }
 
@@ -5368,6 +5411,9 @@ class SeriesInfosCompanion extends UpdateCompanion<SeriesInfosData> {
     if (playlistId.present) {
       map['playlist_id'] = Variable<String>(playlistId.value);
     }
+    if (tmdbId.present) {
+      map['tmdb_id'] = Variable<int>(tmdbId.value);
+    }
     return map;
   }
 
@@ -5390,7 +5436,8 @@ class SeriesInfosCompanion extends UpdateCompanion<SeriesInfosData> {
           ..write('youtubeTrailer: $youtubeTrailer, ')
           ..write('episodeRunTime: $episodeRunTime, ')
           ..write('categoryId: $categoryId, ')
-          ..write('playlistId: $playlistId')
+          ..write('playlistId: $playlistId, ')
+          ..write('tmdbId: $tmdbId')
           ..write(')'))
         .toString();
   }
@@ -10601,6 +10648,318 @@ class FootballCachesCompanion extends UpdateCompanion<FootballCacheData> {
   }
 }
 
+class $TmdbTrailerCachesTable extends TmdbTrailerCaches
+    with TableInfo<$TmdbTrailerCachesTable, TmdbTrailerCacheData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TmdbTrailerCachesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tmdbIdMeta = const VerificationMeta('tmdbId');
+  @override
+  late final GeneratedColumn<String> tmdbId = GeneratedColumn<String>(
+    'tmdb_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _trailerKeyMeta = const VerificationMeta(
+    'trailerKey',
+  );
+  @override
+  late final GeneratedColumn<String> trailerKey = GeneratedColumn<String>(
+    'trailer_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cachedAtMeta = const VerificationMeta(
+    'cachedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> cachedAt = GeneratedColumn<DateTime>(
+    'cached_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [tmdbId, type, trailerKey, cachedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'tmdb_trailer_caches';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TmdbTrailerCacheData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('tmdb_id')) {
+      context.handle(
+        _tmdbIdMeta,
+        tmdbId.isAcceptableOrUnknown(data['tmdb_id']!, _tmdbIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tmdbIdMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('trailer_key')) {
+      context.handle(
+        _trailerKeyMeta,
+        trailerKey.isAcceptableOrUnknown(data['trailer_key']!, _trailerKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_trailerKeyMeta);
+    }
+    if (data.containsKey('cached_at')) {
+      context.handle(
+        _cachedAtMeta,
+        cachedAt.isAcceptableOrUnknown(data['cached_at']!, _cachedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {tmdbId, type};
+  @override
+  TmdbTrailerCacheData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TmdbTrailerCacheData(
+      tmdbId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tmdb_id'],
+      )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      trailerKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trailer_key'],
+      )!,
+      cachedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}cached_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TmdbTrailerCachesTable createAlias(String alias) {
+    return $TmdbTrailerCachesTable(attachedDatabase, alias);
+  }
+}
+
+class TmdbTrailerCacheData extends DataClass
+    implements Insertable<TmdbTrailerCacheData> {
+  final String tmdbId;
+  final String type;
+  final String trailerKey;
+  final DateTime cachedAt;
+  const TmdbTrailerCacheData({
+    required this.tmdbId,
+    required this.type,
+    required this.trailerKey,
+    required this.cachedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['tmdb_id'] = Variable<String>(tmdbId);
+    map['type'] = Variable<String>(type);
+    map['trailer_key'] = Variable<String>(trailerKey);
+    map['cached_at'] = Variable<DateTime>(cachedAt);
+    return map;
+  }
+
+  TmdbTrailerCachesCompanion toCompanion(bool nullToAbsent) {
+    return TmdbTrailerCachesCompanion(
+      tmdbId: Value(tmdbId),
+      type: Value(type),
+      trailerKey: Value(trailerKey),
+      cachedAt: Value(cachedAt),
+    );
+  }
+
+  factory TmdbTrailerCacheData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TmdbTrailerCacheData(
+      tmdbId: serializer.fromJson<String>(json['tmdbId']),
+      type: serializer.fromJson<String>(json['type']),
+      trailerKey: serializer.fromJson<String>(json['trailerKey']),
+      cachedAt: serializer.fromJson<DateTime>(json['cachedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'tmdbId': serializer.toJson<String>(tmdbId),
+      'type': serializer.toJson<String>(type),
+      'trailerKey': serializer.toJson<String>(trailerKey),
+      'cachedAt': serializer.toJson<DateTime>(cachedAt),
+    };
+  }
+
+  TmdbTrailerCacheData copyWith({
+    String? tmdbId,
+    String? type,
+    String? trailerKey,
+    DateTime? cachedAt,
+  }) => TmdbTrailerCacheData(
+    tmdbId: tmdbId ?? this.tmdbId,
+    type: type ?? this.type,
+    trailerKey: trailerKey ?? this.trailerKey,
+    cachedAt: cachedAt ?? this.cachedAt,
+  );
+  TmdbTrailerCacheData copyWithCompanion(TmdbTrailerCachesCompanion data) {
+    return TmdbTrailerCacheData(
+      tmdbId: data.tmdbId.present ? data.tmdbId.value : this.tmdbId,
+      type: data.type.present ? data.type.value : this.type,
+      trailerKey: data.trailerKey.present
+          ? data.trailerKey.value
+          : this.trailerKey,
+      cachedAt: data.cachedAt.present ? data.cachedAt.value : this.cachedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TmdbTrailerCacheData(')
+          ..write('tmdbId: $tmdbId, ')
+          ..write('type: $type, ')
+          ..write('trailerKey: $trailerKey, ')
+          ..write('cachedAt: $cachedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(tmdbId, type, trailerKey, cachedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TmdbTrailerCacheData &&
+          other.tmdbId == this.tmdbId &&
+          other.type == this.type &&
+          other.trailerKey == this.trailerKey &&
+          other.cachedAt == this.cachedAt);
+}
+
+class TmdbTrailerCachesCompanion extends UpdateCompanion<TmdbTrailerCacheData> {
+  final Value<String> tmdbId;
+  final Value<String> type;
+  final Value<String> trailerKey;
+  final Value<DateTime> cachedAt;
+  final Value<int> rowid;
+  const TmdbTrailerCachesCompanion({
+    this.tmdbId = const Value.absent(),
+    this.type = const Value.absent(),
+    this.trailerKey = const Value.absent(),
+    this.cachedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TmdbTrailerCachesCompanion.insert({
+    required String tmdbId,
+    required String type,
+    required String trailerKey,
+    this.cachedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : tmdbId = Value(tmdbId),
+       type = Value(type),
+       trailerKey = Value(trailerKey);
+  static Insertable<TmdbTrailerCacheData> custom({
+    Expression<String>? tmdbId,
+    Expression<String>? type,
+    Expression<String>? trailerKey,
+    Expression<DateTime>? cachedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (tmdbId != null) 'tmdb_id': tmdbId,
+      if (type != null) 'type': type,
+      if (trailerKey != null) 'trailer_key': trailerKey,
+      if (cachedAt != null) 'cached_at': cachedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TmdbTrailerCachesCompanion copyWith({
+    Value<String>? tmdbId,
+    Value<String>? type,
+    Value<String>? trailerKey,
+    Value<DateTime>? cachedAt,
+    Value<int>? rowid,
+  }) {
+    return TmdbTrailerCachesCompanion(
+      tmdbId: tmdbId ?? this.tmdbId,
+      type: type ?? this.type,
+      trailerKey: trailerKey ?? this.trailerKey,
+      cachedAt: cachedAt ?? this.cachedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (tmdbId.present) {
+      map['tmdb_id'] = Variable<String>(tmdbId.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (trailerKey.present) {
+      map['trailer_key'] = Variable<String>(trailerKey.value);
+    }
+    if (cachedAt.present) {
+      map['cached_at'] = Variable<DateTime>(cachedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TmdbTrailerCachesCompanion(')
+          ..write('tmdbId: $tmdbId, ')
+          ..write('type: $type, ')
+          ..write('trailerKey: $trailerKey, ')
+          ..write('cachedAt: $cachedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -10620,6 +10979,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $M3uEpisodesTable m3uEpisodes = $M3uEpisodesTable(this);
   late final $FavoritesTable favorites = $FavoritesTable(this);
   late final $FootballCachesTable footballCaches = $FootballCachesTable(this);
+  late final $TmdbTrailerCachesTable tmdbTrailerCaches =
+      $TmdbTrailerCachesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10641,6 +11002,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     m3uEpisodes,
     favorites,
     footballCaches,
+    tmdbTrailerCaches,
   ];
 }
 
@@ -12814,6 +13176,7 @@ typedef $$SeriesInfosTableCreateCompanionBuilder =
       Value<String?> episodeRunTime,
       Value<String?> categoryId,
       required String playlistId,
+      Value<int?> tmdbId,
     });
 typedef $$SeriesInfosTableUpdateCompanionBuilder =
     SeriesInfosCompanion Function({
@@ -12834,6 +13197,7 @@ typedef $$SeriesInfosTableUpdateCompanionBuilder =
       Value<String?> episodeRunTime,
       Value<String?> categoryId,
       Value<String> playlistId,
+      Value<int?> tmdbId,
     });
 
 class $$SeriesInfosTableFilterComposer
@@ -12927,6 +13291,11 @@ class $$SeriesInfosTableFilterComposer
 
   ColumnFilters<String> get playlistId => $composableBuilder(
     column: $table.playlistId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tmdbId => $composableBuilder(
+    column: $table.tmdbId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -13024,6 +13393,11 @@ class $$SeriesInfosTableOrderingComposer
     column: $table.playlistId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get tmdbId => $composableBuilder(
+    column: $table.tmdbId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SeriesInfosTableAnnotationComposer
@@ -13101,6 +13475,9 @@ class $$SeriesInfosTableAnnotationComposer
     column: $table.playlistId,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get tmdbId =>
+      $composableBuilder(column: $table.tmdbId, builder: (column) => column);
 }
 
 class $$SeriesInfosTableTableManager
@@ -13151,6 +13528,7 @@ class $$SeriesInfosTableTableManager
                 Value<String?> episodeRunTime = const Value.absent(),
                 Value<String?> categoryId = const Value.absent(),
                 Value<String> playlistId = const Value.absent(),
+                Value<int?> tmdbId = const Value.absent(),
               }) => SeriesInfosCompanion(
                 id: id,
                 seriesId: seriesId,
@@ -13169,6 +13547,7 @@ class $$SeriesInfosTableTableManager
                 episodeRunTime: episodeRunTime,
                 categoryId: categoryId,
                 playlistId: playlistId,
+                tmdbId: tmdbId,
               ),
           createCompanionCallback:
               ({
@@ -13189,6 +13568,7 @@ class $$SeriesInfosTableTableManager
                 Value<String?> episodeRunTime = const Value.absent(),
                 Value<String?> categoryId = const Value.absent(),
                 required String playlistId,
+                Value<int?> tmdbId = const Value.absent(),
               }) => SeriesInfosCompanion.insert(
                 id: id,
                 seriesId: seriesId,
@@ -13207,6 +13587,7 @@ class $$SeriesInfosTableTableManager
                 episodeRunTime: episodeRunTime,
                 categoryId: categoryId,
                 playlistId: playlistId,
+                tmdbId: tmdbId,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -15742,6 +16123,202 @@ typedef $$FootballCachesTableProcessedTableManager =
       FootballCacheData,
       PrefetchHooks Function()
     >;
+typedef $$TmdbTrailerCachesTableCreateCompanionBuilder =
+    TmdbTrailerCachesCompanion Function({
+      required String tmdbId,
+      required String type,
+      required String trailerKey,
+      Value<DateTime> cachedAt,
+      Value<int> rowid,
+    });
+typedef $$TmdbTrailerCachesTableUpdateCompanionBuilder =
+    TmdbTrailerCachesCompanion Function({
+      Value<String> tmdbId,
+      Value<String> type,
+      Value<String> trailerKey,
+      Value<DateTime> cachedAt,
+      Value<int> rowid,
+    });
+
+class $$TmdbTrailerCachesTableFilterComposer
+    extends Composer<_$AppDatabase, $TmdbTrailerCachesTable> {
+  $$TmdbTrailerCachesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get tmdbId => $composableBuilder(
+    column: $table.tmdbId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get trailerKey => $composableBuilder(
+    column: $table.trailerKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get cachedAt => $composableBuilder(
+    column: $table.cachedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TmdbTrailerCachesTableOrderingComposer
+    extends Composer<_$AppDatabase, $TmdbTrailerCachesTable> {
+  $$TmdbTrailerCachesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get tmdbId => $composableBuilder(
+    column: $table.tmdbId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get trailerKey => $composableBuilder(
+    column: $table.trailerKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get cachedAt => $composableBuilder(
+    column: $table.cachedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TmdbTrailerCachesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TmdbTrailerCachesTable> {
+  $$TmdbTrailerCachesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get tmdbId =>
+      $composableBuilder(column: $table.tmdbId, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get trailerKey => $composableBuilder(
+    column: $table.trailerKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get cachedAt =>
+      $composableBuilder(column: $table.cachedAt, builder: (column) => column);
+}
+
+class $$TmdbTrailerCachesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TmdbTrailerCachesTable,
+          TmdbTrailerCacheData,
+          $$TmdbTrailerCachesTableFilterComposer,
+          $$TmdbTrailerCachesTableOrderingComposer,
+          $$TmdbTrailerCachesTableAnnotationComposer,
+          $$TmdbTrailerCachesTableCreateCompanionBuilder,
+          $$TmdbTrailerCachesTableUpdateCompanionBuilder,
+          (
+            TmdbTrailerCacheData,
+            BaseReferences<
+              _$AppDatabase,
+              $TmdbTrailerCachesTable,
+              TmdbTrailerCacheData
+            >,
+          ),
+          TmdbTrailerCacheData,
+          PrefetchHooks Function()
+        > {
+  $$TmdbTrailerCachesTableTableManager(
+    _$AppDatabase db,
+    $TmdbTrailerCachesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TmdbTrailerCachesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TmdbTrailerCachesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TmdbTrailerCachesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> tmdbId = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String> trailerKey = const Value.absent(),
+                Value<DateTime> cachedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TmdbTrailerCachesCompanion(
+                tmdbId: tmdbId,
+                type: type,
+                trailerKey: trailerKey,
+                cachedAt: cachedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String tmdbId,
+                required String type,
+                required String trailerKey,
+                Value<DateTime> cachedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TmdbTrailerCachesCompanion.insert(
+                tmdbId: tmdbId,
+                type: type,
+                trailerKey: trailerKey,
+                cachedAt: cachedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TmdbTrailerCachesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TmdbTrailerCachesTable,
+      TmdbTrailerCacheData,
+      $$TmdbTrailerCachesTableFilterComposer,
+      $$TmdbTrailerCachesTableOrderingComposer,
+      $$TmdbTrailerCachesTableAnnotationComposer,
+      $$TmdbTrailerCachesTableCreateCompanionBuilder,
+      $$TmdbTrailerCachesTableUpdateCompanionBuilder,
+      (
+        TmdbTrailerCacheData,
+        BaseReferences<
+          _$AppDatabase,
+          $TmdbTrailerCachesTable,
+          TmdbTrailerCacheData
+        >,
+      ),
+      TmdbTrailerCacheData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -15778,4 +16355,6 @@ class $AppDatabaseManager {
       $$FavoritesTableTableManager(_db, _db.favorites);
   $$FootballCachesTableTableManager get footballCaches =>
       $$FootballCachesTableTableManager(_db, _db.footballCaches);
+  $$TmdbTrailerCachesTableTableManager get tmdbTrailerCaches =>
+      $$TmdbTrailerCachesTableTableManager(_db, _db.tmdbTrailerCaches);
 }

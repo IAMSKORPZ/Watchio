@@ -232,6 +232,8 @@ class SeriesInfos extends Table {
   TextColumn get categoryId => text().nullable()();
 
   TextColumn get playlistId => text()();
+
+  IntColumn get tmdbId => integer().nullable()();
 }
 
 @DataClassName('SeasonsData')
@@ -456,6 +458,17 @@ class FootballCaches extends Table {
   Set<Column> get primaryKey => {cacheKey};
 }
 
+@DataClassName('TmdbTrailerCacheData')
+class TmdbTrailerCaches extends Table {
+  TextColumn get tmdbId => text()();
+  TextColumn get type => text()(); // 'movie' or 'tv'
+  TextColumn get trailerKey => text()();
+  DateTimeColumn get cachedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {tmdbId, type};
+}
+
 @DriftDatabase(
   tables: [
     Playlists,
@@ -474,6 +487,7 @@ class FootballCaches extends Table {
     M3uEpisodes,
     Favorites,
     FootballCaches,
+    TmdbTrailerCaches,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -501,7 +515,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 11;
 
   // === PLAYLIST İŞLEMLERİ ===
 
@@ -1829,6 +1843,14 @@ class AppDatabase extends _$AppDatabase {
         } catch (e) {
           debugPrint('Migration error for football_caches: $e');
         }
+      }
+
+      if (from < 10) {
+        await m.addColumn(seriesInfos, seriesInfos.tmdbId);
+      }
+
+      if (from < 11) {
+        await m.createTable(tmdbTrailerCaches);
       }
     },
   );

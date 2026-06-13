@@ -11,6 +11,7 @@ import 'package:another_iptv_player/shared/widgets/glass_panel.dart';
 import 'package:another_iptv_player/shared/widgets/gradient_button.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:another_iptv_player/services/watch_history_service.dart';
+import 'package:another_iptv_player/services/tmdb_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../controllers/favorites_controller.dart';
 import 'episode_screen.dart';
@@ -39,6 +40,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> with SingleTi
   
   SeasonsData? _selectedSeason;
   EpisodesData? _lastOpenedEpisode;
+  String? _tmdbTrailerKey;
 
   final FocusNode _playFocusNode = FocusNode();
 
@@ -92,6 +94,15 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> with SingleTi
           }
           isLoading = false;
         });
+
+        // Try fallback TMDB trailer if provider trailer is missing
+        final providerTrailer = seriesInfo?.youtubeTrailer ?? widget.contentItem.seriesStream?.youtubeTrailer;
+        if (providerTrailer == null || providerTrailer.isEmpty) {
+          if (seriesInfo?.tmdbId != null) {
+            _tmdbTrailerKey = await TmdbService().getTvShowTrailer(seriesInfo!.tmdbId!);
+          }
+        }
+
         await _loadLastOpenedEpisodeFromHistory();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _playFocusNode.requestFocus();
@@ -442,6 +453,9 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> with SingleTi
 
   Widget _buildActionsColumn() {
     final hasLastPlayed = _lastOpenedEpisode != null;
+    final trailerKey = seriesInfo?.youtubeTrailer ?? widget.contentItem.seriesStream?.youtubeTrailer ?? _tmdbTrailerKey;
+    final hasTrailer = trailerKey != null && trailerKey.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -460,12 +474,14 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> with SingleTi
             style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: 12)
           )
         ),
-        const SizedBox(height: 10),
-        _buildActionBtn(
-          label: context.loc.trailer.toUpperCase(),
-          icon: Icons.ondemand_video_rounded,
-          onTap: () => _openTrailer(context),
-        ),
+        if (hasTrailer) ...[
+          const SizedBox(height: 10),
+          _buildActionBtn(
+            label: context.loc.trailer.toUpperCase(),
+            icon: Icons.ondemand_video_rounded,
+            onTap: () => _openTrailer(context),
+          ),
+        ],
         const SizedBox(height: 10),
         _buildActionBtn(
           label: _isFavorite ? 'REMOVE FAV' : 'FAVOURITE',
@@ -604,7 +620,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> with SingleTi
   }
 
   Future<void> _openTrailer(BuildContext context) async {
-    final trailerKey = seriesInfo?.youtubeTrailer;
+    final trailerKey = seriesInfo?.youtubeTrailer ?? widget.contentItem.seriesStream?.youtubeTrailer ?? _tmdbTrailerKey;
     final urlString = (trailerKey != null && trailerKey.isNotEmpty)
         ? "https://www.youtube.com/watch?v=$trailerKey"
         : "https://www.youtube.com/results?search_query=${Uri.encodeQueryComponent("${widget.contentItem.name} trailer")}";
