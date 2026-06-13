@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'app_player_controller.dart';
+import '../app_state.dart';
 import '../../models/playback_item.dart';
 import '../../repositories/user_preferences.dart';
+import '../../utils/get_playlist_type.dart';
 
 class MediaKitPlayerController extends AppPlayerController {
   late Player _player;
@@ -23,6 +26,8 @@ class MediaKitPlayerController extends AppPlayerController {
   StreamSubscription? _buffSub;
   StreamSubscription? _errSub;
 
+  PlaybackItem? _currentItem;
+
   @override
   bool get isInitialized => _isInitialized;
   @override
@@ -35,19 +40,24 @@ class MediaKitPlayerController extends AppPlayerController {
   Duration get duration => _duration;
   @override
   String? get error => _error;
+  @override
+  PlaybackItem? get currentItem => _currentItem;
 
   @override
   Future<void> initialize() async {
     final hardwareDecoding = await UserPreferences.getHardwareDecoding();
-    _player = Player(
-      configuration: PlayerConfiguration(
-        // Set hardware decoding if enabled
-      ),
-    );
+    _player = Player();
     
-    if (hardwareDecoding) {
-      if (_player is NativePlayer) {
-        (_player as NativePlayer).setProperty('hwdec', 'auto');
+    if (hardwareDecoding && !kIsWeb) {
+      try {
+        // Safe way to set properties for native platforms without explicit cast that causes stub errors on web
+        // Using dynamic to bypass static analysis for platform-specific methods
+        final dynamic platform = _player.platform;
+        if (platform.toString().contains('NativePlayer')) {
+          await platform.setProperty('hwdec', 'auto');
+        }
+      } catch (e) {
+        debugPrint('MediaKit: Could not set hardware decoding: $e');
       }
     }
 
@@ -85,19 +95,29 @@ class MediaKitPlayerController extends AppPlayerController {
   @override
   Future<void> setDataSource(PlaybackItem item) async {
     _error = null;
-    debugPrint('MediaKit: STARTING PIPELINE');
-    debugPrint('MediaKit: Loading ${item.url}');
-    debugPrint('MediaKit: Headers: ${item.headers}');
+    _currentItem = item;
+    final playlist = AppState.currentPlaylist;
     
+    debugPrint('--- WATCHIO PLAYBACK PIPELINE AUDIT (MediaKit) ---');
+    debugPrint('Provider Type: ${isXtreamCode ? "Xtream Codes" : (isM3u ? "M3U" : "Unknown")}');
+    debugPrint('Playlist Name: ${playlist?.name ?? "NULL"}');
+    debugPrint('Username: ${playlist?.username ?? "NULL"}');
+    debugPrint('Server URL: ${playlist?.url ?? "NULL"}');
+    debugPrint('Content Type: ${item.contentType}');
+    debugPrint('Stream ID: ${item.id}');
+    debugPrint('Generated URL: ${item.url}');
+    debugPrint('User-Agent: ${item.headers['User-Agent']}');
+    debugPrint('--------------------------------------------------');
+
     try {
       await _player.open(Media(item.url, httpHeaders: item.headers), play: true);
       if (item.startPosition > Duration.zero) {
-        debugPrint('MediaKit: Seeking to ${item.startPosition}');
+        debugPrint('MediaKit: Resuming at ${item.startPosition}');
         await _player.seek(item.startPosition);
       }
     } catch (e) {
-      debugPrint('MediaKit: CRITICAL ERROR: $e');
-      _error = 'Playback Failed: Unable to open stream';
+      debugPrint('MediaKit: CRITICAL FAILURE: $e');
+      _error = 'Playback Failed: Unable to connect to stream';
       notifyListeners();
     }
   }

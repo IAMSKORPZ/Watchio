@@ -1,18 +1,25 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/xtream_code_home_controller.dart';
 import '../../models/category_type.dart';
 import '../../models/category_view_model.dart';
 import '../../models/content_type.dart';
+import '../../models/playback_item.dart';
+import '../../models/player_engine.dart';
 import '../../models/playlist_content_model.dart';
 import '../../repositories/iptv_repository.dart';
+import '../../repositories/user_preferences.dart';
 import '../../services/config_service.dart';
 import '../../services/epg_storage_service.dart';
+import '../../services/player/app_player_controller.dart';
+import '../../services/player/player_factory.dart';
 import '../../shared/widgets/glass_panel.dart';
 import '../../shared/widgets/watchio_header.dart';
 import '../../utils/navigate_by_content_type.dart';
+import '../player/unified_player_screen.dart';
 import '../search_screen.dart';
 
 class XtreamLiveScreen extends StatefulWidget {
@@ -38,9 +45,14 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
   List<EpgProgramWindow> _epgPrograms = [];
   final _epgService = EpgStorageService();
 
+  AppPlayerController? _previewController;
+  Timer? _previewDebounce;
+  bool _previewFocused = false;
+
   @override
   void initState() {
     super.initState();
+    _initPreviewController();
     _channelScrollController.addListener(_scrollListener);
     
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -58,8 +70,26 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
     });
   }
 
+  Future<void> _initPreviewController() async {
+    final engineStr = await UserPreferences.getPlayerEngine();
+    final engine = PlayerEngine.values.firstWhere(
+      (e) => e.name == engineStr, 
+      orElse: () => PlayerEngine.auto
+    );
+    _previewController = PlayerFactory.create(engine);
+    await _previewController!.initialize();
+    _previewController!.addListener(_onPreviewStateChanged);
+  }
+
+  void _onPreviewStateChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _previewDebounce?.cancel();
+    _previewController?.removeListener(_onPreviewStateChanged);
+    _previewController?.dispose();
     _channelScrollController.removeListener(_scrollListener);
     _categoryScrollController.dispose();
     _channelScrollController.dispose();
@@ -154,6 +184,48 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
       _focusedChannel = channel;
     });
     _fetchEpg(channel);
+
+    // Debounce preview playback to prevent rapid stream switching while scrolling
+    _previewDebounce?.cancel();
+    _previewDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted && _previewController != null) {
+        _previewController!.setDataSource(PlaybackItem.fromContentItem(channel));
+      }
+    });
+  }
+
+  void _enterFullscreen() {
+    if (_focusedChannel == null || _previewController == null) return;
+    
+    // Remove listener before passing to fullscreen to avoid double state updates
+    _previewController!.removeListener(_onPreviewStateChanged);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UnifiedPlayerScreen(
+          contentItem: _focusedChannel!,
+          queue: _currentItems,
+          externalController: _previewController,
+        ),
+      ),
+    ).then((_) {
+      // Re-attach listener when returning from fullscreen
+      if (mounted) {
+        _previewController!.addListener(_onPreviewStateChanged);
+        
+        // Sync focused channel if it changed in fullscreen
+        final currentPlayItem = _previewController!.currentItem;
+        if (currentPlayItem != null && currentPlayItem.originalItem != null) {
+          setState(() {
+            _focusedChannel = currentPlayItem.originalItem;
+          });
+          _fetchEpg(_focusedChannel!);
+        }
+
+        setState(() {});
+      }
+    });
   }
 
   @override
@@ -289,7 +361,13 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
                   index: index + 1,
                   isFocused: isFocused,
                   onFocus: () => _onChannelFocused(channel),
-                  onTap: () => navigateByContentType(context, channel),
+                  onTap: () {
+                    if (isFocused) {
+                      _enterFullscreen();
+                    } else {
+                      _onChannelFocused(channel);
+                    }
+                  },
                 );
               } else {
                 return const Center(
@@ -314,42 +392,75 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
         // PREVIEW AREA
         Expanded(
           flex: 6,
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFFC12CFF).withValues(alpha: 0.3), width: 2),
-              boxShadow: [
-                BoxShadow(color: const Color(0xFFC12CFF).withValues(alpha: 0.1), blurRadius: 20, spreadRadius: 5),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (_focusedChannel!.imagePath.isNotEmpty)
-                    Image.network(
-                      _focusedChannel!.imagePath,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const Center(child: Icon(Icons.live_tv, size: 80, color: Colors.white10)),
-                    )
-                  else
-                    const Center(child: Icon(Icons.live_tv, size: 80, color: Colors.white10)),
-                  
-                  // Glass Overlay
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Colors.black.withValues(alpha: 0.6)],
+          child: Focus(
+            onFocusChange: (v) => setState(() => _previewFocused = v),
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter)) {
+                _enterFullscreen();
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            child: GestureDetector(
+              onTap: _enterFullscreen,
+              onDoubleTap: _enterFullscreen,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: _previewFocused ? const Color(0xFFC12CFF) : const Color(0xFFC12CFF).withValues(alpha: 0.3), 
+                    width: _previewFocused ? 4 : 2
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFC12CFF).withValues(alpha: _previewFocused ? 0.3 : 0.1), 
+                      blurRadius: _previewFocused ? 30 : 20, 
+                      spreadRadius: 5
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Video Preview
+                      if (_previewController != null)
+                        _previewController!.buildPlayerView(context)
+                      else if (_focusedChannel!.imagePath.isNotEmpty)
+                        Image.network(
+                          _focusedChannel!.imagePath,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.live_tv, size: 80, color: Colors.white10)),
+                        ),
+                      
+                      // Loading indicator for preview
+                      if (_previewController?.isBuffering ?? false)
+                         const Center(child: CircularProgressIndicator(color: Color(0xFFC12CFF))),
+
+                      // Glass Overlay
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Colors.black.withValues(alpha: 0.6)],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                      
+                      // Fullscreen Icon Hint
+                      Positioned(
+                        top: 16, right: 16,
+                        child: Icon(Icons.fullscreen_rounded, color: Colors.white.withValues(alpha: 0.5), size: 28),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),

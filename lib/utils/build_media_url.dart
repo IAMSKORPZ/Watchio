@@ -48,7 +48,7 @@ String buildMediaUrl(ContentItem contentItem) {
     return contentItem.id;
   }
 
-  String finalUrl;
+  String finalUrl = contentItem.id;
   
   // Handle Catchup first
   if (contentItem.catchupStartTime != null && contentItem.catchupDurationMinutes != null) {
@@ -71,8 +71,6 @@ String buildMediaUrl(ContentItem contentItem) {
         final suffix = (ext != null && ext.isNotEmpty) ? '.$ext' : '';
         finalUrl = '$baseUrl/series/$username/$password/${contentItem.id}$suffix';
         break;
-      default:
-        finalUrl = contentItem.id;
     }
   }
 
