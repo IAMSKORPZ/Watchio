@@ -5,6 +5,7 @@ import 'package:another_iptv_player/repositories/iptv_repository.dart';
 import 'package:another_iptv_player/services/app_state.dart';
 import 'package:another_iptv_player/utils/get_playlist_type.dart';
 import 'package:another_iptv_player/screens/player/unified_player_screen.dart';
+import 'package:another_iptv_player/services/tmdb_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -25,6 +26,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   Map<String, dynamic>? _vodInfo;
   bool _isLoading = true;
   bool _isFavorite = false;
+  String? _tmdbTrailerKey;
 
   final FocusNode _playFocusNode = FocusNode();
 
@@ -61,6 +63,21 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
       _loadVodInfo(),
       _checkFavoriteStatus(),
     ]);
+
+    // Try fallback TMDB trailer if provider trailer is missing
+    if (_vodInfo != null) {
+      final providerTrailer = widget.contentItem.vodStream?.youtubeTrailer ?? _vodInfo!['info']?['youtube_trailer'];
+      if (providerTrailer == null || providerTrailer.toString().isEmpty) {
+        final tmdbIdStr = _vodInfo!['info']?['tmdb_id'];
+        if (tmdbIdStr != null) {
+          final tmdbId = int.tryParse(tmdbIdStr.toString());
+          if (tmdbId != null) {
+            _tmdbTrailerKey = await TmdbService().getMovieTrailer(tmdbId);
+          }
+        }
+      }
+    }
+
     if (mounted) {
       setState(() => _isLoading = false);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -184,15 +201,19 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                               Row(
                                 children: [
                                   _buildPlayButton(),
-                                  const SizedBox(width: 16),
+                                  const SizedBox(width: 12),
                                   _buildTrailerButton(),
                                 ],
                               ),
 
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 8),
                               
                               // DESCRIPTION (max 2 lines) - respect width of metadata column
-                              if (plot != null) _buildDescription(plot),
+                              if (plot != null) 
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 600),
+                                  child: _buildDescription(plot),
+                                ),
                             ],
                           ),
                         ),
@@ -257,7 +278,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
         const Spacer(),
         // CENTER TITLE - Moved down slightly for alignment
         Padding(
-          padding: const EdgeInsets.only(top: 8.0),
+          padding: const EdgeInsets.only(top: 16.0),
           child: Text(
             year.isNotEmpty ? '"$title" ($year)' : '"$title"',
             style: const TextStyle(
@@ -278,7 +299,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
               icon: const Icon(Icons.more_vert, color: Colors.white, size: 32),
               onPressed: () {},
             ),
-            const SizedBox(height: 4), // Moved closer underneath
+            const SizedBox(height: 2), // Moved even closer
             IconButton(
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -423,7 +444,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   }
 
   Widget _buildTrailerButton() {
-    final trailerKey = widget.contentItem.vodStream?.youtubeTrailer ?? _vodInfo?['info']?['youtube_trailer'];
+    final trailerKey = widget.contentItem.vodStream?.youtubeTrailer ?? _vodInfo!['info']?['youtube_trailer'] ?? _tmdbTrailerKey;
     if (trailerKey == null || trailerKey.toString().isEmpty) return const SizedBox.shrink();
 
     return Material(
@@ -459,7 +480,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   }
 
   Future<void> _openTrailer(BuildContext context) async {
-    final trailerKey = widget.contentItem.vodStream?.youtubeTrailer ?? _vodInfo?['info']?['youtube_trailer'];
+    final trailerKey = widget.contentItem.vodStream?.youtubeTrailer ?? _vodInfo!['info']?['youtube_trailer'] ?? _tmdbTrailerKey;
     final urlString = (trailerKey is String && trailerKey.isNotEmpty) 
         ? 'https://www.youtube.com/watch?v=$trailerKey' 
         : 'https://www.youtube.com/results?search_query=${Uri.encodeQueryComponent('${widget.contentItem.name} trailer')}';

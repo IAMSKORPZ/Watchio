@@ -770,6 +770,7 @@ class IptvRepository {
           youtubeTrailer: drift.Value(safeString(info['youtube_trailer'])),
           episodeRunTime: drift.Value(safeString(info['episode_run_time'])),
           categoryId: drift.Value(safeString(info['category_id'])),
+          tmdbId: drift.Value(safeInt(info['tmdb_id'])),
         );
 
         await _database.insertSeriesInfo(seriesInfoCompanion);
