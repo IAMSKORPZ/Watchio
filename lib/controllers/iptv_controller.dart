@@ -68,6 +68,7 @@ class IptvController extends ChangeNotifier {
 
   void _setCurrentStep(ProgressStep step) {
     _currentStep = step;
+    _importProgress = null; // Reset progress for the new step
     notifyListeners();
   }
 

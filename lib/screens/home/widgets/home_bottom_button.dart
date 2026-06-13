@@ -5,15 +5,15 @@ import 'package:google_fonts/google_fonts.dart';
 class HomeBottomButton extends StatefulWidget {
   final String label;
   final IconData icon;
-  final Color color;
   final VoidCallback onTap;
+  final Color accentColor;
 
   const HomeBottomButton({
     super.key,
     required this.label,
     required this.icon,
-    required this.color,
     required this.onTap,
+    this.accentColor = const Color(0xFFC12CFF),
   });
 
   @override
@@ -22,34 +22,32 @@ class HomeBottomButton extends StatefulWidget {
 
 class _HomeBottomButtonState extends State<HomeBottomButton> {
   bool _isFocused = false;
-  bool _isHovered = false;
-
-  bool get _isActive => _isFocused || _isHovered;
 
   @override
   Widget build(BuildContext context) {
     return FocusableActionDetector(
       onFocusChange: (val) => setState(() => _isFocused = val),
-      onShowHoverHighlight: (val) => setState(() => _isHovered = val),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          scale: _isActive ? 1.05 : 1.0,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
+      child: AnimatedScale(
+        scale: _isFocused ? 1.05 : 1.0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(20),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
+            width: double.infinity,
+            height: double.infinity,
             decoration: BoxDecoration(
-              color: _isActive ? Colors.white.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.05),
+              color: Colors.white.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: _isActive ? widget.color : Colors.white.withValues(alpha: 0.1),
-                width: _isActive ? 2.5 : 1.5,
+                color: _isFocused ? widget.accentColor : Colors.white.withValues(alpha: 0.1),
+                width: _isFocused ? 2.5 : 1.5,
               ),
-              boxShadow: _isActive ? [
+              boxShadow: _isFocused ? [
                 BoxShadow(
-                  color: widget.color.withValues(alpha: 0.3),
+                  color: widget.accentColor.withValues(alpha: 0.4),
                   blurRadius: 15,
                   spreadRadius: 2,
                 )
@@ -58,29 +56,34 @@ class _HomeBottomButtonState extends State<HomeBottomButton> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  // Ensure inner container also expands
+                  width: double.infinity,
+                  height: double.infinity,
+                  alignment: Alignment.center,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min, // Keep content together
                     children: [
                       Icon(
-                        widget.icon, 
-                        color: _isActive ? widget.color : Colors.white70, 
-                        size: 24
+                        widget.icon,
+                        color: _isFocused ? widget.accentColor : Colors.white,
+                        size: 24,
                       ),
                       const SizedBox(width: 12),
                       Flexible(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            widget.label,
-                            style: GoogleFonts.outfit(
-                              color: _isActive ? Colors.white : Colors.white70,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.8,
-                            ),
+                        child: Text(
+                          widget.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
                           ),
                         ),
                       ),

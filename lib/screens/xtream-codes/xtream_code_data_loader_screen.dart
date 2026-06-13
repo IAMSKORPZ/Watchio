@@ -151,177 +151,200 @@ class XtreamCodeDataLoaderScreenState extends State<XtreamCodeDataLoaderScreen>
 
               return SafeArea(
                 child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Spacer(flex: 3),
-                      // Logo with Ambient Glow
-                      ScaleTransition(
-                        scale: _pulseAnimation,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFC12CFF).withValues(alpha: 0.15),
-                                blurRadius: 40,
-                                spreadRadius: 10,
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Logo with Ambient Glow
+                          ScaleTransition(
+                            scale: _pulseAnimation,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFC12CFF).withValues(alpha: 0.15),
+                                    blurRadius: 40,
+                                    spreadRadius: 10,
+                                  ),
+                                  BoxShadow(
+                                    color: const Color(0xFF00B7FF).withValues(alpha: 0.1),
+                                    blurRadius: 30,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
                               ),
-                              BoxShadow(
-                                color: const Color(0xFF00B7FF).withValues(alpha: 0.1),
-                                blurRadius: 30,
-                                spreadRadius: 5,
+                              child: Image.asset(
+                                'assets/images/App_Logo.png',
+                                width: 160,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) => 
+                                  const Icon(Icons.play_arrow_rounded, color: Color(0xFF00B7FF), size: 100),
                               ),
-                            ],
+                            ),
                           ),
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            width: 180,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => 
-                              const Icon(Icons.play_arrow_rounded, color: Color(0xFF00B7FF), size: 100),
+                          const SizedBox(height: 32),
+                          const Text(
+                            'WATCHIO IPTV',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2.0,
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      const Text(
-                        'WATCHIO IPTV',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2.0,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Loading your entertainment',
-                        style: TextStyle(
-                          color: Colors.white38,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      
-                      const Spacer(flex: 2),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Loading your entertainment',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 40),
 
-                      // Modern Progress Bar
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 60),
-                        child: Column(
-                          children: [
-                            AnimatedBuilder(
-                              animation: _progressAnimation,
-                              builder: (context, child) {
-                                return Column(
-                                  children: [
-                                    Container(
-                                      width: 400,
-                                      height: 10,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: 0.05),
-                                        borderRadius: BorderRadius.circular(5),
-                                      ),
-                                      child: FractionallySizedBox(
-                                        alignment: Alignment.centerLeft,
-                                        widthFactor: _progressAnimation.value,
-                                        child: Container(
+                          // Modern Progress Bar
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 40),
+                            child: Column(
+                              children: [
+                                AnimatedBuilder(
+                                  animation: _progressAnimation,
+                                  builder: (context, child) {
+                                    return Column(
+                                      children: [
+                                        Container(
+                                          constraints: const BoxConstraints(maxWidth: 400),
+                                          height: 8,
                                           decoration: BoxDecoration(
-                                            gradient: const LinearGradient(
-                                              colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
-                                            ),
-                                            borderRadius: BorderRadius.circular(5),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: const Color(0xFF00B7FF).withValues(alpha: 0.4),
-                                                blurRadius: 12,
-                                                spreadRadius: 2,
+                                            color: Colors.white.withValues(alpha: 0.05),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: FractionallySizedBox(
+                                            alignment: Alignment.centerLeft,
+                                            widthFactor: _progressAnimation.value.clamp(0.0, 1.0),
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                gradient: const LinearGradient(
+                                                  colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
+                                                ),
+                                                borderRadius: BorderRadius.circular(4),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: const Color(0xFF00B7FF).withValues(alpha: 0.4),
+                                                    blurRadius: 10,
+                                                    spreadRadius: 1,
+                                                  ),
+                                                ],
                                               ),
-                                            ],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    Text(
-                                      stepDisplayNames[controller.currentStep] ?? 'FINALISING',
-                                      style: const TextStyle(
-                                        color: Color(0xFF00B7FF),
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 1.5,
-                                      ),
-                                    ),
-                                    if (controller.importProgress != null) ...[
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        '${controller.importProgress!.processedItems} items',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.white38,
-                                          fontWeight: FontWeight.bold,
+                                        const SizedBox(height: 20),
+                                        Text(
+                                          stepDisplayNames[controller.currentStep] ?? 'FINALISING',
+                                          style: const TextStyle(
+                                            color: Color(0xFF00B7FF),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 1.5,
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ],
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const Spacer(flex: 1),
-
-                      // Error handling
-                      if (controller.errorMessage != null) ...[
-                        Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 40),
-                                const SizedBox(height: 12),
-                                Text(
-                                  context.loc.error_occurred,
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.redAccent),
+                                        if (controller.importProgress != null) ...[
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            '${controller.importProgress!.processedItems} items',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.white38,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    );
+                                  },
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  controller.errorMessage!,
-                                  style: const TextStyle(fontSize: 14, color: Colors.white70),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton(
+                                const SizedBox(height: 24),
+                                // Cancel Button
+                                TextButton.icon(
                                   onPressed: () {
+                                    controller.cancelImport();
                                     Navigator.pushAndRemoveUntil(
                                       context,
                                       MaterialPageRoute(builder: (context) => const PlaylistScreen()),
                                       (route) => false,
                                     );
                                   },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF00B7FF),
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  icon: const Icon(Icons.close_rounded, color: Colors.white54, size: 18),
+                                  label: const Text(
+                                    'CANCEL',
+                                    style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold),
                                   ),
-                                  child: Text(context.loc.close.toUpperCase()),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                      ],
-                    ],
+
+                          // Error handling
+                          if (controller.errorMessage != null) ...[
+                            const SizedBox(height: 32),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 40),
+                              child: Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 32),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      context.loc.error_occurred,
+                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.redAccent),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      controller.errorMessage!,
+                                      style: const TextStyle(fontSize: 13, color: Colors.white70),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.pushAndRemoveUntil(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => const PlaylistScreen()),
+                                            (route) => false,
+                                          );
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF00B7FF),
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                        child: Text(context.loc.close.toUpperCase()),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               );

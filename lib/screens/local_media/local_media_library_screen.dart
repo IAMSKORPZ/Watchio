@@ -370,7 +370,7 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
                                         child: ListView.separated(
                                           scrollDirection: Axis.horizontal,
                                           itemCount: _recentMedia.length,
-                                          separatorBuilder: (_, __) => const SizedBox(width: 16),
+                                          separatorBuilder: (_, _) => const SizedBox(width: 16),
                                           itemBuilder: (context, index) {
                                             final file = _recentMedia[index];
                                             return _RecentMediaCard(

@@ -6,7 +6,6 @@ import 'widgets/home_tile.dart';
 import 'widgets/home_header.dart';
 import 'widgets/home_footer.dart';
 import 'widgets/home_bottom_button.dart';
-import 'home_theme.dart';
 
 class BingieDashboardHome extends StatefulWidget {
   final VoidCallback onLiveTv;
@@ -80,8 +79,8 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
           final double height = constraints.maxHeight;
           
           final double horizontalPadding = width * 0.05;
-          final double verticalPadding = height * 0.01;
-          final double gap = width * 0.012;
+          final double verticalPadding = height * 0.04; // Increased vertical padding for more breathing room
+          final double gap = width * 0.015;
 
           final homeBg = config.backgrounds.home;
 
@@ -103,11 +102,10 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFF050812).withValues(alpha: 0.4),
-                    const Color(0xFF050812).withValues(alpha: 0.8),
-                    const Color(0xFF050812),
+                    const Color(0xFF050812).withValues(alpha: 0.2),
+                    const Color(0xFF050812).withValues(alpha: 0.6),
+                    const Color(0xFF050812).withValues(alpha: 0.9),
                   ],
-                  stops: const [0.0, 0.6, 1.0],
                 ),
               ),
               child: Padding(
@@ -117,112 +115,96 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                 ),
                 child: Column(
                   children: [
+                    // TOP HEADER
                     HomeHeader(
                       onSearch: widget.onSearch,
                       onProfile: widget.onProfile,
                       onAbout: widget.onAbout,
+                      onAnnouncements: widget.onAnnouncements,
                     ),
                     
-                    const Spacer(flex: 1),
+                    const Spacer(flex: 2),
                     
+                    // MAIN CONTENT - 3 CARDS
                     Expanded(
-                      flex: 12,
+                      flex: 14, // Increased height by approx 15% to feel more premium
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Expanded(
-                            flex: 30,
                             child: HomeTile(
                               title: 'LIVE TV',
                               subtitle: 'Watch Live TV Channels',
-                              icon: Icons.live_tv_rounded,
-                              colors: HomeTheme.liveTvColors,
+                              icon: Icons.live_tv_rounded, // IPTV-style icon
+                              accentColor: const Color(0xFFC12CFF), // Purple
                               onTap: widget.onLiveTv,
-                              large: true,
                               autofocus: true,
                             ),
                           ),
-                          
                           SizedBox(width: gap),
-                          
                           Expanded(
-                            flex: 70,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(
-                                  flex: 70,
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      Expanded(
-                                        child: HomeTile(
-                                          title: 'MOVIES',
-                                          subtitle: 'Browse and watch movies',
-                                          icon: Icons.play_circle_filled_rounded,
-                                          colors: HomeTheme.moviesColors,
-                                          onTap: widget.onMovies,
-                                        ),
-                                      ),
-                                      SizedBox(width: gap),
-                                      Expanded(
-                                        child: HomeTile(
-                                          title: 'SERIES',
-                                          subtitle: 'Discover and binge series',
-                                          icon: Icons.movie_creation_rounded,
-                                          colors: HomeTheme.seriesColors,
-                                          onTap: widget.onSeries,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                
-                                SizedBox(height: gap),
-                                
-                                Expanded(
-                                  flex: 30,
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      Expanded(
-                                        child: HomeBottomButton(
-                                          label: 'ANNOUNCEMENTS',
-                                          icon: Icons.campaign_rounded,
-                                          color: HomeTheme.iconAnnouncements,
-                                          onTap: widget.onAnnouncements,
-                                        ),
-                                      ),
-                                      SizedBox(width: gap),
-                                      Expanded(
-                                        child: HomeBottomButton(
-                                          label: 'UPDATE',
-                                          icon: Icons.sync_rounded,
-                                          color: HomeTheme.iconUpdate,
-                                          onTap: widget.onUpdate,
-                                        ),
-                                      ),
-                                      SizedBox(width: gap),
-                                      Expanded(
-                                        child: HomeBottomButton(
-                                          label: 'SETTINGS',
-                                          icon: Icons.settings_rounded,
-                                          color: HomeTheme.iconSettings,
-                                          onTap: widget.onSettings,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                            child: HomeTile(
+                              title: 'MOVIES',
+                              subtitle: 'Browse a wide selection',
+                              icon: Icons.play_arrow_rounded,
+                              accentColor: Colors.orange,
+                              onTap: widget.onMovies,
+                            ),
+                          ),
+                          SizedBox(width: gap),
+                          Expanded(
+                            child: HomeTile(
+                              title: 'SERIES',
+                              subtitle: 'Discover and binge-watch',
+                              icon: Icons.movie_rounded,
+                              accentColor: const Color(0xFF00B7FF), // Blue/Cyan
+                              onTap: widget.onSeries,
                             ),
                           ),
                         ],
                       ),
                     ),
                     
-                    const Spacer(flex: 1),
+                    const SizedBox(height: 8), // Reduced gap to move Action Row upward
                     
+                    // SECONDARY ACTION ROW
+                    Expanded(
+                      flex: 4,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: HomeBottomButton(
+                              label: 'LIVE + EPG',
+                              icon: Icons.list_alt_rounded,
+                              onTap: widget.onLiveTv, // Assuming Live TV with EPG is handled by same callback or similar
+                              accentColor: const Color(0xFFC12CFF),
+                            ),
+                          ),
+                          SizedBox(width: gap),
+                          Expanded(
+                            child: HomeBottomButton(
+                              label: 'REFRESH',
+                              icon: Icons.refresh_rounded,
+                              onTap: widget.onUpdate,
+                              accentColor: Colors.white,
+                            ),
+                          ),
+                          SizedBox(width: gap),
+                          Expanded(
+                            child: HomeBottomButton(
+                              label: 'SETTINGS',
+                              icon: Icons.settings_rounded,
+                              onTap: widget.onSettings,
+                              accentColor: const Color(0xFF00B7FF),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const Spacer(flex: 2),
+                    
+                    // BOTTOM STATUS BAR
                     HomeFooter(
                       username: widget.username,
                       expiryDate: widget.expiryDate,

@@ -1,10 +1,11 @@
+import 'package:another_iptv_player/database/database.dart';
 import 'package:another_iptv_player/services/service_locator.dart';
 import 'package:drift/drift.dart';
 
 class EpgStorageService {
-  final dynamic database;
+  final AppDatabase database;
 
-  EpgStorageService({dynamic database}) : database = database ?? getIt();
+  EpgStorageService({AppDatabase? database}) : database = database ?? getIt<AppDatabase>();
 
   Future<void> ensureSchema() async {
     await database.customStatement('''

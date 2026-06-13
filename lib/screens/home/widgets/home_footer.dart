@@ -16,10 +16,8 @@ class HomeFooter extends StatelessWidget {
   String _formatExpiry(String date) {
     if (date.isEmpty || date.toLowerCase() == 'n/a') return 'N/A';
     
-    // Check if it's a Unix timestamp
     final timestamp = int.tryParse(date);
     if (timestamp != null) {
-      // Unix timestamp is usually in seconds
       final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
       return DateFormat('dd MMM yyyy').format(dt);
     }
@@ -29,72 +27,58 @@ class HomeFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isSmall = constraints.maxWidth < 600;
-        final String formattedExpiry = _formatExpiry(expiryDate);
-        
-        return Row(
+    final String formattedExpiry = _formatExpiry(expiryDate);
+    
+    return Row(
+      children: [
+        // LEFT: Expiration
+        Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _FooterPill(
-              icon: Icons.workspace_premium_outlined,
-              text: isSmall ? formattedExpiry : 'Expiration: $formattedExpiry',
-              color: const Color(0xFF00B7FF),
-            ),
-            const Spacer(),
-            if (!isSmall)
-              Text(
-                'v$version',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.1), fontSize: 11, fontWeight: FontWeight.bold),
+            const Icon(Icons.verified_outlined, color: Color(0xFF00B7FF), size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'Expiration: $formattedExpiry',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
               ),
-            const Spacer(),
-            _FooterPill(
-              icon: Icons.person_outline_rounded,
-              text: isSmall ? username : 'Logged in: $username',
-              color: const Color(0xFFC12CFF),
             ),
           ],
-        );
-      }
-    );
-  }
-}
-
-class _FooterPill extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final Color color;
-
-  const _FooterPill({
-    required this.icon,
-    required this.text,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: 0.9,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 16),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              text, 
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+        ),
+        
+        const Spacer(),
+        
+        // CENTER: Version
+        Text(
+          'v$version',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.5), // Increased opacity from 0.2 to 0.5
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        
+        const Spacer(),
+        
+        // RIGHT: Profile
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.person_rounded, color: Color(0xFFC12CFF), size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'Logged In: $username',
               style: const TextStyle(
-                color: Colors.white, 
-                fontSize: 12, 
-                fontWeight: FontWeight.bold, 
-                letterSpacing: 0.5
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 }

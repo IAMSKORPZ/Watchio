@@ -14,7 +14,7 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
 class XtreamStreamingImportService {
-  static const int defaultBatchSize = 500;
+  static const int defaultBatchSize = 200;
 
   final AppDatabase database;
   final http.Client client;
@@ -138,9 +138,14 @@ class XtreamStreamingImportService {
         cancellationToken?.throwIfCancelled();
         batch.add(item);
         processed++;
-        if (batch.length >= batchSize) {
-          await writeJson(List<Map<String, dynamic>>.from(batch));
-          batch.clear();
+        
+        // Provide feedback every 50 items or when batch is full
+        if (processed % 50 == 0 || batch.length >= batchSize) {
+          if (batch.length >= batchSize) {
+            await writeJson(List<Map<String, dynamic>>.from(batch));
+            batch.clear();
+          }
+          
           onProgress?.call(
             ImportProgressModel(
               currentItem: action,
@@ -151,7 +156,9 @@ class XtreamStreamingImportService {
         }
       }
 
-      if (batch.isNotEmpty) await writeJson(batch);
+      if (batch.isNotEmpty) {
+        await writeJson(batch);
+      }
     } catch (e) {
       await clearExisting();
       if (e is ImportCancelledException) {
