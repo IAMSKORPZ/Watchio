@@ -19,11 +19,13 @@ import '../../shared/widgets/glass_panel.dart';
 class UnifiedPlayerScreen extends StatefulWidget {
   final ContentItem contentItem;
   final List<ContentItem>? queue;
+  final AppPlayerController? externalController;
 
   const UnifiedPlayerScreen({
     super.key,
     required this.contentItem,
     this.queue,
+    this.externalController,
   });
 
   @override
@@ -51,7 +53,15 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   void initState() {
     super.initState();
     _currentPlaybackItem = PlaybackItem.fromContentItem(widget.contentItem);
-    _initPlayer();
+    
+    if (widget.externalController != null) {
+      _playerController = widget.externalController!;
+      _playerController.addListener(_onPlayerStateChanged);
+      if (_currentPlaybackItem.isLive) _fetchEpg();
+    } else {
+      _initPlayer();
+    }
+    
     _startControlsTimer();
     _checkFavorite();
     _loadInitialSettings();
@@ -71,12 +81,20 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
       _currentPlaybackItem.id, 
       _currentPlaybackItem.contentType
     );
-    if (mounted) setState(() => _isFavorite = fav);
+    if (mounted) {
+      setState(() {
+        _isFavorite = fav;
+      });
+    }
   }
 
   Future<void> _toggleFavorite() async {
     final res = await _favoritesController.toggleFavorite(_currentPlaybackItem.originalItem!);
-    if (mounted) setState(() => _isFavorite = res);
+    if (mounted) {
+      setState(() {
+        _isFavorite = res;
+      });
+    }
   }
 
   Future<void> _initPlayer() async {
@@ -107,17 +125,17 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
 
     final playItem = _currentPlaybackItem.copyWith(startPosition: startPos);
     
-    debugPrint('--- WATCHIO PLAYBACK PIPELINE TRACE ---');
-    debugPrint('Provider: ${AppState.currentPlaylist?.name ?? "N/A"}');
-    debugPrint('Provider Type: ${AppState.currentPlaylist?.type ?? "N/A"}');
-    debugPrint('Username: ${AppState.currentPlaylist?.username ?? "N/A"}');
-    debugPrint('Server: ${AppState.currentPlaylist?.url ?? "N/A"}');
-    debugPrint('Content: ${playItem.title}');
-    debugPrint('Type: ${playItem.contentType}');
+    debugPrint('--- WATCHIO PLAYBACK PIPELINE AUDIT ---');
+    debugPrint('Provider: ${AppState.currentPlaylist!.name}');
+    debugPrint('Provider Type: ${AppState.currentPlaylist!.type}');
+    debugPrint('Content Name: ${playItem.title}');
+    debugPrint('Content Type: ${playItem.contentType}');
     debugPrint('Stream ID: ${playItem.id}');
     debugPrint('Episode ID: ${playItem.originalItem?.season != null ? playItem.id : "N/A"}');
     debugPrint('Generated URL: ${playItem.url}');
     debugPrint('User-Agent: ${playItem.headers['User-Agent']}');
+    debugPrint('Referer: ${playItem.headers['Referer']}');
+    debugPrint('Playback Engine: ${engine.name}');
     debugPrint('--------------------------------------');
 
     if (playItem.url.isEmpty || (!playItem.url.startsWith('http') && playItem.url == playItem.id)) {
@@ -145,7 +163,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
         limit: 2,
       );
       if (mounted) {
-        setState(() => _epgPrograms = programs);
+        setState(() {
+          _epgPrograms = programs;
+        });
       }
     } catch (e) {
       debugPrint('EPG Fetch Error: $e');
@@ -153,7 +173,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   }
 
   void _onPlayerStateChanged() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
     if (_currentPlaybackItem.contentType != ContentType.liveStream && 
         _playerController.isPlaying && 
         _playerController.position.inSeconds % 10 == 0) {
@@ -181,7 +203,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     _controlsTimer?.cancel();
     _controlsTimer = Timer(const Duration(seconds: 5), () {
       if (mounted && _playerController.isPlaying) {
-        setState(() => _showControls = false);
+        setState(() {
+          _showControls = false;
+        });
       }
     });
   }
@@ -209,10 +233,16 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   }
 
   void _showSliders() {
-    setState(() => _showSideSliders = true);
+    setState(() {
+      _showSideSliders = true;
+    });
     _sideSlidersTimer?.cancel();
     _sideSlidersTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted) setState(() => _showSideSliders = false);
+      if (mounted) {
+        setState(() {
+          _showSideSliders = false;
+        });
+      }
     });
   }
 
@@ -232,7 +262,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
       _epgPrograms = [];
     });
     _playerController.setDataSource(_currentPlaybackItem);
-    if (_currentPlaybackItem.isLive) _fetchEpg();
+    if (_currentPlaybackItem.isLive) {
+      _fetchEpg();
+    }
     _startControlsTimer();
   }
 
@@ -240,9 +272,13 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   void dispose() {
     _controlsTimer?.cancel();
     _sideSlidersTimer?.cancel();
-    if (_currentPlaybackItem.contentType != ContentType.liveStream) _saveHistory();
+    if (_currentPlaybackItem.contentType != ContentType.liveStream) {
+      _saveHistory();
+    }
     _playerController.removeListener(_onPlayerStateChanged);
-    _playerController.dispose();
+    if (widget.externalController == null) {
+      _playerController.dispose();
+    }
     super.dispose();
   }
 
@@ -268,16 +304,23 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
             ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
               if (hasError) return null;
               if (_showChannelList) return null;
-              if (!_showControls) _toggleControls();
-              else {
-                _playerController.isPlaying ? _playerController.pause() : _playerController.play();
+              if (!_showControls) {
+                _toggleControls();
+              } else {
+                if (_playerController.isPlaying) {
+                  _playerController.pause();
+                } else {
+                  _playerController.play();
+                }
                 _startControlsTimer();
               }
               return null;
             }),
             _ShowControlsIntent: CallbackAction<_ShowControlsIntent>(onInvoke: (_) {
               if (hasError) return null;
-              if (!_showChannelList) _toggleControls();
+              if (!_showChannelList) {
+                _toggleControls();
+              }
               return null;
             }),
             _ShowChannelListIntent: CallbackAction<_ShowChannelListIntent>(onInvoke: (_) {
@@ -288,7 +331,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
               if (hasError) return null;
               if (!_currentPlaybackItem.isLive) {
                 _playerController.seek(_playerController.position - const Duration(seconds: 10));
-                if (!_showControls) _toggleControls();
+                if (!_showControls) {
+                  _toggleControls();
+                }
               }
               return null;
             }),
@@ -296,7 +341,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
               if (hasError) return null;
               if (!_currentPlaybackItem.isLive) {
                 _playerController.seek(_playerController.position + const Duration(seconds: 30));
-                if (!_showControls) _toggleControls();
+                if (!_showControls) {
+                  _toggleControls();
+                }
               }
               return null;
             }),
@@ -406,7 +453,15 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
             ),
           ),
           const _ClockWidget(),
-          const SizedBox(width: 16),
+          const SizedBox(width: 20),
+          if (_currentPlaybackItem.isLive) ...[
+            _CircleBtn(
+              icon: _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              iconColor: _isFavorite ? Colors.redAccent : null,
+              onTap: _toggleFavorite,
+            ),
+            const SizedBox(width: 12),
+          ],
           _CircleBtn(
             icon: Icons.more_vert_rounded, 
             size: isLargeScreen ? 44 : 36,
@@ -429,7 +484,11 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
           size: btnSize,
           isPrimary: true,
           onTap: () {
-            _playerController.isPlaying ? _playerController.pause() : _playerController.play();
+            if (_playerController.isPlaying) {
+              _playerController.pause();
+            } else {
+              _playerController.play();
+            }
             _startControlsTimer();
           },
         ),
@@ -600,8 +659,16 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
                   activeColor: const Color(0xFFC12CFF),
                   inactiveColor: Colors.white10,
                   onChanged: (v) {
-                    setState(() => isBrightness ? _brightness = v : _volume = v);
-                    if (!isBrightness) _playerController.setVolume(v * 100);
+                    setState(() {
+                      if (isBrightness) {
+                        _brightness = v;
+                      } else {
+                        _volume = v;
+                      }
+                    });
+                    if (!isBrightness) {
+                      _playerController.setVolume(v * 100);
+                    }
                     _showSliders();
                   },
                 ),
@@ -750,7 +817,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     final ratios = ['Fit', 'Fill', 'Stretch', '16:9', '4:3'];
     _showTrackMenu('Aspect Ratio', ratios, (idx) {
       UserPreferences.setPlayerAspectRatio(ratios[idx].toLowerCase());
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     });
   }
 

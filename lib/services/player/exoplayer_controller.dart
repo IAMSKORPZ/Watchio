@@ -15,6 +15,7 @@ class ExoPlayerController extends AppPlayerController {
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   String? _error;
+  PlaybackItem? _currentItem;
 
   @override
   bool get isInitialized => _isInitialized;
@@ -28,6 +29,8 @@ class ExoPlayerController extends AppPlayerController {
   Duration get duration => _duration;
   @override
   String? get error => _error;
+  @override
+  PlaybackItem? get currentItem => _currentItem;
 
   @override
   Future<void> initialize() async {
@@ -39,6 +42,7 @@ class ExoPlayerController extends AppPlayerController {
   @override
   Future<void> setDataSource(PlaybackItem item) async {
     _error = null;
+    _currentItem = item;
     if (_controller != null) {
       debugPrint('ExoPlayer: Disposing previous controller');
       await _controller!.dispose();

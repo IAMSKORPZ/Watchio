@@ -9,6 +9,8 @@ abstract class AppPlayerController extends ChangeNotifier {
   Duration get duration;
   String? get error;
 
+  PlaybackItem? get currentItem;
+
   Future<void> initialize();
   Future<void> play();
   Future<void> pause();
