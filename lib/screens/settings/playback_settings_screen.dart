@@ -1,0 +1,126 @@
+import 'package:flutter/material.dart';
+import '../../models/player_engine.dart';
+import '../../repositories/user_preferences.dart';
+import '../../shared/widgets/glass_panel.dart';
+
+class PlaybackSettingsScreen extends StatefulWidget {
+  const PlaybackSettingsScreen({super.key});
+
+  @override
+  State<PlaybackSettingsScreen> createState() => _PlaybackSettingsScreenState();
+}
+
+class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
+  PlayerEngine _engine = PlayerEngine.auto;
+  bool _hardwareDecoding = true;
+  String _aspectRatio = 'fit';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final engineStr = await UserPreferences.getPlayerEngine();
+    final hardware = await UserPreferences.getHardwareDecoding();
+    final ratio = await UserPreferences.getPlayerAspectRatio();
+    
+    setState(() {
+      _engine = PlayerEngine.values.firstWhere((e) => e.name == engineStr, orElse: () => PlayerEngine.auto);
+      _hardwareDecoding = hardware;
+      _aspectRatio = ratio;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF050812),
+      appBar: AppBar(
+        title: const Text('Playback Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          _buildSection('Player Engine', [
+            _buildDropdown<PlayerEngine>(
+              value: _engine,
+              items: PlayerEngine.values,
+              onChanged: (v) {
+                if (v != null) {
+                  setState(() => _engine = v);
+                  UserPreferences.setPlayerEngine(v.name);
+                }
+              },
+              labelBuilder: (e) => e.name.toUpperCase(),
+            ),
+          ]),
+          const SizedBox(height: 24),
+          _buildSection('Hardware Acceleration', [
+            SwitchListTile(
+              title: const Text('Enable Hardware Decoding', style: TextStyle(color: Colors.white)),
+              subtitle: const Text('Uses GPU for video decoding if supported', style: TextStyle(color: Colors.white54)),
+              value: _hardwareDecoding,
+              activeColor: const Color(0xFFC12CFF),
+              onChanged: (v) {
+                setState(() => _hardwareDecoding = v);
+                UserPreferences.setHardwareDecoding(v);
+              },
+            ),
+          ]),
+          const SizedBox(height: 24),
+          _buildSection('Default Aspect Ratio', [
+            _buildDropdown<String>(
+              value: _aspectRatio,
+              items: ['fit', 'fill', 'stretch', '16:9', '4:3'],
+              onChanged: (v) {
+                if (v != null) {
+                  setState(() => _aspectRatio = v);
+                  UserPreferences.setPlayerAspectRatio(v);
+                }
+              },
+              labelBuilder: (s) => s.toUpperCase(),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title.toUpperCase(), style: const TextStyle(color: Color(0xFF00B7FF), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+        const SizedBox(height: 12),
+        GlassPanel(
+          child: Column(children: children),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdown<T>({
+    required T value,
+    required List<T> items,
+    required Function(T?) onChanged,
+    required String Function(T) labelBuilder,
+  }) {
+    return ListTile(
+      title: const Text('Value', style: TextStyle(color: Colors.white)),
+      trailing: DropdownButton<T>(
+        value: value,
+        dropdownColor: const Color(0xFF1A1D29),
+        underline: const SizedBox(),
+        items: items.map((i) => DropdownMenuItem(
+          value: i,
+          child: Text(labelBuilder(i), style: const TextStyle(color: Colors.white)),
+        )).toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+}

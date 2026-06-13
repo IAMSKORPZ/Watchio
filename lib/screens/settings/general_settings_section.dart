@@ -26,6 +26,7 @@ import '../update/update_screen.dart';
 import '../xtream-codes/xtream_code_data_loader_screen.dart';
 import 'appearance_screen.dart';
 import 'category_settings_section.dart';
+import 'playback_settings_screen.dart';
 import 'provider_list_screen.dart';
 import 'remote_config_screen.dart';
 
@@ -205,6 +206,22 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const AppearanceScreen(),
+                ),
+              );
+            },
+          ),
+        ),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.play_circle_filled_rounded),
+            title: const Text('Playback'),
+            subtitle: const Text('Player engine, decoding, and aspect ratio'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PlaybackSettingsScreen(),
                 ),
               );
             },

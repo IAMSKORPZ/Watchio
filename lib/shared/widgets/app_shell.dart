@@ -106,7 +106,7 @@ class _AppShellState extends State<AppShell> {
                 Expanded(
                   child: Column(
                     children: [
-                      if (widget.currentIndex != 0 && widget.currentIndex != 2) // Hide for Home and Live TV
+                      if (widget.currentIndex == 1 || widget.currentIndex == 5) // Only show for History and Settings
                         SafeArea(
                           bottom: false,
                           child: UniversalTopBar(
@@ -131,8 +131,8 @@ class _AppShellState extends State<AppShell> {
               ],
             ),
             floatingActionButton: widget.floatingActionButton,
-            // Hide bottom navigation bar completely in landscape or on specific pages (Home/Live TV)
-            bottomNavigationBar: (!isLandscape && widget.navItems != null && widget.currentIndex != 0 && widget.currentIndex != 2)
+            // Hide bottom navigation bar completely in landscape or on specific pages (Home, Live, Movies, Series)
+            bottomNavigationBar: (!isLandscape && widget.navItems != null && (widget.currentIndex == 1 || widget.currentIndex == 5))
                 ? BottomNavigationBar(
                     currentIndex: widget.currentIndex,
                     onTap: widget.onIndexChanged,

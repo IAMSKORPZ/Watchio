@@ -186,7 +186,7 @@ class XtreamCodeHomeController extends ChangeNotifier {
     list.add(CategoryViewModel(
       category: Category(
         categoryId: IptvRepository.virtualHistory, 
-        categoryName: 'RECENTLY WATCHED', 
+        categoryName: 'HISTORY',
         parentId: 0, 
         playlistId: playlistId, 
         type: type
@@ -219,6 +219,7 @@ class XtreamCodeHomeController extends ChangeNotifier {
         final series = await _repository.getSeries(categoryId: category.categoryId, top: top, offset: offset);
         return series?.map((x) => ContentItem(x.seriesId, x.name, x.cover ?? '', ContentType.series, seriesStream: x)).toList() ?? [];
     }
+    return [];
   }
 
   Future<int> getCategoryItemCount(Category category) async {

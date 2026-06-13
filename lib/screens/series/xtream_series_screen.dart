@@ -4,10 +4,15 @@ import '../../controllers/xtream_code_home_controller.dart';
 import '../../models/category_type.dart';
 import '../../models/category_view_model.dart';
 import '../../models/playlist_content_model.dart';
+import '../../models/content_type.dart';
+import '../../repositories/iptv_repository.dart';
+import '../../services/config_service.dart';
 import '../../shared/widgets/glass_panel.dart';
 import '../../shared/widgets/sidebar_item.dart';
 import '../../shared/widgets/poster_card.dart';
+import '../../shared/widgets/watchio_header.dart';
 import '../../utils/navigate_by_content_type.dart';
+import '../search_screen.dart';
 
 class XtreamSeriesScreen extends StatefulWidget {
   const XtreamSeriesScreen({super.key});
@@ -104,92 +109,143 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final config = context.watch<ConfigService>().config;
+    final homeBg = config.backgrounds.home;
+
     return Consumer<XtreamCodeHomeController>(
       builder: (context, controller, child) {
         if (controller.seriesCategories.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        return Row(
-          children: [
-            // Left Sidebar: Categories
-            Container(
-              width: 250,
-              padding: const EdgeInsets.all(16),
-              child: GlassPanel(
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: controller.seriesCategories.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 4),
-                  itemBuilder: (context, index) {
-                    final category = controller.seriesCategories[index];
-                    final isSelected = _selectedCategory?.category.categoryId == category.category.categoryId;
-                    return SidebarItem(
-                      icon: Icons.tv_outlined,
-                      label: category.category.categoryName,
-                      selected: isSelected,
-                      count: _categoryCounts[category.category.categoryId],
-                      onTap: () {
-                        if (!isSelected) {
-                          _onCategorySelected(category);
-                          _scrollController.jumpTo(0);
-                        }
-                      },
-                    );
-                  },
-                ),
+        return Scaffold(
+          backgroundColor: const Color(0xFF050812),
+          body: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color(0xFF050812),
+              image: DecorationImage(
+                image: (homeBg.isNotEmpty)
+                    ? NetworkImage(homeBg)
+                    : const AssetImage('assets/images/background.png') as ImageProvider,
+                fit: BoxFit.cover,
               ),
             ),
-
-            // Right Grid: Content
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8.0, bottom: 16),
-                      child: Text(
-                        _selectedCategory?.category.categoryName ?? '',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GridView.builder(
-                        controller: _scrollController,
-                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 180,
-                          childAspectRatio: 0.68,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                        ),
-                        itemCount: _currentItems.length + (_isMoreLoading ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index < _currentItems.length) {
-                            final item = _currentItems[index];
-                            return PosterCard(
-                              title: item.name,
-                              imageUrl: item.imagePath,
-                              rating: item.seriesStream?.rating,
-                              onTap: () => navigateByContentType(context, item),
-                            );
-                          } else {
-                            return const Center(child: CircularProgressIndicator());
-                          }
-                        },
-                      ),
-                    ),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0xFF050812).withValues(alpha: 0.2),
+                    const Color(0xFF050812).withValues(alpha: 0.6),
+                    const Color(0xFF050812).withValues(alpha: 0.9),
                   ],
                 ),
               ),
+              child: Column(
+                children: [
+                  WatchioHeader(
+                    onBack: () => controller.onNavigationTap(0),
+                    onSearch: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SearchScreen(contentType: ContentType.series))),
+                    onSettings: () => controller.onNavigationTap(5),
+                    onRefresh: () => controller.refreshAllData(context),
+                  ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        // Left Sidebar: Categories
+                        Container(
+                          width: 250,
+                          padding: const EdgeInsets.all(16),
+                          child: GlassPanel(
+                            child: ListView.separated(
+                              padding: const EdgeInsets.all(8),
+                              itemCount: controller.seriesCategories.length,
+                              separatorBuilder: (_, _) => const SizedBox(height: 4),
+                              itemBuilder: (context, index) {
+                                final category = controller.seriesCategories[index];
+                                final isSelected = _selectedCategory?.category.categoryId == category.category.categoryId;
+                                return SidebarItem(
+                                  icon: _getCategoryIcon(category.category.categoryId),
+                                  label: category.category.categoryName,
+                                  selected: isSelected,
+                                  count: _categoryCounts[category.category.categoryId],
+                                  onTap: () {
+                                    if (!isSelected) {
+                                      _onCategorySelected(category);
+                                      _scrollController.jumpTo(0);
+                                    }
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+
+                        // Right Grid: Content
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8.0, bottom: 16),
+                                  child: Text(
+                                    _selectedCategory?.category.categoryName ?? '',
+                                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: GridView.builder(
+                                    controller: _scrollController,
+                                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 180,
+                                      childAspectRatio: 0.68,
+                                      crossAxisSpacing: 16,
+                                      mainAxisSpacing: 16,
+                                    ),
+                                    itemCount: _currentItems.length + (_isMoreLoading ? 1 : 0),
+                                    itemBuilder: (context, index) {
+                                      if (index < _currentItems.length) {
+                                        final item = _currentItems[index];
+                                        return PosterCard(
+                                          title: item.name,
+                                          imageUrl: item.imagePath,
+                                          rating: item.seriesStream?.rating,
+                                          onTap: () => navigateByContentType(context, item),
+                                        );
+                                      } else {
+                                        return const Center(child: CircularProgressIndicator());
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         );
       },
     );
+  }
+
+  IconData _getCategoryIcon(String categoryId) {
+    if (categoryId == IptvRepository.virtualAll) return Icons.grid_view_rounded;
+    if (categoryId == IptvRepository.virtualFavorites) return Icons.favorite_rounded;
+    if (categoryId == IptvRepository.virtualHistory) return Icons.history_rounded;
+    return Icons.tv_outlined;
   }
 }

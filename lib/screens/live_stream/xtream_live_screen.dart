@@ -5,11 +5,15 @@ import 'package:provider/provider.dart';
 import '../../controllers/xtream_code_home_controller.dart';
 import '../../models/category_type.dart';
 import '../../models/category_view_model.dart';
+import '../../models/content_type.dart';
 import '../../models/playlist_content_model.dart';
+import '../../repositories/iptv_repository.dart';
 import '../../services/config_service.dart';
 import '../../services/epg_storage_service.dart';
 import '../../shared/widgets/glass_panel.dart';
+import '../../shared/widgets/watchio_header.dart';
 import '../../utils/navigate_by_content_type.dart';
+import '../search_screen.dart';
 
 class XtreamLiveScreen extends StatefulWidget {
   const XtreamLiveScreen({super.key});
@@ -196,7 +200,12 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
               child: Column(
                 children: [
                   // HEADER
-                  _buildHeader(context, controller),
+                  WatchioHeader(
+                    onBack: () => controller.onNavigationTap(0),
+                    onSearch: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SearchScreen(contentType: ContentType.liveStream))),
+                    onSettings: () => controller.onNavigationTap(5),
+                    onRefresh: () => controller.refreshAllData(context),
+                  ),
                   
                   // MAIN CONTENT (3 Columns)
                   Expanded(
@@ -236,58 +245,6 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, XtreamCodeHomeController controller) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-      child: Row(
-        children: [
-          // LEFT: Back + Logo
-          Row(
-            children: [
-              _HeaderIconButton(
-                icon: Icons.arrow_back_rounded,
-                onTap: () => controller.onNavigationTap(0), // Go back to Home tab
-              ),
-              const SizedBox(width: 16),
-              Image.asset(
-                'assets/images/App_Logo.png',
-                height: 68, // Increased from 50 (approx +35%)
-                fit: BoxFit.contain,
-              ),
-            ],
-          ),
-          
-          const Spacer(),
-          
-          // CENTER: Time & Date
-          Column(
-            children: [
-              Text(
-                DateFormat('hh:mm a').format(_now),
-                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
-              ),
-              Text(
-                DateFormat('MMM d, yyyy').format(_now),
-                style: const TextStyle(color: Color(0xFFC12CFF), fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          
-          const Spacer(),
-          
-          // RIGHT: Search + More
-          Row(
-            children: [
-              _HeaderIconButton(icon: Icons.search_rounded, onTap: () {}),
-              const SizedBox(width: 12),
-              _HeaderIconButton(icon: Icons.more_vert_rounded, onTap: () {}),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildCategoryPanel(XtreamCodeHomeController controller) {
     final categories = controller.liveCategories ?? [];
     
@@ -304,8 +261,9 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
               final isSelected = _selectedCategory?.category.categoryId == cat.category.categoryId;
               
               return _CategoryItem(
+                icon: _getCategoryIcon(cat.category.categoryId),
                 label: cat.category.categoryName.toUpperCase(),
-                count: _categoryCounts[cat.category.categoryId] ?? cat.contentItems.length,
+                count: _categoryCounts[cat.category.categoryId] ?? 0,
                 isSelected: isSelected,
                 onTap: () {
                   if (!isSelected) {
@@ -486,38 +444,12 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
       ),
     );
   }
-}
 
-class _HeaderIconButton extends StatefulWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _HeaderIconButton({required this.icon, required this.onTap});
-
-  @override
-  State<_HeaderIconButton> createState() => _HeaderIconButtonState();
-}
-
-class _HeaderIconButtonState extends State<_HeaderIconButton> {
-  bool _isFocused = false;
-  @override
-  Widget build(BuildContext context) {
-    return FocusableActionDetector(
-      onFocusChange: (v) => setState(() => _isFocused = v),
-      child: InkWell(
-        onTap: widget.onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: _isFocused ? Colors.white.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _isFocused ? const Color(0xFFC12CFF) : Colors.white10),
-          ),
-          child: Icon(widget.icon, color: _isFocused ? Colors.white : Colors.white70, size: 22),
-        ),
-      ),
-    );
+  IconData _getCategoryIcon(String categoryId) {
+    if (categoryId == IptvRepository.virtualAll) return Icons.list_rounded;
+    if (categoryId == IptvRepository.virtualFavorites) return Icons.favorite_rounded;
+    if (categoryId == IptvRepository.virtualHistory) return Icons.history_rounded;
+    return Icons.live_tv_rounded;
   }
 }
 
@@ -526,12 +458,14 @@ class _CategoryItem extends StatefulWidget {
   final int count;
   final bool isSelected;
   final VoidCallback onTap;
+  final IconData icon;
 
   const _CategoryItem({
     required this.label,
     required this.count,
     required this.isSelected,
     required this.onTap,
+    required this.icon,
   });
 
   @override
@@ -569,6 +503,12 @@ class _CategoryItemState extends State<_CategoryItem> {
             ),
             child: Row(
               children: [
+                Icon(
+                  widget.icon, 
+                  color: active ? Colors.white : Colors.white70, 
+                  size: 20
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     widget.label,

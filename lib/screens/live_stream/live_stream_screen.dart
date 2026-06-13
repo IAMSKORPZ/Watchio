@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:another_iptv_player/models/playlist_content_model.dart';
 import 'package:another_iptv_player/services/app_state.dart';
+import 'package:another_iptv_player/screens/player/unified_player_screen.dart';
 import '../../../models/content_type.dart';
 import '../../../services/event_bus.dart';
 import '../../../utils/get_playlist_type.dart';
 import '../../../widgets/loading_widget.dart';
-import '../../../widgets/player_widget.dart';
 
 class LiveStreamScreen extends StatefulWidget {
   final ContentItem content;
@@ -113,14 +113,7 @@ class _LiveStreamScreenState extends State<LiveStreamScreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: SizedBox.expand(
-          child: PlayerWidget(contentItem: widget.content, queue: allContents),
-        ),
-      ),
-    );
+    return UnifiedPlayerScreen(contentItem: widget.content, queue: allContents);
   }
 
 }

@@ -4,10 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:another_iptv_player/database/database.dart';
 import 'package:another_iptv_player/models/playlist_content_model.dart';
 import 'package:another_iptv_player/models/watch_history.dart';
+import 'package:another_iptv_player/screens/player/unified_player_screen.dart';
 import '../../../models/content_type.dart';
 import '../../../services/event_bus.dart';
 import '../../../widgets/loading_widget.dart';
-import '../../../widgets/player_widget.dart';
 
 class EpisodeScreen extends StatefulWidget {
   final SeriesInfosData? seriesInfo;
@@ -111,14 +111,7 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
     if (!allContentsLoaded) {
       return buildFullScreenLoadingWidget();
     } else {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: SafeArea(
-          child: SizedBox.expand(
-            child: PlayerWidget(contentItem: widget.contentItem, queue: allContents),
-          ),
-        ),
-      );
+      return UnifiedPlayerScreen(contentItem: widget.contentItem, queue: allContents);
     }
   }
 
