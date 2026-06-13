@@ -95,6 +95,7 @@ class ExoPlayerController extends AppPlayerController {
       
       _duration = _controller!.value.duration;
       debugPrint('ExoPlayer: Initialized Successfully. Duration: $_duration');
+      debugPrint('LIVE TV PLAYER STARTED');
       
       if (item.startPosition > Duration.zero) {
         debugPrint('ExoPlayer: Resuming at ${item.startPosition}');
@@ -195,8 +196,11 @@ class ExoPlayerController extends AppPlayerController {
 
   @override
   void dispose() {
+    debugPrint('LIVE TV PLAYER STOPPED');
+    _controller?.pause();
     _controller?.removeListener(_updateState);
     _controller?.dispose();
+    debugPrint('LIVE TV PLAYER DISPOSED');
     super.dispose();
   }
 }

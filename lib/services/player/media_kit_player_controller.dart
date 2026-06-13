@@ -111,6 +111,7 @@ class MediaKitPlayerController extends AppPlayerController {
 
     try {
       await _player.open(Media(item.url, httpHeaders: item.headers), play: true);
+      debugPrint('LIVE TV PLAYER STARTED');
       if (item.startPosition > Duration.zero) {
         debugPrint('MediaKit: Resuming at ${item.startPosition}');
         await _player.seek(item.startPosition);
@@ -167,12 +168,18 @@ class MediaKitPlayerController extends AppPlayerController {
 
   @override
   void dispose() {
+    debugPrint('LIVE TV PLAYER STOPPED');
+    try {
+      _player.pause();
+      _player.stop();
+    } catch (_) {}
     _posSub?.cancel();
     _durSub?.cancel();
     _playSub?.cancel();
     _buffSub?.cancel();
     _errSub?.cancel();
     _player.dispose();
+    debugPrint('LIVE TV PLAYER DISPOSED');
     super.dispose();
   }
 }
