@@ -18,7 +18,6 @@ import '../../services/player/app_player_controller.dart';
 import '../../services/player/player_factory.dart';
 import '../../shared/widgets/glass_panel.dart';
 import '../../shared/widgets/watchio_header.dart';
-import '../../utils/navigate_by_content_type.dart';
 import '../player/unified_player_screen.dart';
 import '../search_screen.dart';
 
@@ -48,6 +47,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
   AppPlayerController? _previewController;
   Timer? _previewDebounce;
   bool _previewFocused = false;
+  XtreamCodeHomeController? _homeController;
 
   @override
   void initState() {
@@ -56,7 +56,10 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
     _channelScrollController.addListener(_scrollListener);
     
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final controller = Provider.of<XtreamCodeHomeController>(context, listen: false);
+      _homeController = Provider.of<XtreamCodeHomeController>(context, listen: false);
+      _homeController?.addListener(_handleTabChange);
+
+      final controller = _homeController!;
       if (controller.liveCategories != null && controller.liveCategories!.isNotEmpty) {
         // Load all category counts in bulk
         final counts = await controller.getAllCategoryCounts(CategoryType.live);
@@ -71,6 +74,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
   }
 
   Future<void> _initPreviewController() async {
+    if (_previewController != null) return;
+
     final engineStr = await UserPreferences.getPlayerEngine();
     final engine = PlayerEngine.values.firstWhere(
       (e) => e.name == engineStr, 
@@ -85,8 +90,36 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
     if (mounted) setState(() {});
   }
 
+  void _handleTabChange() {
+    if (_homeController == null) return;
+    
+    // Live TV is index 2
+    if (_homeController!.currentIndex != 2) {
+      if (_previewController != null) {
+        debugPrint('XtreamLiveScreen: Tab changed, disposing preview player');
+        _previewDebounce?.cancel();
+        _previewController?.removeListener(_onPreviewStateChanged);
+        _previewController?.dispose();
+        _previewController = null;
+      }
+    } else {
+      if (_previewController == null) {
+        debugPrint('XtreamLiveScreen: Returned to Live TV tab, re-initializing preview player');
+        _restorePreview();
+      }
+    }
+  }
+
+  Future<void> _restorePreview() async {
+    await _initPreviewController();
+    if (_focusedChannel != null && mounted && _previewController != null) {
+      _previewController!.setDataSource(PlaybackItem.fromContentItem(_focusedChannel!));
+    }
+  }
+
   @override
   void dispose() {
+    _homeController?.removeListener(_handleTabChange);
     _previewDebounce?.cancel();
     _previewController?.removeListener(_onPreviewStateChanged);
     _previewController?.dispose();
@@ -433,7 +466,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
                         Image.network(
                           _focusedChannel!.imagePath,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.live_tv, size: 80, color: Colors.white10)),
+                          errorBuilder: (ctx, err, st) => const Center(child: Icon(Icons.live_tv, size: 80, color: Colors.white10)),
                         ),
                       
                       // Loading indicator for preview

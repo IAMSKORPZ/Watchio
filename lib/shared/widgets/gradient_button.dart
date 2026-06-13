@@ -10,6 +10,8 @@ class GradientButton extends StatelessWidget {
   final double height;
   final EdgeInsetsGeometry? padding;
   final IconData? icon;
+  final FocusNode? focusNode;
+  final bool autofocus;
 
   const GradientButton({
     super.key,
@@ -21,6 +23,8 @@ class GradientButton extends StatelessWidget {
     this.height = 50.0,
     this.padding,
     this.icon,
+    this.focusNode,
+    this.autofocus = false,
   });
 
   @override
@@ -43,6 +47,8 @@ class GradientButton extends StatelessWidget {
       ),
       child: ElevatedButton(
         onPressed: onPressed,
+        focusNode: focusNode,
+        autofocus: autofocus,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
