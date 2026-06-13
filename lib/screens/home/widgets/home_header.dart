@@ -6,6 +6,7 @@ class HomeHeader extends StatelessWidget {
   final VoidCallback onSearch;
   final VoidCallback onProfile;
   final VoidCallback onAbout;
+  final VoidCallback onSports;
   final VoidCallback? onAnnouncements;
 
   const HomeHeader({
@@ -13,6 +14,7 @@ class HomeHeader extends StatelessWidget {
     required this.onSearch,
     required this.onProfile,
     required this.onAbout,
+    required this.onSports,
     this.onAnnouncements,
   });
 
@@ -106,7 +108,7 @@ class HomeHeader extends StatelessWidget {
                   const SizedBox(width: 4),
                   _ToolbarItem(
                     icon: Icons.sports_soccer_rounded,
-                    onTap: () {},
+                    onTap: onSports,
                   ),
                   _ToolbarItem(
                     icon: Icons.grid_view_rounded,

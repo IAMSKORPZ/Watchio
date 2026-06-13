@@ -20,6 +20,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../movies/xtream_movies_screen.dart';
 import '../series/xtream_series_screen.dart';
 import '../live_stream/xtream_live_screen.dart';
+import '../sports/sports_hub_screen.dart';
 
 class XtreamCodeHomeScreen extends StatefulWidget {
   final Playlist playlist;
@@ -102,6 +103,14 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
     );
   }
 
+  void _showSportsHub() {
+    // We will create this screen shortly
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SportsHubScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
@@ -139,6 +148,7 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
                 onUpdate: () => controller.refreshAllData(context),
                 onSettings: () => controller.onNavigationTap(5),
                 onSearch: () => _navigateToSearch(ContentType.liveStream),
+                onSports: _showSportsHub,
                 onProfile: () => controller.onNavigationTap(5),
                 onAbout: _showAboutDialog,
                 username: userInfo?.username ?? 'Guest',

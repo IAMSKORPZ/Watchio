@@ -47,6 +47,7 @@ class _StalkerHomeScreenState extends State<StalkerHomeScreen> {
           onUpdate: () {},
           onSettings: () {},
           onSearch: () {},
+          onSports: () {},
           onProfile: () {},
           onAbout: () {},
           username: 'Stalker User',

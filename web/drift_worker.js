@@ -21511,7 +21511,7 @@
     },
     beginTransactionInContext$1(context) {
       var t1 = $.Zone__current;
-      return new A._StatementBasedTransactionExecutor(B.C_NoTransactionDelegate, new A._AsyncCompleter(new A._Future(t1, type$._Future_void), type$._AsyncCompleter_void), context, 0, "BEGIN TRANSACTION", "COMMIT TRANSACTION", "ROLLBACK TRANSACTION", this, new A.Lock());
+      return new A._StatementBasedTransactionExecutor(B.C_NoTransactionDelegate, new A._AsyncCompleter(new A._Future(t1, type$._Future_void), type$._AsyncCompleter_void), context, 0, "BEGIN IMMEDIATE", "COMMIT TRANSACTION", "ROLLBACK TRANSACTION", this, new A.Lock());
     },
     close$0() {
       return this._openingLock.synchronized$1$1(new A.DelegatedDatabase_close_closure(this), type$.void);
@@ -24155,16 +24155,11 @@
       return this.createFunction$5$argumentCount$deterministic$directOnly$function$functionName(argumentCount, deterministic, true, $function, functionName);
     },
     close$0() {
-      var t1, t2, t3, code, exception, _this = this;
+      var t1, code, exception, _this = this;
       if (_this.isClosed)
         return;
       _this.isClosed = true;
       t1 = _this.database;
-      t2 = t1.db;
-      t3 = t1.bindings.sqlite3;
-      t3.dart_sqlite3_updates(t2, null);
-      t3.dart_sqlite3_commits(t2, null);
-      t3.dart_sqlite3_rollbacks(t2, null);
       code = t1.sqlite3_close_v2$0();
       exception = code !== 0 ? A.createExceptionRaw(_this.bindings, t1, code, "closing database", null, null) : null;
       if (exception != null)
@@ -26742,6 +26737,11 @@
                 break;
               }
               rowOffset = A._asInt(A._asDouble(t[1]));
+              if (rowOffset >= A._asInt(file.length)) {
+                // goto after for
+                $async$goto = 5;
+                break;
+              }
               B.JSArray_methods.add$1(readOperations, A.Future_Future$sync(new A.AsynchronousIndexedDbFileSystem_readFully_closure(row, result, rowOffset, Math.min(4096, A._asInt(file.length) - rowOffset)), t1));
               // goto for condition
               $async$goto = 4;
@@ -26839,7 +26839,7 @@
             case 3:
               // then
               $async$goto = 5;
-              return A._asyncAwait(A.CompleteIdbRequest_complete(A._asJSObject(blocks.delete($async$self._rangeOverFile$2$startOffset(fileId, B.JSInt_methods._tdivFast$1($length, 4096) * 4096 + 1))), type$.nullable_Object), $async$truncate$2);
+              return A._asyncAwait(A.CompleteIdbRequest_complete(A._asJSObject(blocks.delete($async$self._rangeOverFile$2$startOffset(fileId, B.JSInt_methods._tdivFast$1($length, 4096) * 4096))), type$.nullable_Object), $async$truncate$2);
             case 5:
               // returning from await.
             case 4:
