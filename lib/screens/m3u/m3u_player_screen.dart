@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:another_iptv_player/screens/player/unified_player_screen.dart';
 import '../../models/playlist_content_model.dart';
-import '../../widgets/player_widget.dart';
 
 class M3uPlayerScreen extends StatefulWidget {
   final ContentItem contentItem;
@@ -47,13 +47,6 @@ class _M3uPlayerScreenState extends State<M3uPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: SizedBox.expand(
-          child: PlayerWidget(contentItem: widget.contentItem),
-        ),
-      ),
-    );
+    return UnifiedPlayerScreen(contentItem: widget.contentItem);
   }
 }

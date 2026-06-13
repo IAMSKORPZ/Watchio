@@ -11,6 +11,7 @@ import 'package:another_iptv_player/shared/widgets/glass_panel.dart';
 import 'package:another_iptv_player/shared/widgets/gradient_button.dart';
 import 'package:another_iptv_player/shared/widgets/poster_card.dart';
 import 'package:another_iptv_player/utils/get_playlist_type.dart';
+import 'package:another_iptv_player/screens/player/unified_player_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -282,7 +283,16 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
 
   Future<void> _copyShareText() async { await Clipboard.setData(ClipboardData(text: widget.contentItem.name)); if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied'))); }
 
-  void _openPlayer() { Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => _MoviePlayerPage(contentItem: widget.contentItem, queue: _categoryMovies.isNotEmpty ? _categoryMovies : [widget.contentItem]))); }
+  void _openPlayer() { 
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => UnifiedPlayerScreen(
+          contentItem: widget.contentItem, 
+          queue: _categoryMovies.isNotEmpty ? _categoryMovies : [widget.contentItem]
+        )
+      )
+    ); 
+  }
 }
 
 class _DetailEntry { final IconData icon; final String title; final String value; _DetailEntry({required this.icon, required this.title, required this.value}); }
@@ -301,20 +311,3 @@ class _DetailCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, color: Colors.white70, size: 20), const SizedBox(width: 12), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: Colors.white54, fontSize: 11)), const SizedBox(height: 2), Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13))])]));
 }
 
-class _MoviePlayerPage extends StatefulWidget {
-  final ContentItem contentItem; final List<ContentItem> queue;
-  const _MoviePlayerPage({required this.contentItem, required this.queue});
-  @override
-  State<_MoviePlayerPage> createState() => _MoviePlayerPageState();
-}
-
-class _MoviePlayerPageState extends State<_MoviePlayerPage> {
-  @override
-  void initState() { super.initState(); _hideSystemUI(); }
-  @override
-  void dispose() { _showSystemUI(); super.dispose(); }
-  void _hideSystemUI() { SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky, overlays: []); SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: Brightness.light)); }
-  void _showSystemUI() { SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge, overlays: SystemUiOverlay.values); }
-  @override
-  Widget build(BuildContext context) => Scaffold(backgroundColor: Colors.black, body: SafeArea(child: SizedBox.expand(child: PlayerWidget(contentItem: widget.contentItem, queue: widget.queue))));
-}

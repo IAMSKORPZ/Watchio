@@ -5,12 +5,12 @@ import 'package:another_iptv_player/database/database.dart';
 import 'package:another_iptv_player/models/api_configuration_model.dart';
 import 'package:another_iptv_player/models/api_response.dart';
 import 'package:another_iptv_player/models/category.dart';
+import 'package:another_iptv_player/models/content_type.dart';
 import 'package:another_iptv_player/models/live_stream.dart';
 import 'package:another_iptv_player/models/series_response.dart';
 import 'package:another_iptv_player/models/vod_streams.dart';
 import 'package:another_iptv_player/models/series.dart';
 import 'package:another_iptv_player/utils/type_convertions.dart';
-import 'package:another_iptv_player/models/content_type.dart';
 import '../models/import_progress_model.dart';
 import '../models/category_type.dart';
 import '../services/xtream_streaming_import_service.dart';
@@ -271,10 +271,6 @@ class IptvRepository {
     return counts;
   }
 
-  Future<VodStream?> findMovieById(String streamId) async {
-    return await _database.findMovieById(streamId, _playlistId);
-  }
-
   Future<LiveStream?> findLiveStreamById(String streamId) async {
     try {
       var liveStream = await _database.findLiveStreamById(
@@ -286,6 +282,10 @@ class IptvRepository {
       print('Live Channels Error: $e');
       return null;
     }
+  }
+
+  Future<VodStream?> findMovieById(String streamId) async {
+    return await _database.findMovieById(streamId, _playlistId);
   }
 
   Future<List<VodStream>?> getMoviesFromApi({

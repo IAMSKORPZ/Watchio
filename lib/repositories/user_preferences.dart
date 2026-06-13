@@ -25,6 +25,39 @@ class UserPreferences {
   static const String _keySeekGesture = 'seek_gesture';
   static const String _keySpeedUpOnLongPress = 'speed_up_on_long_press';
   static const String _keySeekOnDoubleTap = 'seek_on_double_tap';
+  static const String _keyPlayerEngine = 'player_engine';
+  static const String _keyHardwareDecoding = 'hardware_decoding';
+  static const String _keyAspectRatio = 'player_aspect_ratio';
+
+  static Future<void> setPlayerEngine(String engine) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyPlayerEngine, engine);
+  }
+
+  static Future<String> getPlayerEngine() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyPlayerEngine) ?? 'auto';
+  }
+
+  static Future<void> setHardwareDecoding(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyHardwareDecoding, value);
+  }
+
+  static Future<bool> getHardwareDecoding() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyHardwareDecoding) ?? true;
+  }
+
+  static Future<void> setPlayerAspectRatio(String ratio) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyAspectRatio, ratio);
+  }
+
+  static Future<String> getPlayerAspectRatio() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyAspectRatio) ?? 'fit';
+  }
 
   static Future<void> setLastPlaylist(String playlistId) async {
     final prefs = await SharedPreferences.getInstance();
