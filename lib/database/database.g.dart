@@ -10292,28 +10292,46 @@ class $FootballCachesTable extends FootballCaches
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _dataMeta = const VerificationMeta('data');
+  static const VerificationMeta _responseJsonMeta = const VerificationMeta(
+    'responseJson',
+  );
   @override
-  late final GeneratedColumn<String> data = GeneratedColumn<String>(
-    'data',
+  late final GeneratedColumn<String> responseJson = GeneratedColumn<String>(
+    'response_json',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _timestampMeta = const VerificationMeta(
-    'timestamp',
+  static const VerificationMeta _cachedAtMeta = const VerificationMeta(
+    'cachedAt',
   );
   @override
-  late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
-    'timestamp',
+  late final GeneratedColumn<int> cachedAt = GeneratedColumn<int>(
+    'cached_at',
     aliasedName,
     false,
-    type: DriftSqlType.dateTime,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _expiresAtMeta = const VerificationMeta(
+    'expiresAt',
+  );
+  @override
+  late final GeneratedColumn<int> expiresAt = GeneratedColumn<int>(
+    'expires_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [cacheKey, data, timestamp];
+  List<GeneratedColumn> get $columns => [
+    cacheKey,
+    responseJson,
+    cachedAt,
+    expiresAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -10334,21 +10352,32 @@ class $FootballCachesTable extends FootballCaches
     } else if (isInserting) {
       context.missing(_cacheKeyMeta);
     }
-    if (data.containsKey('data')) {
+    if (data.containsKey('response_json')) {
       context.handle(
-        _dataMeta,
-        this.data.isAcceptableOrUnknown(data['data']!, _dataMeta),
+        _responseJsonMeta,
+        responseJson.isAcceptableOrUnknown(
+          data['response_json']!,
+          _responseJsonMeta,
+        ),
       );
     } else if (isInserting) {
-      context.missing(_dataMeta);
+      context.missing(_responseJsonMeta);
     }
-    if (data.containsKey('timestamp')) {
+    if (data.containsKey('cached_at')) {
       context.handle(
-        _timestampMeta,
-        timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta),
+        _cachedAtMeta,
+        cachedAt.isAcceptableOrUnknown(data['cached_at']!, _cachedAtMeta),
       );
     } else if (isInserting) {
-      context.missing(_timestampMeta);
+      context.missing(_cachedAtMeta);
+    }
+    if (data.containsKey('expires_at')) {
+      context.handle(
+        _expiresAtMeta,
+        expiresAt.isAcceptableOrUnknown(data['expires_at']!, _expiresAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_expiresAtMeta);
     }
     return context;
   }
@@ -10363,13 +10392,17 @@ class $FootballCachesTable extends FootballCaches
         DriftSqlType.string,
         data['${effectivePrefix}cache_key'],
       )!,
-      data: attachedDatabase.typeMapping.read(
+      responseJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}data'],
+        data['${effectivePrefix}response_json'],
       )!,
-      timestamp: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}timestamp'],
+      cachedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cached_at'],
+      )!,
+      expiresAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}expires_at'],
       )!,
     );
   }
@@ -10383,27 +10416,31 @@ class $FootballCachesTable extends FootballCaches
 class FootballCacheData extends DataClass
     implements Insertable<FootballCacheData> {
   final String cacheKey;
-  final String data;
-  final DateTime timestamp;
+  final String responseJson;
+  final int cachedAt;
+  final int expiresAt;
   const FootballCacheData({
     required this.cacheKey,
-    required this.data,
-    required this.timestamp,
+    required this.responseJson,
+    required this.cachedAt,
+    required this.expiresAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['cache_key'] = Variable<String>(cacheKey);
-    map['data'] = Variable<String>(data);
-    map['timestamp'] = Variable<DateTime>(timestamp);
+    map['response_json'] = Variable<String>(responseJson);
+    map['cached_at'] = Variable<int>(cachedAt);
+    map['expires_at'] = Variable<int>(expiresAt);
     return map;
   }
 
   FootballCachesCompanion toCompanion(bool nullToAbsent) {
     return FootballCachesCompanion(
       cacheKey: Value(cacheKey),
-      data: Value(data),
-      timestamp: Value(timestamp),
+      responseJson: Value(responseJson),
+      cachedAt: Value(cachedAt),
+      expiresAt: Value(expiresAt),
     );
   }
 
@@ -10414,8 +10451,9 @@ class FootballCacheData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return FootballCacheData(
       cacheKey: serializer.fromJson<String>(json['cacheKey']),
-      data: serializer.fromJson<String>(json['data']),
-      timestamp: serializer.fromJson<DateTime>(json['timestamp']),
+      responseJson: serializer.fromJson<String>(json['responseJson']),
+      cachedAt: serializer.fromJson<int>(json['cachedAt']),
+      expiresAt: serializer.fromJson<int>(json['expiresAt']),
     );
   }
   @override
@@ -10423,25 +10461,31 @@ class FootballCacheData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'cacheKey': serializer.toJson<String>(cacheKey),
-      'data': serializer.toJson<String>(data),
-      'timestamp': serializer.toJson<DateTime>(timestamp),
+      'responseJson': serializer.toJson<String>(responseJson),
+      'cachedAt': serializer.toJson<int>(cachedAt),
+      'expiresAt': serializer.toJson<int>(expiresAt),
     };
   }
 
   FootballCacheData copyWith({
     String? cacheKey,
-    String? data,
-    DateTime? timestamp,
+    String? responseJson,
+    int? cachedAt,
+    int? expiresAt,
   }) => FootballCacheData(
     cacheKey: cacheKey ?? this.cacheKey,
-    data: data ?? this.data,
-    timestamp: timestamp ?? this.timestamp,
+    responseJson: responseJson ?? this.responseJson,
+    cachedAt: cachedAt ?? this.cachedAt,
+    expiresAt: expiresAt ?? this.expiresAt,
   );
   FootballCacheData copyWithCompanion(FootballCachesCompanion data) {
     return FootballCacheData(
       cacheKey: data.cacheKey.present ? data.cacheKey.value : this.cacheKey,
-      data: data.data.present ? data.data.value : this.data,
-      timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
+      responseJson: data.responseJson.present
+          ? data.responseJson.value
+          : this.responseJson,
+      cachedAt: data.cachedAt.present ? data.cachedAt.value : this.cachedAt,
+      expiresAt: data.expiresAt.present ? data.expiresAt.value : this.expiresAt,
     );
   }
 
@@ -10449,66 +10493,76 @@ class FootballCacheData extends DataClass
   String toString() {
     return (StringBuffer('FootballCacheData(')
           ..write('cacheKey: $cacheKey, ')
-          ..write('data: $data, ')
-          ..write('timestamp: $timestamp')
+          ..write('responseJson: $responseJson, ')
+          ..write('cachedAt: $cachedAt, ')
+          ..write('expiresAt: $expiresAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(cacheKey, data, timestamp);
+  int get hashCode => Object.hash(cacheKey, responseJson, cachedAt, expiresAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is FootballCacheData &&
           other.cacheKey == this.cacheKey &&
-          other.data == this.data &&
-          other.timestamp == this.timestamp);
+          other.responseJson == this.responseJson &&
+          other.cachedAt == this.cachedAt &&
+          other.expiresAt == this.expiresAt);
 }
 
 class FootballCachesCompanion extends UpdateCompanion<FootballCacheData> {
   final Value<String> cacheKey;
-  final Value<String> data;
-  final Value<DateTime> timestamp;
+  final Value<String> responseJson;
+  final Value<int> cachedAt;
+  final Value<int> expiresAt;
   final Value<int> rowid;
   const FootballCachesCompanion({
     this.cacheKey = const Value.absent(),
-    this.data = const Value.absent(),
-    this.timestamp = const Value.absent(),
+    this.responseJson = const Value.absent(),
+    this.cachedAt = const Value.absent(),
+    this.expiresAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FootballCachesCompanion.insert({
     required String cacheKey,
-    required String data,
-    required DateTime timestamp,
+    required String responseJson,
+    required int cachedAt,
+    required int expiresAt,
     this.rowid = const Value.absent(),
   }) : cacheKey = Value(cacheKey),
-       data = Value(data),
-       timestamp = Value(timestamp);
+       responseJson = Value(responseJson),
+       cachedAt = Value(cachedAt),
+       expiresAt = Value(expiresAt);
   static Insertable<FootballCacheData> custom({
     Expression<String>? cacheKey,
-    Expression<String>? data,
-    Expression<DateTime>? timestamp,
+    Expression<String>? responseJson,
+    Expression<int>? cachedAt,
+    Expression<int>? expiresAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (cacheKey != null) 'cache_key': cacheKey,
-      if (data != null) 'data': data,
-      if (timestamp != null) 'timestamp': timestamp,
+      if (responseJson != null) 'response_json': responseJson,
+      if (cachedAt != null) 'cached_at': cachedAt,
+      if (expiresAt != null) 'expires_at': expiresAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
 
   FootballCachesCompanion copyWith({
     Value<String>? cacheKey,
-    Value<String>? data,
-    Value<DateTime>? timestamp,
+    Value<String>? responseJson,
+    Value<int>? cachedAt,
+    Value<int>? expiresAt,
     Value<int>? rowid,
   }) {
     return FootballCachesCompanion(
       cacheKey: cacheKey ?? this.cacheKey,
-      data: data ?? this.data,
-      timestamp: timestamp ?? this.timestamp,
+      responseJson: responseJson ?? this.responseJson,
+      cachedAt: cachedAt ?? this.cachedAt,
+      expiresAt: expiresAt ?? this.expiresAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -10519,11 +10573,14 @@ class FootballCachesCompanion extends UpdateCompanion<FootballCacheData> {
     if (cacheKey.present) {
       map['cache_key'] = Variable<String>(cacheKey.value);
     }
-    if (data.present) {
-      map['data'] = Variable<String>(data.value);
+    if (responseJson.present) {
+      map['response_json'] = Variable<String>(responseJson.value);
     }
-    if (timestamp.present) {
-      map['timestamp'] = Variable<DateTime>(timestamp.value);
+    if (cachedAt.present) {
+      map['cached_at'] = Variable<int>(cachedAt.value);
+    }
+    if (expiresAt.present) {
+      map['expires_at'] = Variable<int>(expiresAt.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -10535,8 +10592,9 @@ class FootballCachesCompanion extends UpdateCompanion<FootballCacheData> {
   String toString() {
     return (StringBuffer('FootballCachesCompanion(')
           ..write('cacheKey: $cacheKey, ')
-          ..write('data: $data, ')
-          ..write('timestamp: $timestamp, ')
+          ..write('responseJson: $responseJson, ')
+          ..write('cachedAt: $cachedAt, ')
+          ..write('expiresAt: $expiresAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -15498,15 +15556,17 @@ typedef $$FavoritesTableProcessedTableManager =
 typedef $$FootballCachesTableCreateCompanionBuilder =
     FootballCachesCompanion Function({
       required String cacheKey,
-      required String data,
-      required DateTime timestamp,
+      required String responseJson,
+      required int cachedAt,
+      required int expiresAt,
       Value<int> rowid,
     });
 typedef $$FootballCachesTableUpdateCompanionBuilder =
     FootballCachesCompanion Function({
       Value<String> cacheKey,
-      Value<String> data,
-      Value<DateTime> timestamp,
+      Value<String> responseJson,
+      Value<int> cachedAt,
+      Value<int> expiresAt,
       Value<int> rowid,
     });
 
@@ -15524,13 +15584,18 @@ class $$FootballCachesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get data => $composableBuilder(
-    column: $table.data,
+  ColumnFilters<String> get responseJson => $composableBuilder(
+    column: $table.responseJson,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<DateTime> get timestamp => $composableBuilder(
-    column: $table.timestamp,
+  ColumnFilters<int> get cachedAt => $composableBuilder(
+    column: $table.cachedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -15549,13 +15614,18 @@ class $$FootballCachesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get data => $composableBuilder(
-    column: $table.data,
+  ColumnOrderings<String> get responseJson => $composableBuilder(
+    column: $table.responseJson,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<DateTime> get timestamp => $composableBuilder(
-    column: $table.timestamp,
+  ColumnOrderings<int> get cachedAt => $composableBuilder(
+    column: $table.cachedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -15572,11 +15642,16 @@ class $$FootballCachesTableAnnotationComposer
   GeneratedColumn<String> get cacheKey =>
       $composableBuilder(column: $table.cacheKey, builder: (column) => column);
 
-  GeneratedColumn<String> get data =>
-      $composableBuilder(column: $table.data, builder: (column) => column);
+  GeneratedColumn<String> get responseJson => $composableBuilder(
+    column: $table.responseJson,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<DateTime> get timestamp =>
-      $composableBuilder(column: $table.timestamp, builder: (column) => column);
+  GeneratedColumn<int> get cachedAt =>
+      $composableBuilder(column: $table.cachedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get expiresAt =>
+      $composableBuilder(column: $table.expiresAt, builder: (column) => column);
 }
 
 class $$FootballCachesTableTableManager
@@ -15617,25 +15692,29 @@ class $$FootballCachesTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> cacheKey = const Value.absent(),
-                Value<String> data = const Value.absent(),
-                Value<DateTime> timestamp = const Value.absent(),
+                Value<String> responseJson = const Value.absent(),
+                Value<int> cachedAt = const Value.absent(),
+                Value<int> expiresAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FootballCachesCompanion(
                 cacheKey: cacheKey,
-                data: data,
-                timestamp: timestamp,
+                responseJson: responseJson,
+                cachedAt: cachedAt,
+                expiresAt: expiresAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
               ({
                 required String cacheKey,
-                required String data,
-                required DateTime timestamp,
+                required String responseJson,
+                required int cachedAt,
+                required int expiresAt,
                 Value<int> rowid = const Value.absent(),
               }) => FootballCachesCompanion.insert(
                 cacheKey: cacheKey,
-                data: data,
-                timestamp: timestamp,
+                responseJson: responseJson,
+                cachedAt: cachedAt,
+                expiresAt: expiresAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

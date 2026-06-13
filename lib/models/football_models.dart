@@ -67,11 +67,16 @@ class FootballMatch {
   });
 
   factory FootballMatch.fromJson(Map<String, dynamic> json) {
+    String compName = 'Unknown Competition';
+    if (json['competition'] != null) {
+      compName = json['competition']['name'] ?? 'Unknown Competition';
+    }
+
     return FootballMatch(
       id: json['id'],
       status: json['status'],
       utcDate: DateTime.parse(json['utcDate']),
-      competitionName: json['competition']['name'],
+      competitionName: compName,
       homeTeam: FootballTeam.fromJson(json['homeTeam']),
       awayTeam: FootballTeam.fromJson(json['awayTeam']),
       score: FootballScore.fromJson(json['score']),

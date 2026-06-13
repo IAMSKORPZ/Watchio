@@ -10,12 +10,17 @@ import 'package:another_iptv_player/models/series_response.dart';
 import 'package:another_iptv_player/models/vod_streams.dart';
 import 'package:another_iptv_player/models/series.dart';
 import 'package:another_iptv_player/utils/type_convertions.dart';
+import 'package:another_iptv_player/models/content_type.dart';
 import '../models/import_progress_model.dart';
 import '../models/category_type.dart';
 import '../services/xtream_streaming_import_service.dart';
 import 'package:another_iptv_player/services/service_locator.dart';
 
 class IptvRepository {
+  static const String virtualAll = 'virtual_all';
+  static const String virtualFavorites = 'virtual_favorites';
+  static const String virtualHistory = 'virtual_history';
+
   final ApiConfig _config;
   final String _playlistId;
   final _database = getIt<AppDatabase>();
@@ -175,6 +180,26 @@ class IptvRepository {
     int offset = 0,
   }) async {
     try {
+      if (categoryId == virtualAll) {
+        return await _database.getLiveStreams(_playlistId, top: top, offset: offset);
+      } else if (categoryId == virtualFavorites) {
+        final favorites = await _database.getFavoritesByContentType(_playlistId, ContentType.liveStream);
+        final streams = <LiveStream>[];
+        for (var fav in favorites) {
+          final s = await findLiveStreamById(fav.streamId);
+          if (s != null) streams.add(s);
+        }
+        return streams;
+      } else if (categoryId == virtualHistory) {
+        final history = await _database.getWatchHistoriesByContentType(_playlistId, ContentType.liveStream);
+        final streams = <LiveStream>[];
+        for (var h in history) {
+          final s = await findLiveStreamById(h.streamId);
+          if (s != null) streams.add(s);
+        }
+        return streams;
+      }
+
       var liveStreams = await _database.getLiveStreamsByCategoryId(
         _playlistId,
         categoryId,
@@ -189,6 +214,65 @@ class IptvRepository {
       return null;
     }
     return null;
+  }
+
+  Future<int> getItemCountByCategory(String categoryId, CategoryType type) async {
+    if (categoryId == virtualAll) {
+      switch (type) {
+        case CategoryType.live: return await _database.getTotalLiveStreamCount(_playlistId);
+        case CategoryType.vod: return await _database.getTotalVodStreamCount(_playlistId);
+        case CategoryType.series: return await _database.getTotalSeriesStreamCount(_playlistId);
+      }
+    } else if (categoryId == virtualFavorites) {
+      return await _database.getFavoriteCountByContentType(_playlistId, _getContentTypeFromCategoryType(type));
+    } else if (categoryId == virtualHistory) {
+      return await _database.getWatchHistoryCountByContentType(_playlistId, _getContentTypeFromCategoryType(type));
+    }
+
+    switch (type) {
+      case CategoryType.live:
+        return await _database.getLiveStreamCountByCategoryId(_playlistId, categoryId);
+      case CategoryType.vod:
+        return await _database.getVodStreamCountByCategoryId(_playlistId, categoryId);
+      case CategoryType.series:
+        return await _database.getSeriesStreamCountByCategoryId(_playlistId, categoryId);
+    }
+  }
+
+  ContentType _getContentTypeFromCategoryType(CategoryType type) {
+    switch (type) {
+      case CategoryType.live: return ContentType.liveStream;
+      case CategoryType.vod: return ContentType.vod;
+      case CategoryType.series: return ContentType.series;
+    }
+  }
+
+  Future<Map<String, int>> getAllCategoryCounts(CategoryType type) async {
+    final counts = <String, int>{};
+    
+    // Virtual All
+    counts[virtualAll] = await getItemCountByCategory(virtualAll, type);
+    
+    // Virtual Favorites
+    counts[virtualFavorites] = await getItemCountByCategory(virtualFavorites, type);
+    
+    // Virtual History
+    counts[virtualHistory] = await getItemCountByCategory(virtualHistory, type);
+
+    // Provider categories
+    Map<String, int> providerCounts;
+    switch (type) {
+      case CategoryType.live: providerCounts = await _database.getLiveStreamCounts(_playlistId); break;
+      case CategoryType.vod: providerCounts = await _database.getVodStreamCounts(_playlistId); break;
+      case CategoryType.series: providerCounts = await _database.getSeriesStreamCounts(_playlistId); break;
+    }
+    counts.addAll(providerCounts);
+    
+    return counts;
+  }
+
+  Future<VodStream?> findMovieById(String streamId) async {
+    return await _database.findMovieById(streamId, _playlistId);
   }
 
   Future<LiveStream?> findLiveStreamById(String streamId) async {
@@ -250,6 +334,26 @@ class IptvRepository {
     int offset = 0,
   }) async {
     try {
+      if (categoryId == virtualAll) {
+        return await _database.getVodStreamsByPlaylistId(_playlistId, top: top, offset: offset);
+      } else if (categoryId == virtualFavorites) {
+        final favorites = await _database.getFavoritesByContentType(_playlistId, ContentType.vod);
+        final movies = <VodStream>[];
+        for (var fav in favorites) {
+          final m = await findMovieById(fav.streamId);
+          if (m != null) movies.add(m);
+        }
+        return movies;
+      } else if (categoryId == virtualHistory) {
+        final history = await _database.getWatchHistoriesByContentType(_playlistId, ContentType.vod);
+        final movies = <VodStream>[];
+        for (var h in history) {
+          final m = await findMovieById(h.streamId);
+          if (m != null) movies.add(m);
+        }
+        return movies;
+      }
+
       if (categoryId != null) {
         var vodStreams = await _database.getVodStreamsByCategoryAndPlaylistId(
           categoryId: categoryId,
@@ -262,7 +366,7 @@ class IptvRepository {
           return vodStreams;
         }
       } else {
-        var vodStreams = await _database.getVodStreamsByPlaylistId(_playlistId);
+        var vodStreams = await _database.getVodStreamsByPlaylistId(_playlistId, top: top, offset: offset);
 
         if (vodStreams.isNotEmpty) {
           return vodStreams;
@@ -320,6 +424,26 @@ class IptvRepository {
      int offset = 0,
    }) async {
      try {
+       if (categoryId == virtualAll) {
+         return await _database.getSeriesStreamsByPlaylistId(_playlistId, top: top, offset: offset);
+       } else if (categoryId == virtualFavorites) {
+         final favorites = await _database.getFavoritesByContentType(_playlistId, ContentType.series);
+         final series = <SeriesStream>[];
+         for (var fav in favorites) {
+           final s = await findSeriesStreamById(fav.streamId);
+           if (s != null) series.add(s);
+         }
+         return series;
+       } else if (categoryId == virtualHistory) {
+         final history = await _database.getWatchHistoriesByContentType(_playlistId, ContentType.series);
+         final series = <SeriesStream>[];
+         for (var h in history) {
+           final s = await findSeriesStreamById(h.streamId);
+           if (s != null) series.add(s);
+         }
+         return series;
+       }
+
        if (categoryId != null) {
          var series = await _database.getSeriesStreamsByCategoryAndPlaylistId(
            categoryId: categoryId,
@@ -332,7 +456,7 @@ class IptvRepository {
            return series;
          }
        } else {
-         var series = await _database.getSeriesStreamsByPlaylistId(_playlistId);
+         var series = await _database.getSeriesStreamsByPlaylistId(_playlistId, top: top, offset: offset);
 
          if (series.isNotEmpty) {
            return series;
@@ -342,6 +466,10 @@ class IptvRepository {
       return null;
     }
     return null;
+  }
+
+  Future<SeriesStream?> findSeriesStreamById(String seriesId) async {
+    return await _database.findSeriesStreamById(seriesId, _playlistId);
   }
 
    /// Fetch VOD movie info from API

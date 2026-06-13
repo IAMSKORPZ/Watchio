@@ -53,9 +53,10 @@ class M3uRepository {
 
   Future<List<M3uItem>?> getM3uItems({
     int? top,
+    int offset = 0,
     ContentType? contentType,
   }) async {
-    var liveStreams = await _database.getM3uItemsByPlaylist(_playlistId);
+    var liveStreams = await _database.getM3uItemsByPlaylist(_playlistId, top: top, offset: offset);
 
     if (liveStreams.isNotEmpty) {
       return liveStreams;

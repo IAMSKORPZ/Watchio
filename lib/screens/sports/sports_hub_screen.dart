@@ -6,6 +6,7 @@ import '../../models/football_models.dart';
 import '../../services/football_data_service.dart';
 import '../../services/config_service.dart';
 import '../../shared/widgets/glass_panel.dart';
+import '../../models/live_stream.dart';
 import '../../models/playlist_content_model.dart';
 import '../../models/content_type.dart';
 import '../../utils/navigate_by_content_type.dart';
@@ -45,9 +46,13 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      // For now we just load today's matches. 
-      // In a full implementation we might fetch live, upcoming, and results separately.
-      final matches = await _footballService.getTodayMatches();
+      final List<FootballMatch> matches;
+      if (_selectedSection == 'UPCOMING') {
+        matches = await _footballService.getUpcomingMatches();
+      } else {
+        matches = await _footballService.getTodayMatches();
+      }
+      
       if (mounted) {
         setState(() {
           _allMatches = matches;
@@ -55,7 +60,12 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading sports data: $e')),
+        );
+      }
     }
   }
 
@@ -64,12 +74,19 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
       case 'LIVE':
         return _allMatches.where((m) => m.isLive).toList();
       case 'UPCOMING':
-        return _allMatches.where((m) => m.status == 'TIMED' || m.status == 'SCHEDULED').toList();
+        // getUpcomingMatches already filters for future dates, 
+        // but let's be sure it fits the tab logic.
+        return _allMatches.where((m) => m.status == 'TIMED' || m.status == 'SCHEDULED' || m.utcDate.isAfter(DateTime.now())).toList();
       case 'RESULTS':
         return _allMatches.where((m) => m.isFinished).toList();
       case 'TODAY':
       default:
-        return _allMatches;
+        // Filter for matches occurring today in local time
+        final today = DateTime.now();
+        return _allMatches.where((m) {
+          final localDate = m.utcDate.toLocal();
+          return localDate.year == today.year && localDate.month == today.month && localDate.day == today.day;
+        }).toList();
     }
   }
 
@@ -152,7 +169,7 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
             ],
           ),
           const Spacer(),
-          _HeaderIconButton(icon: Icons.search_rounded, onTap: () {}),
+          _HeaderIconButton(icon: Icons.refresh_rounded, onTap: _loadData), // Change to refresh
           const SizedBox(width: 12),
           _HeaderIconButton(icon: Icons.more_vert_rounded, onTap: () {}),
         ],
@@ -169,7 +186,10 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
         children: sections.map((s) => _SectionTab(
           label: s, 
           isSelected: _selectedSection == s,
-          onTap: () => setState(() => _selectedSection = s),
+          onTap: () {
+            setState(() => _selectedSection = s);
+            _loadData();
+          },
         )).toList(),
       ),
     );
@@ -179,9 +199,28 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
     final matches = _filteredMatches;
     if (matches.isEmpty) {
       return Center(
-        child: Text(
-          'No matches found for $_selectedSection',
-          style: const TextStyle(color: Colors.white54, fontSize: 18),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _selectedSection == 'TODAY' ? 'No matches today' : 'No matches found for $_selectedSection',
+              style: const TextStyle(color: Colors.white54, fontSize: 18),
+            ),
+            if (_selectedSection == 'TODAY') ...[
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() => _selectedSection = 'UPCOMING');
+                  _loadData();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC12CFF),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('View upcoming matches', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ],
         ),
       );
     }
@@ -281,31 +320,39 @@ class _MatchCardState extends State<_MatchCard> {
   }
 
   Future<void> _findIptvChannels() async {
-    // Attempt to match IPTV channels
-    // This is a simplified matching logic. 
-    // In production, we would have a mapping of leagues/teams to common sports channels.
     final repo = AppState.xtreamCodeRepository;
     if (repo == null) {
       setState(() => _isCheckingChannels = false);
       return;
     }
 
-    final sportsKeywords = ['Sky Sports', 'TNT Sports', 'Premier Sports', 'DAZN', 'ESPN', 'BeIN', 'SuperSport', 'Eurosport'];
-    
     try {
       final matches = <ContentItem>[];
       
-      // Attempt to find coverage by searching for sports provider names
-      for (final keyword in sportsKeywords) {
-        final searchResults = await repo.searchLiveStreams(keyword, limit: 1);
-        if (searchResults.isNotEmpty) {
-          matches.addAll(searchResults.map((ls) => ContentItem(
+      // 1. Try to match by team names
+      final homeResults = await repo.searchLiveStreams(widget.match.homeTeam.name, limit: 2);
+      final awayResults = await repo.searchLiveStreams(widget.match.awayTeam.name, limit: 2);
+      
+      // 2. Try to match by competition short names/keywords
+      final competitionKeywords = _getCompetitionKeywords(widget.match.competitionName);
+      final compResults = <LiveStream>[];
+      for (var kw in competitionKeywords) {
+        final res = await repo.searchLiveStreams(kw, limit: 2);
+        compResults.addAll(res);
+      }
+
+      // Merge results, avoiding duplicates
+      final seenIds = <String>{};
+      for (var ls in [...homeResults, ...awayResults, ...compResults]) {
+        if (!seenIds.contains(ls.streamId)) {
+          matches.add(ContentItem(
             ls.streamId, 
             ls.name, 
             ls.streamIcon, 
             ContentType.liveStream,
             liveStream: ls,
-          )));
+          ));
+          seenIds.add(ls.streamId);
         }
       }
 
@@ -318,6 +365,15 @@ class _MatchCardState extends State<_MatchCard> {
     } catch (_) {
       if (mounted) setState(() => _isCheckingChannels = false);
     }
+  }
+
+  List<String> _getCompetitionKeywords(String name) {
+    if (name.contains('Premier League')) return ['Sky Sports Premier League', 'TNT Sports 1', 'TNT Sports 2'];
+    if (name.contains('Champions League')) return ['TNT Sports', 'beIN Sports'];
+    if (name.contains('La Liga')) return ['Viaplay Sports', 'LaLiga TV'];
+    if (name.contains('Bundesliga')) return ['Sky Sports Football'];
+    if (name.contains('Serie A')) return ['TNT Sports'];
+    return ['Sky Sports', 'TNT Sports', 'Eurosport', 'DAZN'];
   }
 
   @override

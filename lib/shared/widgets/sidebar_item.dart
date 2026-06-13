@@ -7,6 +7,7 @@ class SidebarItem extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final bool isCollapsed;
+  final int? count;
 
   const SidebarItem({
     super.key,
@@ -15,6 +16,7 @@ class SidebarItem extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.isCollapsed = false,
+    this.count,
   });
 
   @override
@@ -53,8 +55,21 @@ class SidebarItem extends StatelessWidget {
                     fontSize: 16,
                     fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (count != null) ...[
+                const SizedBox(width: 8),
+                Text(
+                  '$count',
+                  style: TextStyle(
+                    color: selected ? Colors.white.withValues(alpha: 0.5) : colorScheme.onSurface.withValues(alpha: 0.3),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ],
           ],
         ),
