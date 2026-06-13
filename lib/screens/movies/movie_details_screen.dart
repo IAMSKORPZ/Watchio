@@ -5,11 +5,11 @@ import 'package:another_iptv_player/repositories/iptv_repository.dart';
 import 'package:another_iptv_player/services/app_state.dart';
 import 'package:another_iptv_player/utils/get_playlist_type.dart';
 import 'package:another_iptv_player/screens/player/unified_player_screen.dart';
-import 'package:another_iptv_player/services/tmdb_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../controllers/favorites_controller.dart';
+import '../../../services/tmdb_service.dart';
 
 class MovieDetailsScreen extends StatefulWidget {
   final ContentItem contentItem;
@@ -195,7 +195,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                               if (genre != null) _buildMetadataRow('Genre:', genre),
                               if (cast != null) _buildMetadataRow('Cast:', cast, maxLines: 1),
                               
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 6), // Tight spacing
                               
                               // BUTTONS
                               Row(
@@ -206,14 +206,10 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                                 ],
                               ),
 
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6), // Tight spacing
                               
                               // DESCRIPTION (max 2 lines) - respect width of metadata column
-                              if (plot != null) 
-                                ConstrainedBox(
-                                  constraints: const BoxConstraints(maxWidth: 600),
-                                  child: _buildDescription(plot),
-                                ),
+                              if (plot != null) _buildDescription(plot),
                             ],
                           ),
                         ),
@@ -266,19 +262,25 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         const SizedBox(width: 16),
-        const Text(
-          'WATCHIO',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.0,
+        // WATCHIO LOGO - Restored
+        Image.asset(
+          'assets/images/App_Logo.png',
+          height: 44, // 40-50px requirement
+          fit: BoxFit.contain,
+          errorBuilder: (ctx, err, st) => const Text(
+            'WATCHIO',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.0,
+            ),
           ),
         ),
         const Spacer(),
-        // CENTER TITLE - Moved down slightly for alignment
+        // CENTER TITLE
         Padding(
-          padding: const EdgeInsets.only(top: 16.0),
+          padding: const EdgeInsets.only(top: 16.0), // Maintained alignment from approved pass
           child: Text(
             year.isNotEmpty ? '"$title" ($year)' : '"$title"',
             style: const TextStyle(
@@ -299,7 +301,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
               icon: const Icon(Icons.more_vert, color: Colors.white, size: 32),
               onPressed: () {},
             ),
-            const SizedBox(height: 2), // Moved even closer
+            const SizedBox(height: 2), // Kept closer underneath as approved
             IconButton(
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -321,8 +323,8 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 140,
-          height: 210,
+          width: 140, 
+          height: 210, 
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),
             border: Border.all(color: Colors.white24, width: 1),
@@ -345,7 +347,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
               : Container(color: Colors.white10),
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 4), // Stars closer to poster
         _buildStars(rating),
       ],
     );
@@ -455,7 +457,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
         borderRadius: BorderRadius.circular(6),
         child: Container(
           width: 150,
-          height: 46,
+          height: 46, // Height matching Play
           alignment: Alignment.center,
           decoration: BoxDecoration(
             border: Border.all(color: Colors.white12),
