@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import '../../utils/get_playlist_type.dart';
+import '../app_state.dart';
 import 'app_player_controller.dart';
 import '../../models/playback_item.dart';
 
@@ -38,26 +40,35 @@ class ExoPlayerController extends AppPlayerController {
   Future<void> setDataSource(PlaybackItem item) async {
     _error = null;
     if (_controller != null) {
+      debugPrint('ExoPlayer: Disposing previous controller');
       await _controller!.dispose();
+      _controller = null;
     }
 
-    debugPrint('--- PLAYBACK START ---');
-    debugPrint('Title: ${item.title}');
-    debugPrint('Type: ${item.contentType}');
-    debugPrint('URL: ${item.url}');
-    debugPrint('Headers: ${item.headers}');
-    debugPrint('---');
+    final playlist = AppState.currentPlaylist;
+    debugPrint('--- WATCHIO PLAYBACK PIPELINE AUDIT ---');
+    debugPrint('Provider Type: ${isXtreamCode ? "Xtream Codes" : (isM3u ? "M3U" : "Unknown")}');
+    debugPrint('Playlist Name: ${playlist?.name ?? "NULL"}');
+    debugPrint('Username: ${playlist?.username ?? "NULL"}');
+    debugPrint('Server URL: ${playlist?.url ?? "NULL"}');
+    debugPrint('Content Type: ${item.contentType}');
+    debugPrint('Stream ID: ${item.id}');
+    debugPrint('Generated URL: ${item.url}');
+    debugPrint('User-Agent: ${item.headers['User-Agent']}');
+    debugPrint('Referer: ${item.headers['Referer']}');
+    debugPrint('---------------------------------------');
 
-    if (item.url.isEmpty) {
-      _error = 'Playback URL is empty';
+    if (item.url.isEmpty || item.url == item.id) {
+      debugPrint('ExoPlayer: REJECTED - URL is empty or matches ID (Generation failed)');
+      _error = 'Playback Failed: Invalid stream configuration';
       notifyListeners();
       return;
     }
 
     final uri = Uri.tryParse(item.url);
-    if (uri == null) {
-      debugPrint('ExoPlayer: Invalid URL: ${item.url}');
-      _error = 'Invalid Stream URL';
+    if (uri == null || !uri.hasScheme || !uri.scheme.startsWith('http')) {
+      debugPrint('ExoPlayer: REJECTED - Invalid URI format: ${item.url}');
+      _error = 'Playback Failed: Invalid stream URL format';
       notifyListeners();
       return;
     }
@@ -67,21 +78,37 @@ class ExoPlayerController extends AppPlayerController {
       httpHeaders: item.headers,
     );
 
+    _controller!.addListener(_updateState);
+
     try {
-      await _controller!.initialize();
-      _duration = _controller!.value.duration;
+      debugPrint('ExoPlayer: Initializing with Media3...');
+      await _controller!.initialize().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw TimeoutException('Stream connection timed out (15s)');
+        },
+      );
       
-      _controller!.addListener(_updateState);
+      _duration = _controller!.value.duration;
+      debugPrint('ExoPlayer: Initialized Successfully. Duration: $_duration');
       
       if (item.startPosition > Duration.zero) {
+        debugPrint('ExoPlayer: Resuming at ${item.startPosition}');
         await _controller!.seekTo(item.startPosition);
       }
       
       await _controller!.play();
-      debugPrint('ExoPlayer: Playback started successfully');
+      debugPrint('ExoPlayer: Playing');
     } catch (e) {
-      debugPrint('ExoPlayer Initialization Error: $e');
-      _error = 'Failed to initialize player: $e';
+      debugPrint('ExoPlayer: CRITICAL FAILURE');
+      debugPrint('Error Details: $e');
+      _error = 'Playback Failed: Unable to connect to stream';
+      
+      try {
+        await _controller?.dispose();
+        _controller = null;
+      } catch (_) {}
+      
       notifyListeners();
     }
   }
@@ -89,14 +116,23 @@ class ExoPlayerController extends AppPlayerController {
   void _updateState() {
     if (_controller == null) return;
     
-    if (_controller!.value.hasError) {
-      debugPrint('ExoPlayer State Error: ${_controller!.value.errorDescription}');
+    final value = _controller!.value;
+    
+    if (value.hasError) {
+      debugPrint('ExoPlayer Error Event: ${value.errorDescription}');
     }
 
-    _isPlaying = _controller!.value.isPlaying;
-    _isBuffering = _controller!.value.isBuffering;
-    _position = _controller!.value.position;
-    _error = _controller!.value.hasError ? _controller!.value.errorDescription : null;
+    if (_isBuffering != value.isBuffering) {
+      debugPrint('ExoPlayer State: ${value.isBuffering ? "BUFFERING" : "READY"}');
+    }
+
+    _isPlaying = value.isPlaying;
+    _isBuffering = value.isBuffering;
+    _position = value.position;
+    
+    if (value.hasError) {
+       _error = 'Playback Failed: Source error';
+    }
     
     notifyListeners();
   }
@@ -143,7 +179,7 @@ class ExoPlayerController extends AppPlayerController {
   @override
   Widget buildPlayerView(BuildContext context) {
     if (_controller == null || !_controller!.value.isInitialized) {
-      return const Center(child: CircularProgressIndicator());
+      return const SizedBox.shrink(); // Let the parent screen show the loading state
     }
     return Center(
       child: AspectRatio(

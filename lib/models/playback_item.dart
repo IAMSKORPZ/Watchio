@@ -27,6 +27,7 @@ class PlaybackItem {
   factory PlaybackItem.fromContentItem(ContentItem item, {Duration startPosition = Duration.zero, Map<String, String>? headers}) {
     final Map<String, String> finalHeaders = headers ?? {
       'User-Agent': 'IPTVSmartersPlayer',
+      'Accept': '*/*',
     };
     
     return PlaybackItem(

@@ -20,6 +20,8 @@ class ContentItem {
   final SeriesStream? seriesStream;
   final int? season;
   final M3uItem? m3uItem;
+  final DateTime? catchupStartTime;
+  final int? catchupDurationMinutes;
 
   ContentItem(
     this.id,
@@ -35,6 +37,8 @@ class ContentItem {
     this.seriesStream,
     this.season,
     this.m3uItem,
+    this.catchupStartTime,
+    this.catchupDurationMinutes,
   });
 
   String get url {
@@ -45,5 +49,41 @@ class ContentItem {
       return buildMediaUrl(this);
     }
     return m3uItem?.url ?? id;
+  }
+
+  ContentItem copyWith({
+    String? id,
+    String? name,
+    String? imagePath,
+    ContentType? contentType,
+    String? description,
+    Duration? duration,
+    String? coverPath,
+    String? containerExtension,
+    LiveStream? liveStream,
+    VodStream? vodStream,
+    SeriesStream? seriesStream,
+    int? season,
+    M3uItem? m3uItem,
+    DateTime? catchupStartTime,
+    int? catchupDurationMinutes,
+  }) {
+    return ContentItem(
+      id ?? this.id,
+      name ?? this.name,
+      imagePath ?? this.imagePath,
+      contentType ?? this.contentType,
+      description: description ?? this.description,
+      duration: duration ?? this.duration,
+      coverPath: coverPath ?? this.coverPath,
+      containerExtension: containerExtension ?? this.containerExtension,
+      liveStream: liveStream ?? this.liveStream,
+      vodStream: vodStream ?? this.vodStream,
+      seriesStream: seriesStream ?? this.seriesStream,
+      season: season ?? this.season,
+      m3uItem: m3uItem ?? this.m3uItem,
+      catchupStartTime: catchupStartTime ?? this.catchupStartTime,
+      catchupDurationMinutes: catchupDurationMinutes ?? this.catchupDurationMinutes,
+    );
   }
 }
