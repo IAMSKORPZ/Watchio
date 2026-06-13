@@ -15,6 +15,7 @@ class BingieDashboardHome extends StatefulWidget {
   final VoidCallback onUpdate;
   final VoidCallback onSettings;
   final VoidCallback onSearch;
+  final VoidCallback onSports;
   final VoidCallback onProfile;
   final VoidCallback onAbout;
   final String username;
@@ -30,6 +31,7 @@ class BingieDashboardHome extends StatefulWidget {
     required this.onUpdate,
     required this.onSettings,
     required this.onSearch,
+    required this.onSports,
     required this.onProfile,
     required this.onAbout,
     required this.username,
@@ -120,6 +122,7 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                       onSearch: widget.onSearch,
                       onProfile: widget.onProfile,
                       onAbout: widget.onAbout,
+                      onSports: widget.onSports,
                       onAnnouncements: widget.onAnnouncements,
                     ),
                     

@@ -10275,6 +10275,274 @@ class FavoritesCompanion extends UpdateCompanion<FavoritesData> {
   }
 }
 
+class $FootballCachesTable extends FootballCaches
+    with TableInfo<$FootballCachesTable, FootballCacheData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FootballCachesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _cacheKeyMeta = const VerificationMeta(
+    'cacheKey',
+  );
+  @override
+  late final GeneratedColumn<String> cacheKey = GeneratedColumn<String>(
+    'cache_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dataMeta = const VerificationMeta('data');
+  @override
+  late final GeneratedColumn<String> data = GeneratedColumn<String>(
+    'data',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _timestampMeta = const VerificationMeta(
+    'timestamp',
+  );
+  @override
+  late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
+    'timestamp',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [cacheKey, data, timestamp];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'football_caches';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FootballCacheData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('cache_key')) {
+      context.handle(
+        _cacheKeyMeta,
+        cacheKey.isAcceptableOrUnknown(data['cache_key']!, _cacheKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cacheKeyMeta);
+    }
+    if (data.containsKey('data')) {
+      context.handle(
+        _dataMeta,
+        this.data.isAcceptableOrUnknown(data['data']!, _dataMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dataMeta);
+    }
+    if (data.containsKey('timestamp')) {
+      context.handle(
+        _timestampMeta,
+        timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_timestampMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {cacheKey};
+  @override
+  FootballCacheData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FootballCacheData(
+      cacheKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cache_key'],
+      )!,
+      data: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}data'],
+      )!,
+      timestamp: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}timestamp'],
+      )!,
+    );
+  }
+
+  @override
+  $FootballCachesTable createAlias(String alias) {
+    return $FootballCachesTable(attachedDatabase, alias);
+  }
+}
+
+class FootballCacheData extends DataClass
+    implements Insertable<FootballCacheData> {
+  final String cacheKey;
+  final String data;
+  final DateTime timestamp;
+  const FootballCacheData({
+    required this.cacheKey,
+    required this.data,
+    required this.timestamp,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['cache_key'] = Variable<String>(cacheKey);
+    map['data'] = Variable<String>(data);
+    map['timestamp'] = Variable<DateTime>(timestamp);
+    return map;
+  }
+
+  FootballCachesCompanion toCompanion(bool nullToAbsent) {
+    return FootballCachesCompanion(
+      cacheKey: Value(cacheKey),
+      data: Value(data),
+      timestamp: Value(timestamp),
+    );
+  }
+
+  factory FootballCacheData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FootballCacheData(
+      cacheKey: serializer.fromJson<String>(json['cacheKey']),
+      data: serializer.fromJson<String>(json['data']),
+      timestamp: serializer.fromJson<DateTime>(json['timestamp']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'cacheKey': serializer.toJson<String>(cacheKey),
+      'data': serializer.toJson<String>(data),
+      'timestamp': serializer.toJson<DateTime>(timestamp),
+    };
+  }
+
+  FootballCacheData copyWith({
+    String? cacheKey,
+    String? data,
+    DateTime? timestamp,
+  }) => FootballCacheData(
+    cacheKey: cacheKey ?? this.cacheKey,
+    data: data ?? this.data,
+    timestamp: timestamp ?? this.timestamp,
+  );
+  FootballCacheData copyWithCompanion(FootballCachesCompanion data) {
+    return FootballCacheData(
+      cacheKey: data.cacheKey.present ? data.cacheKey.value : this.cacheKey,
+      data: data.data.present ? data.data.value : this.data,
+      timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FootballCacheData(')
+          ..write('cacheKey: $cacheKey, ')
+          ..write('data: $data, ')
+          ..write('timestamp: $timestamp')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(cacheKey, data, timestamp);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FootballCacheData &&
+          other.cacheKey == this.cacheKey &&
+          other.data == this.data &&
+          other.timestamp == this.timestamp);
+}
+
+class FootballCachesCompanion extends UpdateCompanion<FootballCacheData> {
+  final Value<String> cacheKey;
+  final Value<String> data;
+  final Value<DateTime> timestamp;
+  final Value<int> rowid;
+  const FootballCachesCompanion({
+    this.cacheKey = const Value.absent(),
+    this.data = const Value.absent(),
+    this.timestamp = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FootballCachesCompanion.insert({
+    required String cacheKey,
+    required String data,
+    required DateTime timestamp,
+    this.rowid = const Value.absent(),
+  }) : cacheKey = Value(cacheKey),
+       data = Value(data),
+       timestamp = Value(timestamp);
+  static Insertable<FootballCacheData> custom({
+    Expression<String>? cacheKey,
+    Expression<String>? data,
+    Expression<DateTime>? timestamp,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (cacheKey != null) 'cache_key': cacheKey,
+      if (data != null) 'data': data,
+      if (timestamp != null) 'timestamp': timestamp,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FootballCachesCompanion copyWith({
+    Value<String>? cacheKey,
+    Value<String>? data,
+    Value<DateTime>? timestamp,
+    Value<int>? rowid,
+  }) {
+    return FootballCachesCompanion(
+      cacheKey: cacheKey ?? this.cacheKey,
+      data: data ?? this.data,
+      timestamp: timestamp ?? this.timestamp,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (cacheKey.present) {
+      map['cache_key'] = Variable<String>(cacheKey.value);
+    }
+    if (data.present) {
+      map['data'] = Variable<String>(data.value);
+    }
+    if (timestamp.present) {
+      map['timestamp'] = Variable<DateTime>(timestamp.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FootballCachesCompanion(')
+          ..write('cacheKey: $cacheKey, ')
+          ..write('data: $data, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -10293,6 +10561,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $M3uSeriesTable m3uSeries = $M3uSeriesTable(this);
   late final $M3uEpisodesTable m3uEpisodes = $M3uEpisodesTable(this);
   late final $FavoritesTable favorites = $FavoritesTable(this);
+  late final $FootballCachesTable footballCaches = $FootballCachesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10313,6 +10582,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     m3uSeries,
     m3uEpisodes,
     favorites,
+    footballCaches,
   ];
 }
 
@@ -15225,6 +15495,174 @@ typedef $$FavoritesTableProcessedTableManager =
       FavoritesData,
       PrefetchHooks Function()
     >;
+typedef $$FootballCachesTableCreateCompanionBuilder =
+    FootballCachesCompanion Function({
+      required String cacheKey,
+      required String data,
+      required DateTime timestamp,
+      Value<int> rowid,
+    });
+typedef $$FootballCachesTableUpdateCompanionBuilder =
+    FootballCachesCompanion Function({
+      Value<String> cacheKey,
+      Value<String> data,
+      Value<DateTime> timestamp,
+      Value<int> rowid,
+    });
+
+class $$FootballCachesTableFilterComposer
+    extends Composer<_$AppDatabase, $FootballCachesTable> {
+  $$FootballCachesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get cacheKey => $composableBuilder(
+    column: $table.cacheKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get data => $composableBuilder(
+    column: $table.data,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FootballCachesTableOrderingComposer
+    extends Composer<_$AppDatabase, $FootballCachesTable> {
+  $$FootballCachesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get cacheKey => $composableBuilder(
+    column: $table.cacheKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get data => $composableBuilder(
+    column: $table.data,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FootballCachesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FootballCachesTable> {
+  $$FootballCachesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get cacheKey =>
+      $composableBuilder(column: $table.cacheKey, builder: (column) => column);
+
+  GeneratedColumn<String> get data =>
+      $composableBuilder(column: $table.data, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get timestamp =>
+      $composableBuilder(column: $table.timestamp, builder: (column) => column);
+}
+
+class $$FootballCachesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FootballCachesTable,
+          FootballCacheData,
+          $$FootballCachesTableFilterComposer,
+          $$FootballCachesTableOrderingComposer,
+          $$FootballCachesTableAnnotationComposer,
+          $$FootballCachesTableCreateCompanionBuilder,
+          $$FootballCachesTableUpdateCompanionBuilder,
+          (
+            FootballCacheData,
+            BaseReferences<
+              _$AppDatabase,
+              $FootballCachesTable,
+              FootballCacheData
+            >,
+          ),
+          FootballCacheData,
+          PrefetchHooks Function()
+        > {
+  $$FootballCachesTableTableManager(
+    _$AppDatabase db,
+    $FootballCachesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FootballCachesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FootballCachesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FootballCachesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> cacheKey = const Value.absent(),
+                Value<String> data = const Value.absent(),
+                Value<DateTime> timestamp = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FootballCachesCompanion(
+                cacheKey: cacheKey,
+                data: data,
+                timestamp: timestamp,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String cacheKey,
+                required String data,
+                required DateTime timestamp,
+                Value<int> rowid = const Value.absent(),
+              }) => FootballCachesCompanion.insert(
+                cacheKey: cacheKey,
+                data: data,
+                timestamp: timestamp,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FootballCachesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FootballCachesTable,
+      FootballCacheData,
+      $$FootballCachesTableFilterComposer,
+      $$FootballCachesTableOrderingComposer,
+      $$FootballCachesTableAnnotationComposer,
+      $$FootballCachesTableCreateCompanionBuilder,
+      $$FootballCachesTableUpdateCompanionBuilder,
+      (
+        FootballCacheData,
+        BaseReferences<_$AppDatabase, $FootballCachesTable, FootballCacheData>,
+      ),
+      FootballCacheData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -15259,4 +15697,6 @@ class $AppDatabaseManager {
       $$M3uEpisodesTableTableManager(_db, _db.m3uEpisodes);
   $$FavoritesTableTableManager get favorites =>
       $$FavoritesTableTableManager(_db, _db.favorites);
+  $$FootballCachesTableTableManager get footballCaches =>
+      $$FootballCachesTableTableManager(_db, _db.footballCaches);
 }

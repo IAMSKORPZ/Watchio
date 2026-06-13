@@ -40,6 +40,9 @@ class WatchioAnnouncementsScreen extends StatelessWidget {
                   onSearch: () {},
                   onProfile: () {},
                   onAbout: () {},
+                  onSports: () {
+                    // Navigate to Sports Hub if needed
+                  },
                 ),
               ),
               
@@ -226,6 +229,9 @@ class WatchioAnnouncementDetailsScreen extends StatelessWidget {
                   onSearch: () {},
                   onProfile: () {},
                   onAbout: () {},
+                  onSports: () {
+                    // Navigate to Sports Hub if needed
+                  },
                 ),
               ),
               

@@ -9,6 +9,7 @@ import 'package:another_iptv_player/repositories/m3u_repository.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../services/app_state.dart';
 import '../home/bingie_dashboard_home.dart';
+import '../sports/sports_hub_screen.dart';
 
 class M3UHomeScreen extends StatefulWidget {
   final Playlist playlist;
@@ -68,6 +69,7 @@ class _M3UHomeScreenState extends State<M3UHomeScreen> {
                     onUpdate: () => controller.onNavigationTap(0),
                     onSettings: () => controller.onNavigationTap(2),
                     onSearch: () {},
+                    onSports: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SportsHubScreen())),
                     onProfile: () => controller.onNavigationTap(2),
                     onAbout: () {},
                     username: 'M3U User',

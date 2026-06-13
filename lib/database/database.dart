@@ -445,6 +445,16 @@ class Favorites extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+@DataClassName('FootballCacheData')
+class FootballCaches extends Table {
+  TextColumn get cacheKey => text()();
+  TextColumn get data => text()();
+  DateTimeColumn get timestamp => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {cacheKey};
+}
+
 @DriftDatabase(
   tables: [
     Playlists,
@@ -462,6 +472,7 @@ class Favorites extends Table {
     M3uSeries,
     M3uEpisodes,
     Favorites,
+    FootballCaches,
   ],
 )
 class AppDatabase extends _$AppDatabase {
