@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:another_iptv_player/models/playlist_content_model.dart';
 import 'package:another_iptv_player/models/watch_history.dart';
+import 'package:another_iptv_player/screens/player/unified_player_screen.dart';
 import '../../../models/content_type.dart';
 import '../../../services/event_bus.dart';
 import '../../../widgets/loading_widget.dart';
-import '../../../widgets/player_widget.dart';
 
 class M3uEpisodeScreen extends StatefulWidget {
   final List<int> seasons;
@@ -108,14 +108,7 @@ class _M3uEpisodeScreenState extends State<M3uEpisodeScreen> {
     if (!allContentsLoaded) {
       return buildFullScreenLoadingWidget();
     } else {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: SafeArea(
-          child: SizedBox.expand(
-            child: PlayerWidget(contentItem: widget.contentItem, queue: allContents),
-          ),
-        ),
-      );
+      return UnifiedPlayerScreen(contentItem: widget.contentItem, queue: allContents);
     }
   }
 

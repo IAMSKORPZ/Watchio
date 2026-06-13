@@ -4,6 +4,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'app_player_controller.dart';
 import '../../models/playback_item.dart';
+import '../../repositories/user_preferences.dart';
 
 class MediaKitPlayerController extends AppPlayerController {
   late Player _player;
@@ -40,9 +41,16 @@ class MediaKitPlayerController extends AppPlayerController {
     final hardwareDecoding = await UserPreferences.getHardwareDecoding();
     _player = Player(
       configuration: PlayerConfiguration(
-        // mpv related configurations could go here
+        // Set hardware decoding if enabled
       ),
     );
+    
+    if (hardwareDecoding) {
+      if (_player is NativePlayer) {
+        (_player as NativePlayer).setProperty('hwdec', 'auto');
+      }
+    }
+
     _videoController = VideoController(_player);
     
     _posSub = _player.stream.position.listen((p) {
@@ -77,9 +85,16 @@ class MediaKitPlayerController extends AppPlayerController {
   @override
   Future<void> setDataSource(PlaybackItem item) async {
     _error = null;
-    await _player.open(Media(item.url, httpHeaders: item.headers), play: true);
-    if (item.startPosition > Duration.zero) {
-      await _player.seek(item.startPosition);
+    debugPrint('MediaKit: Loading ${item.url}');
+    try {
+      await _player.open(Media(item.url, httpHeaders: item.headers), play: true);
+      if (item.startPosition > Duration.zero) {
+        await _player.seek(item.startPosition);
+      }
+    } catch (e) {
+      debugPrint('MediaKit: Error opening media: $e');
+      _error = 'Playback Error: $e';
+      notifyListeners();
     }
   }
 
@@ -94,6 +109,12 @@ class MediaKitPlayerController extends AppPlayerController {
 
   @override
   Future<void> setVolume(double volume) async => await _player.setVolume(volume);
+
+  @override
+  Future<void> setAspectRatio(double? ratio) async {
+    // media_kit supports aspect ratio via mpv properties if needed, 
+    // but usually it's handled by the Video widget's fit property.
+  }
 
   @override
   Future<List<String>> getAudioTracks() async {

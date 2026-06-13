@@ -11,7 +11,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../services/config_service.dart';
 import '../../models/playlist_content_model.dart';
 import '../../models/content_type.dart';
-import '../../widgets/player_widget.dart';
+import '../player/unified_player_screen.dart';
 
 class LocalMediaLibraryScreen extends StatefulWidget {
   const LocalMediaLibraryScreen({super.key});
@@ -143,10 +143,7 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          backgroundColor: Colors.black,
-          body: PlayerWidget(contentItem: contentItem),
-        ),
+        builder: (context) => UnifiedPlayerScreen(contentItem: contentItem),
       ),
     );
   }

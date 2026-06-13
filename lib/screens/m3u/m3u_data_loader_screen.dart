@@ -79,6 +79,8 @@ class M3uDataLoaderScreenState extends State<M3uDataLoaderScreen>
       ),
     );
 
+    AppState.currentPlaylist = widget.playlist;
+
     _controller = M3uController(
       playlistId: widget.playlist.id,
       m3uItems: widget.m3uItems,

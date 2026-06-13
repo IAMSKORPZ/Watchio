@@ -41,8 +41,29 @@ class ExoPlayerController extends AppPlayerController {
       await _controller!.dispose();
     }
 
+    debugPrint('--- PLAYBACK START ---');
+    debugPrint('Title: ${item.title}');
+    debugPrint('Type: ${item.contentType}');
+    debugPrint('URL: ${item.url}');
+    debugPrint('Headers: ${item.headers}');
+    debugPrint('---');
+
+    if (item.url.isEmpty) {
+      _error = 'Playback URL is empty';
+      notifyListeners();
+      return;
+    }
+
+    final uri = Uri.tryParse(item.url);
+    if (uri == null) {
+      debugPrint('ExoPlayer: Invalid URL: ${item.url}');
+      _error = 'Invalid Stream URL';
+      notifyListeners();
+      return;
+    }
+
     _controller = VideoPlayerController.networkUrl(
-      Uri.parse(item.url),
+      uri,
       httpHeaders: item.headers,
     );
 
@@ -57,8 +78,10 @@ class ExoPlayerController extends AppPlayerController {
       }
       
       await _controller!.play();
+      debugPrint('ExoPlayer: Playback started successfully');
     } catch (e) {
-      _error = e.toString();
+      debugPrint('ExoPlayer Initialization Error: $e');
+      _error = 'Failed to initialize player: $e';
       notifyListeners();
     }
   }
@@ -66,6 +89,10 @@ class ExoPlayerController extends AppPlayerController {
   void _updateState() {
     if (_controller == null) return;
     
+    if (_controller!.value.hasError) {
+      debugPrint('ExoPlayer State Error: ${_controller!.value.errorDescription}');
+    }
+
     _isPlaying = _controller!.value.isPlaying;
     _isBuffering = _controller!.value.isBuffering;
     _position = _controller!.value.position;
@@ -85,6 +112,12 @@ class ExoPlayerController extends AppPlayerController {
 
   @override
   Future<void> setVolume(double volume) async => await _controller?.setVolume(volume);
+
+  @override
+  Future<void> setAspectRatio(double? ratio) async {
+    // Standard video_player doesn't easily support dynamic aspect ratio override on the controller itself,
+    // usually handled by AspectRatio widget in buildPlayerView.
+  }
 
   @override
   Future<List<String>> getAudioTracks() async {

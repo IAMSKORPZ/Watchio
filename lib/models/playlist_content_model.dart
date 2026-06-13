@@ -8,7 +8,6 @@ import 'package:another_iptv_player/utils/get_playlist_type.dart';
 
 class ContentItem {
   final String id;
-  late String url;
   final String name;
   final String imagePath;
   final String? description;
@@ -36,7 +35,15 @@ class ContentItem {
     this.seriesStream,
     this.season,
     this.m3uItem,
-  }) {
-    url = isXtreamCode ? buildMediaUrl(this) : m3uItem?.url ?? id;
+  });
+
+  String get url {
+    if (isM3u) {
+      return m3uItem?.url ?? id;
+    }
+    if (isXtreamCode) {
+      return buildMediaUrl(this);
+    }
+    return m3uItem?.url ?? id;
   }
 }

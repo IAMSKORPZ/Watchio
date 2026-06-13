@@ -15,6 +15,7 @@ abstract class AppPlayerController extends ChangeNotifier {
   Future<void> seek(Duration position);
   Future<void> setDataSource(PlaybackItem item);
   Future<void> setVolume(double volume);
+  Future<void> setAspectRatio(double? ratio);
   
   // Track selection
   Future<List<String>> getAudioTracks();
