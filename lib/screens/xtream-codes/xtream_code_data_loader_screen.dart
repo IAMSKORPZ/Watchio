@@ -67,6 +67,8 @@ class XtreamCodeDataLoaderScreenState extends State<XtreamCodeDataLoaderScreen>
       ),
     );
 
+    AppState.currentPlaylist = widget.playlist;
+
     final repository = IptvRepository(
       ApiConfig(
         baseUrl: widget.playlist.url!,

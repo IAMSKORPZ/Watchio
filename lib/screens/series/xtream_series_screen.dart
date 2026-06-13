@@ -202,27 +202,37 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
                                   ),
                                 ),
                                 Expanded(
-                                  child: GridView.builder(
-                                    controller: _scrollController,
-                                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                                      maxCrossAxisExtent: 180,
-                                      childAspectRatio: 0.68,
-                                      crossAxisSpacing: 16,
-                                      mainAxisSpacing: 16,
-                                    ),
-                                    itemCount: _currentItems.length + (_isMoreLoading ? 1 : 0),
-                                    itemBuilder: (context, index) {
-                                      if (index < _currentItems.length) {
-                                        final item = _currentItems[index];
-                                        return PosterCard(
-                                          title: item.name,
-                                          imageUrl: item.imagePath,
-                                          rating: item.seriesStream?.rating,
-                                          onTap: () => navigateByContentType(context, item),
-                                        );
-                                      } else {
-                                        return const Center(child: CircularProgressIndicator());
-                                      }
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final double availableWidth = constraints.maxWidth;
+                                      // Calculate columns: density prioritized with 180px target width
+                                      int crossAxisCount = (availableWidth / 180).floor();
+                                      // Clamp between 5 and 10 as per requirements
+                                      crossAxisCount = crossAxisCount.clamp(5, 10);
+
+                                      return GridView.builder(
+                                        controller: _scrollController,
+                                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: crossAxisCount,
+                                          childAspectRatio: 2 / 3, // 2:3 movie poster ratio
+                                          crossAxisSpacing: 12,
+                                          mainAxisSpacing: 16,
+                                        ),
+                                        itemCount: _currentItems.length + (_isMoreLoading ? 1 : 0),
+                                        itemBuilder: (context, index) {
+                                          if (index < _currentItems.length) {
+                                            final item = _currentItems[index];
+                                            return PosterCard(
+                                              title: item.name,
+                                              imageUrl: item.imagePath,
+                                              rating: item.seriesStream?.rating,
+                                              onTap: () => navigateByContentType(context, item),
+                                            );
+                                          } else {
+                                            return const Center(child: CircularProgressIndicator(color: Color(0xFFC12CFF)));
+                                          }
+                                        },
+                                      );
                                     },
                                   ),
                                 ),

@@ -35,19 +35,12 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
   final ScrollController _categoryScrollController = ScrollController();
   final ScrollController _channelScrollController = ScrollController();
   
-  late Timer _clockTimer;
-  DateTime _now = DateTime.now();
-  
   List<EpgProgramWindow> _epgPrograms = [];
   final _epgService = EpgStorageService();
 
   @override
   void initState() {
     super.initState();
-    _clockTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) setState(() => _now = DateTime.now());
-    });
-
     _channelScrollController.addListener(_scrollListener);
     
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -67,7 +60,6 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
 
   @override
   void dispose() {
-    _clockTimer.cancel();
     _channelScrollController.removeListener(_scrollListener);
     _categoryScrollController.dispose();
     _channelScrollController.dispose();

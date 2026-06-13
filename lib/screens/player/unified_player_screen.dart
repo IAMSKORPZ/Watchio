@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
+import '../../controllers/favorites_controller.dart';
 import '../../models/content_type.dart';
 import '../../models/playback_item.dart';
 import '../../models/player_engine.dart';
@@ -13,6 +13,7 @@ import '../../services/player/player_factory.dart';
 import '../../services/watch_history_service.dart';
 import '../../models/watch_history.dart';
 import '../../services/app_state.dart';
+import '../../services/epg_storage_service.dart';
 import '../../shared/widgets/glass_panel.dart';
 
 class UnifiedPlayerScreen extends StatefulWidget {
@@ -33,15 +34,49 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   late AppPlayerController _playerController;
   late PlaybackItem _currentPlaybackItem;
   bool _showControls = true;
+  bool _showChannelList = false;
   Timer? _controlsTimer;
   final WatchHistoryService _historyService = WatchHistoryService();
+  final FavoritesController _favoritesController = FavoritesController();
+  final EpgStorageService _epgService = EpgStorageService();
   
+  bool _isFavorite = false;
+  List<EpgProgramWindow> _epgPrograms = [];
+  double _volume = 0.5;
+  double _brightness = 0.5;
+  bool _showSideSliders = false;
+  Timer? _sideSlidersTimer;
+
   @override
   void initState() {
     super.initState();
     _currentPlaybackItem = PlaybackItem.fromContentItem(widget.contentItem);
     _initPlayer();
     _startControlsTimer();
+    _checkFavorite();
+    _loadInitialSettings();
+  }
+
+  Future<void> _loadInitialSettings() async {
+    final vol = await UserPreferences.getVolume();
+    if (mounted) {
+      setState(() {
+        _volume = (vol / 100.0).clamp(0.0, 1.0);
+      });
+    }
+  }
+
+  Future<void> _checkFavorite() async {
+    final fav = await _favoritesController.isFavorite(
+      _currentPlaybackItem.id, 
+      _currentPlaybackItem.contentType
+    );
+    if (mounted) setState(() => _isFavorite = fav);
+  }
+
+  Future<void> _toggleFavorite() async {
+    final res = await _favoritesController.toggleFavorite(_currentPlaybackItem.originalItem!);
+    if (mounted) setState(() => _isFavorite = res);
   }
 
   Future<void> _initPlayer() async {
@@ -54,7 +89,6 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     _playerController = PlayerFactory.create(engine);
     await _playerController.initialize();
     
-    // Check watch history for VOD/Series
     Duration startPos = Duration.zero;
     if (_currentPlaybackItem.contentType != ContentType.liveStream) {
       final history = await _historyService.getWatchHistory(
@@ -66,25 +100,48 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
       }
     }
 
-    final updatedItem = PlaybackItem(
-      id: _currentPlaybackItem.id,
-      url: _currentPlaybackItem.url,
-      title: _currentPlaybackItem.title,
-      imagePath: _currentPlaybackItem.imagePath,
-      contentType: _currentPlaybackItem.contentType,
-      startPosition: startPos,
-      originalItem: _currentPlaybackItem.originalItem,
-    );
-
-    await _playerController.setDataSource(updatedItem);
+    final playItem = _currentPlaybackItem.copyWith(startPosition: startPos);
     
+    debugPrint('UnifiedPlayer: Initializing with ${playItem.title}');
+    debugPrint('UnifiedPlayer: URL: ${playItem.url}');
+    debugPrint('UnifiedPlayer: Engine: ${engine.name}');
+
+    if (playItem.url.isEmpty || playItem.url == playItem.id) {
+       debugPrint('UnifiedPlayer Error: Invalid stream URL generated');
+       setState(() {
+         // This will trigger the buildErrorOverlay via _playerController.error
+         // But since we haven't set data source yet, we must set it manually if we want to show it.
+       });
+    }
+
+    await _playerController.setDataSource(playItem);
     _playerController.addListener(_onPlayerStateChanged);
+    
+    if (_currentPlaybackItem.isLive) {
+      _fetchEpg();
+    }
+  }
+
+  Future<void> _fetchEpg() async {
+    final ls = _currentPlaybackItem.originalItem?.liveStream;
+    if (ls == null || ls.epgChannelId.isEmpty) return;
+
+    try {
+      final programs = await _epgService.getProgramsForWindow(
+        playlistId: AppState.currentPlaylist!.id,
+        epgChannelId: ls.epgChannelId,
+        start: DateTime.now(),
+        end: DateTime.now().add(const Duration(hours: 6)),
+        limit: 2,
+      );
+      if (mounted) setState(() => _epgPrograms = programs);
+    } catch (e) {
+      debugPrint('EPG Fetch Error: $e');
+    }
   }
 
   void _onPlayerStateChanged() {
     if (mounted) setState(() {});
-    
-    // Save history periodically for VOD
     if (_currentPlaybackItem.contentType != ContentType.liveStream && 
         _playerController.isPlaying && 
         _playerController.position.inSeconds % 10 == 0) {
@@ -93,6 +150,7 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   }
 
   Future<void> _saveHistory() async {
+    if (AppState.currentPlaylist == null) return;
     await _historyService.saveWatchHistory(
       WatchHistory(
         playlistId: AppState.currentPlaylist!.id,
@@ -117,18 +175,54 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   }
 
   void _toggleControls() {
+    if (_playerController.error != null) return;
     setState(() {
       _showControls = !_showControls;
+      if (_showControls) _showChannelList = false;
     });
     if (_showControls) _startControlsTimer();
+  }
+
+  void _toggleChannelList() {
+    setState(() {
+      _showChannelList = !_showChannelList;
+      if (_showChannelList) _showControls = false;
+    });
+  }
+
+  void _showSliders() {
+    setState(() => _showSideSliders = true);
+    _sideSlidersTimer?.cancel();
+    _sideSlidersTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _showSideSliders = false);
+    });
+  }
+
+  void _switchChannel(int delta) {
+    if (widget.queue == null || widget.queue!.isEmpty) return;
+    final idx = widget.queue!.indexWhere((item) => item.id == _currentPlaybackItem.id);
+    if (idx == -1) return;
+    final nextIdx = (idx + delta).clamp(0, widget.queue!.length - 1);
+    if (nextIdx == idx) return;
+    _playItem(widget.queue![nextIdx]);
+  }
+
+  void _playItem(ContentItem item) {
+    setState(() {
+      _currentPlaybackItem = PlaybackItem.fromContentItem(item);
+      _checkFavorite();
+      _epgPrograms = [];
+    });
+    _playerController.setDataSource(_currentPlaybackItem);
+    if (_currentPlaybackItem.isLive) _fetchEpg();
+    _startControlsTimer();
   }
 
   @override
   void dispose() {
     _controlsTimer?.cancel();
-    if (_currentPlaybackItem.contentType != ContentType.liveStream) {
-      _saveHistory();
-    }
+    _sideSlidersTimer?.cancel();
+    if (_currentPlaybackItem.contentType != ContentType.liveStream) _saveHistory();
     _playerController.removeListener(_onPlayerStateChanged);
     _playerController.dispose();
     super.dispose();
@@ -136,6 +230,8 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasError = _playerController.error != null;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Shortcuts(
@@ -143,64 +239,90 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
           SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.arrowUp): _ShowControlsIntent(),
-          SingleActivator(LogicalKeyboardKey.arrowDown): _ShowControlsIntent(),
+          SingleActivator(LogicalKeyboardKey.arrowDown): _ShowChannelListIntent(),
           SingleActivator(LogicalKeyboardKey.arrowLeft): _SeekBackIntent(),
           SingleActivator(LogicalKeyboardKey.arrowRight): _SeekForwardIntent(),
+          SingleActivator(LogicalKeyboardKey.channelUp): _ChannelUpIntent(),
+          SingleActivator(LogicalKeyboardKey.channelDown): _ChannelDownIntent(),
         },
         child: Actions(
           actions: {
             ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
-              if (!_showControls) {
-                _toggleControls();
-              } else {
+              if (hasError) return null;
+              if (_showChannelList) return null;
+              if (!_showControls) _toggleControls();
+              else {
                 _playerController.isPlaying ? _playerController.pause() : _playerController.play();
                 _startControlsTimer();
               }
               return null;
             }),
             _ShowControlsIntent: CallbackAction<_ShowControlsIntent>(onInvoke: (_) {
-              _toggleControls();
+              if (hasError) return null;
+              if (!_showChannelList) _toggleControls();
+              return null;
+            }),
+            _ShowChannelListIntent: CallbackAction<_ShowChannelListIntent>(onInvoke: (_) {
+              _toggleChannelList();
               return null;
             }),
             _SeekBackIntent: CallbackAction<_SeekBackIntent>(onInvoke: (_) {
-              if (_currentPlaybackItem.contentType != ContentType.liveStream) {
+              if (hasError) return null;
+              if (!_currentPlaybackItem.isLive) {
                 _playerController.seek(_playerController.position - const Duration(seconds: 10));
                 if (!_showControls) _toggleControls();
               }
               return null;
             }),
             _SeekForwardIntent: CallbackAction<_SeekForwardIntent>(onInvoke: (_) {
-              if (_currentPlaybackItem.contentType != ContentType.liveStream) {
+              if (hasError) return null;
+              if (!_currentPlaybackItem.isLive) {
                 _playerController.seek(_playerController.position + const Duration(seconds: 30));
                 if (!_showControls) _toggleControls();
               }
+              return null;
+            }),
+            _ChannelUpIntent: CallbackAction<_ChannelUpIntent>(onInvoke: (_) {
+              _switchChannel(1);
+              return null;
+            }),
+            _ChannelDownIntent: CallbackAction<_ChannelDownIntent>(onInvoke: (_) {
+              _switchChannel(-1);
               return null;
             }),
           },
           child: Focus(
             autofocus: true,
             onKeyEvent: (node, event) {
-              if (!_showControls && event is KeyDownEvent) {
-                _toggleControls();
-                return KeyEventResult.handled;
+              if (hasError) return KeyEventResult.ignored;
+              if (!_showControls && !_showChannelList && event is KeyDownEvent) {
+                if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                   _toggleControls();
+                   return KeyEventResult.handled;
+                }
+                if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                   _toggleChannelList();
+                   return KeyEventResult.handled;
+                }
               }
               return KeyEventResult.ignored;
             },
             child: Stack(
               children: [
-                // Video Layer
                 Positioned.fill(child: _playerController.buildPlayerView(context)),
-
-                // Buffering
-                if (_playerController.isBuffering)
+                if (_playerController.isBuffering && !hasError)
                   const Center(child: CircularProgressIndicator(color: Color(0xFFC12CFF))),
+                
+                if (hasError) _buildErrorOverlay(),
 
-                // Error State
-                if (_playerController.error != null)
-                  _buildErrorState(),
+                // Sidebar Sliders - TiviMate style: only when adjusting
+                if (_showSideSliders && !hasError) ...[
+                  _buildSideSlider(true), // Brightness
+                  _buildSideSlider(false), // Volume
+                ],
 
-                // UI Overlay
-                if (_showControls) _buildControls(),
+                if (_showControls && !hasError) _buildPremiumUI(),
+                if (_showChannelList) _buildChannelListOverlay(),
               ],
             ),
           ),
@@ -209,116 +331,171 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     );
   }
 
-  Widget _buildErrorState() {
-    return Center(
-      child: GlassPanel(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 64),
-            const SizedBox(height: 16),
-            Text(
-              'Playback Error',
-              style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _playerController.error ?? 'Unknown error occurred',
-              style: const TextStyle(color: Colors.white70),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => _playerController.setDataSource(_currentPlaybackItem),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC12CFF)),
-              child: const Text('RETRY'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildControls() {
+  Widget _buildPremiumUI() {
     return Positioned.fill(
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.7),
-              Colors.transparent,
-              Colors.transparent,
-              Colors.black.withValues(alpha: 0.7),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                _buildTopBar(),
-                const Spacer(),
-                if (_currentPlaybackItem.contentType != ContentType.liveStream)
-                  _buildSeekBar(),
-                _buildBottomBar(),
-              ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isLargeScreen = constraints.maxWidth > 800;
+          return Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.black.withValues(alpha: 0.85), Colors.transparent, Colors.transparent, Colors.black.withValues(alpha: 0.85)],
+                stops: const [0.0, 0.25, 0.75, 1.0],
+              ),
             ),
-          ),
-        ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    _buildTopBar(isLargeScreen),
+                    const Spacer(),
+                    _buildCenterControls(isLargeScreen),
+                    const Spacer(),
+                    _buildBottomSection(isLargeScreen),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
       ),
     );
   }
 
-  Widget _buildTopBar() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 32),
-          onPressed: () => Navigator.pop(context),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _currentPlaybackItem.title,
-                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (_currentPlaybackItem.subtitle != null)
+  Widget _buildTopBar(bool isLargeScreen) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          _CircleBtn(icon: Icons.arrow_back_rounded, size: isLargeScreen ? 44 : 36, onTap: () => Navigator.pop(context)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 Text(
-                  _currentPlaybackItem.subtitle!,
-                  style: const TextStyle(color: Color(0xFF00B7FF), fontSize: 14, fontWeight: FontWeight.bold),
+                  _currentPlaybackItem.title,
+                  style: TextStyle(color: Colors.white, fontSize: isLargeScreen ? 20 : 16, fontWeight: FontWeight.w900),
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
                 ),
-            ],
-          ),
-        ),
-        if (_currentPlaybackItem.isLive)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.redAccent,
-              borderRadius: BorderRadius.circular(4),
+                if (_currentPlaybackItem.subtitle != null)
+                  Text(_currentPlaybackItem.subtitle!, style: const TextStyle(color: Color(0xFF00B7FF), fontSize: 12, fontWeight: FontWeight.bold)),
+              ],
             ),
-            child: const Text('LIVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
+          const _ClockWidget(),
+          const SizedBox(width: 16),
+          _CircleBtn(
+            icon: Icons.more_vert_rounded, 
+            size: isLargeScreen ? 44 : 36,
+            onTap: _showMoreMenu
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCenterControls(bool isLargeScreen) {
+    final btnSize = isLargeScreen ? 80.0 : 64.0;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _LargeControlBtn(icon: Icons.skip_previous_rounded, size: btnSize * 0.7, onTap: () => _switchChannel(-1)),
+        const SizedBox(width: 32),
+        _LargeControlBtn(
+          icon: _playerController.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+          size: btnSize,
+          isPrimary: true,
+          onTap: () {
+            _playerController.isPlaying ? _playerController.pause() : _playerController.play();
+            _startControlsTimer();
+          },
+        ),
+        const SizedBox(width: 32),
+        _LargeControlBtn(icon: Icons.skip_next_rounded, size: btnSize * 0.7, onTap: () => _switchChannel(1)),
       ],
     );
   }
 
-  Widget _buildSeekBar() {
+  Widget _buildBottomSection(bool isLargeScreen) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_currentPlaybackItem.isLive) _buildCompactEpgInfo(isLargeScreen) else _buildVodProgress(isLargeScreen),
+        const SizedBox(height: 12),
+        _buildActionRow(),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _buildCompactEpgInfo(bool isLargeScreen) {
+    final current = _epgPrograms.isNotEmpty ? _epgPrograms[0] : null;
+    final next = _epgPrograms.length > 1 ? _epgPrograms[1] : null;
+    
+    double progress = 0.0;
+    if (current != null) {
+      final total = current.end.difference(current.start).inSeconds;
+      final elapsed = DateTime.now().difference(current.start).inSeconds;
+      progress = (elapsed / total).clamp(0.0, 1.0);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          if (_currentPlaybackItem.imagePath.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(_currentPlaybackItem.imagePath, width: 44, height: 44, fit: BoxFit.contain,
+                  errorBuilder: (ctx, err, st) => const Icon(Icons.live_tv, color: Colors.white24, size: 28)),
+              ),
+            ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(current?.title ?? 'No Programme Information', 
+                  style: TextStyle(color: Colors.white, fontSize: isLargeScreen ? 16 : 14, fontWeight: FontWeight.bold),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: LinearProgressIndicator(value: progress, minHeight: 3, backgroundColor: Colors.white10, valueColor: const AlwaysStoppedAnimation(Color(0xFFC12CFF))),
+                ),
+                const SizedBox(height: 4),
+                Text(next != null ? 'Next: ${next.title}' : 'Next: No info', 
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text('LIVE', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w900, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVodProgress(bool isLargeScreen) {
     final pos = _playerController.position;
     final dur = _playerController.duration;
     final progress = dur.inMilliseconds > 0 ? pos.inMilliseconds / dur.inMilliseconds : 0.0;
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
@@ -326,23 +503,24 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
             inactiveTrackColor: Colors.white24,
             thumbColor: Colors.white,
             trackHeight: 4,
+            overlayShape: SliderComponentShape.noOverlay,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
           ),
           child: Slider(
             value: progress.clamp(0.0, 1.0),
             onChanged: (v) {
-              final target = Duration(milliseconds: (v * dur.inMilliseconds).toInt());
-              _playerController.seek(target);
+              _playerController.seek(Duration(milliseconds: (v * dur.inMilliseconds).toInt()));
               _startControlsTimer();
             },
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(_formatDuration(pos), style: const TextStyle(color: Colors.white70, fontSize: 12)),
-              Text(_formatDuration(dur), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              Text(_formatDuration(pos), style: const TextStyle(color: Colors.white70, fontSize: 11)),
+              Text(_formatDuration(dur), style: const TextStyle(color: Colors.white70, fontSize: 11)),
             ],
           ),
         ),
@@ -350,28 +528,176 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     );
   }
 
-  Widget _buildBottomBar() {
+  Widget _buildActionRow() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        IconButton(
-          icon: Icon(
-            _playerController.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            color: Colors.white,
-            size: 48,
-          ),
-          onPressed: () {
-            _playerController.isPlaying ? _playerController.pause() : _playerController.play();
-            _startControlsTimer();
-          },
-        ),
-        const SizedBox(width: 32),
-        _ControlBtn(icon: Icons.subtitles_rounded, onTap: _showSubtitleMenu),
-        const SizedBox(width: 16),
-        _ControlBtn(icon: Icons.audiotrack_rounded, onTap: _showAudioMenu),
-        const SizedBox(width: 16),
-        _ControlBtn(icon: Icons.aspect_ratio_rounded, onTap: _showAspectRatioMenu),
+        _ActionBtn(icon: Icons.list_rounded, label: 'CHANNELS', onTap: _toggleChannelList),
+        _ActionBtn(icon: Icons.calendar_view_day_rounded, label: 'EPG', onTap: _showEpgModal),
+        _ActionBtn(icon: _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded, 
+          label: 'FAVOURITE', color: _isFavorite ? Colors.redAccent : null, onTap: _toggleFavorite),
+        _ActionBtn(icon: Icons.more_horiz_rounded, label: 'MORE', onTap: _showMoreMenu),
       ],
+    );
+  }
+
+  void _showMoreMenu() {
+    _showTrackMenu('More Actions', [
+      'Audio Tracks',
+      'Subtitles',
+      'Aspect Ratio',
+      'Catchup',
+      'Multi-View',
+      'Player Settings'
+    ], (idx) {
+      switch (idx) {
+        case 0: _showAudioMenu(); break;
+        case 1: _showSubtitleMenu(); break;
+        case 2: _showAspectRatioMenu(); break;
+        case 3: _showTrackMenu('Catchup', ['Last 24 Hours', 'Last 7 Days'], (i) {}); break;
+        case 4: ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Multi-View coming soon'))); break;
+        case 5: _showTrackMenu('Player Settings', ['Hardware Decoding', 'Buffer Size', 'Network Timeout'], (i) {}); break;
+      }
+    });
+  }
+
+  Widget _buildSideSlider(bool isBrightness) {
+    return Positioned(
+      left: isBrightness ? 24 : null,
+      right: !isBrightness ? 24 : null,
+      top: 0, bottom: 0,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(isBrightness ? Icons.brightness_6_rounded : Icons.volume_up_rounded, color: Colors.white70, size: 16),
+            const SizedBox(height: 8),
+            Container(
+              height: 140, width: 32,
+              decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
+              child: RotatedBox(
+                quarterTurns: 3,
+                child: Slider(
+                  value: isBrightness ? _brightness : _volume,
+                  activeColor: const Color(0xFFC12CFF),
+                  inactiveColor: Colors.white10,
+                  onChanged: (v) {
+                    setState(() => isBrightness ? _brightness = v : _volume = v);
+                    if (!isBrightness) _playerController.setVolume(v * 100);
+                    _showSliders();
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorOverlay() {
+    debugPrint('PLAYER ERROR: ${_playerController.error}');
+
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black,
+        child: Center(
+          child: GlassPanel(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.redAccent, size: 64),
+                const SizedBox(height: 24),
+                const Text('Playback Failed', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                const Text('Unable to connect to stream', style: TextStyle(color: Colors.white70, fontSize: 15)),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.refresh_rounded),
+                      onPressed: () => _playerController.setDataSource(_currentPlaybackItem),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFC12CFF),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      label: const Text('RETRY'),
+                    ),
+                    const SizedBox(width: 16),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.list_rounded),
+                      onPressed: _toggleChannelList,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white24),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      label: const Text('CHANNELS'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChannelListOverlay() {
+    return Positioned(
+      left: 0, top: 0, bottom: 0,
+      child: SafeArea(
+        child: Container(
+          width: 300,
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF050812).withValues(alpha: 0.95),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white10),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 40)],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 12, 12),
+                child: Row(
+                  children: [
+                    const Text('CHANNELS', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
+                    const Spacer(),
+                    IconButton(icon: const Icon(Icons.close, color: Colors.white70, size: 20), onPressed: _toggleChannelList),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: widget.queue == null || widget.queue!.isEmpty
+                  ? const Center(child: Text('No Channels', style: TextStyle(color: Colors.white38)))
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      itemCount: widget.queue!.length,
+                      itemBuilder: (context, index) {
+                        final item = widget.queue![index];
+                        final isPlaying = item.id == _currentPlaybackItem.id;
+                        return _ChannelListTile(
+                          item: item,
+                          isPlaying: isPlaying,
+                          onTap: () {
+                            _playItem(item);
+                            _toggleChannelList();
+                          },
+                        );
+                      },
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -397,64 +723,160 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   void _showAspectRatioMenu() {
     final ratios = ['Fit', 'Fill', 'Stretch', '16:9', '4:3'];
     _showTrackMenu('Aspect Ratio', ratios, (idx) {
-      // TODO: Implement aspect ratio change in controllers
+      UserPreferences.setPlayerAspectRatio(ratios[idx].toLowerCase());
+      if (mounted) setState(() {});
     });
   }
 
   void _showTrackMenu(String title, List<String> items, Function(int) onSelected) {
     showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1A1D29),
+      context: context, backgroundColor: const Color(0xFF1A1D29),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: items.length,
-                itemBuilder: (context, index) => ListTile(
-                  title: Text(items[index], style: const TextStyle(color: Colors.white)),
-                  onTap: () {
-                    onSelected(index);
-                    Navigator.pop(context);
-                  },
-                ),
+      builder: (context) => SafeArea(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Flexible(child: ListView.builder(shrinkWrap: true, itemCount: items.length, itemBuilder: (context, index) => ListTile(title: Text(items[index], style: const TextStyle(color: Colors.white)), onTap: () { onSelected(index); Navigator.pop(context); }))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEpgModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF050812),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.5,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const Text('PROGRAMME GUIDE', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 16),
+              Expanded(
+                child: _epgPrograms.isEmpty 
+                  ? const Center(child: Text('No EPG Data', style: TextStyle(color: Colors.white38)))
+                  : ListView.builder(
+                      itemCount: _epgPrograms.length,
+                      itemBuilder: (context, i) {
+                        final p = _epgPrograms[i];
+                        return ListTile(
+                          title: Text(p.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          subtitle: Text('${DateFormat('HH:mm').format(p.start)} - ${DateFormat('HH:mm').format(p.end)}', style: const TextStyle(color: Colors.white54)),
+                          trailing: i == 0 ? const Badge(label: Text('LIVE'), backgroundColor: Colors.redAccent) : null,
+                        );
+                      },
+                    ),
               ),
-            ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChannelListTile extends StatefulWidget {
+  final ContentItem item; final bool isPlaying; final VoidCallback onTap;
+  const _ChannelListTile({required this.item, required this.isPlaying, required this.onTap});
+  @override
+  State<_ChannelListTile> createState() => _ChannelListTileState();
+}
+
+class _ChannelListTileState extends State<_ChannelListTile> {
+  bool _isFocused = false;
+  @override
+  Widget build(BuildContext context) => FocusableActionDetector(
+    onFocusChange: (v) => setState(() => _isFocused = v),
+    child: InkWell(
+      onTap: widget.onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: _isFocused ? const Color(0xFFC12CFF).withValues(alpha: 0.2) : (widget.isPlaying ? Colors.white.withValues(alpha: 0.05) : Colors.transparent),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _isFocused ? const Color(0xFFC12CFF).withValues(alpha: 0.5) : (widget.isPlaying ? Colors.white10 : Colors.transparent)),
+        ),
+        child: Row(
+          children: [
+            if (widget.item.imagePath.isNotEmpty)
+              ClipRRect(borderRadius: BorderRadius.circular(4), child: Image.network(widget.item.imagePath, width: 32, height: 32, fit: BoxFit.contain, errorBuilder: (context, error, stackTrace) => const Icon(Icons.live_tv, size: 16, color: Colors.white24)))
+            else
+              const Icon(Icons.live_tv, size: 16, color: Colors.white24),
+            const SizedBox(width: 12),
+            Expanded(child: Text(widget.item.name, style: TextStyle(color: widget.isPlaying ? const Color(0xFF00B7FF) : Colors.white, fontWeight: widget.isPlaying ? FontWeight.bold : FontWeight.normal, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            if (widget.isPlaying) const Icon(Icons.play_arrow_rounded, color: Color(0xFF00B7FF), size: 14),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
-class _ControlBtn extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _ControlBtn({required this.icon, required this.onTap});
-
+class _CircleBtn extends StatelessWidget {
+  final IconData icon; final VoidCallback onTap; final Color? color; final double size;
+  const _CircleBtn({required this.icon, required this.onTap, this.color, this.size = 36});
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(icon, color: Colors.white, size: 24),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => InkWell(onTap: onTap, borderRadius: BorderRadius.circular(size), child: Container(width: size, height: size, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), shape: BoxShape.circle, border: Border.all(color: Colors.white10)), child: Icon(icon, color: color ?? Colors.white, size: size * 0.6)));
+}
+
+class _LargeControlBtn extends StatefulWidget {
+  final IconData icon; final VoidCallback onTap; final double size; final bool isPrimary;
+  const _LargeControlBtn({required this.icon, required this.onTap, this.size = 64, this.isPrimary = false});
+  @override
+  State<_LargeControlBtn> createState() => _LargeControlBtnState();
+}
+
+class _LargeControlBtnState extends State<_LargeControlBtn> {
+  bool _isFocused = false;
+  @override
+  Widget build(BuildContext context) => FocusableActionDetector(
+    onFocusChange: (v) => setState(() => _isFocused = v),
+    child: InkWell(onTap: widget.onTap, borderRadius: BorderRadius.circular(widget.size), child: AnimatedContainer(duration: const Duration(milliseconds: 200), width: widget.size, height: widget.size, decoration: BoxDecoration(color: _isFocused ? const Color(0xFFC12CFF) : (widget.isPrimary ? const Color(0xFFC12CFF).withValues(alpha: 0.2) : Colors.white10), shape: BoxShape.circle, border: Border.all(color: _isFocused ? Colors.white : Colors.white10, width: 2)), child: Icon(widget.icon, color: Colors.white, size: widget.size * 0.6))),
+  );
+}
+
+class _ActionBtn extends StatefulWidget {
+  final IconData icon; final String label; final VoidCallback onTap; final Color? color;
+  const _ActionBtn({required this.icon, required this.label, required this.onTap, this.color});
+  @override
+  State<_ActionBtn> createState() => _ActionBtnState();
+}
+
+class _ActionBtnState extends State<_ActionBtn> {
+  bool _isFocused = false;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    child: FocusableActionDetector(
+      onFocusChange: (v) => setState(() => _isFocused = v),
+      child: InkWell(onTap: widget.onTap, borderRadius: BorderRadius.circular(10), child: AnimatedContainer(duration: const Duration(milliseconds: 200), padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: _isFocused ? Colors.white.withValues(alpha: 0.1) : Colors.transparent, borderRadius: BorderRadius.circular(10)), child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(widget.icon, color: _isFocused ? const Color(0xFFC12CFF) : (widget.color ?? Colors.white70), size: 24), const SizedBox(height: 6), Text(widget.label, style: TextStyle(color: _isFocused ? Colors.white : Colors.white54, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5))]))),
+    ),
+  );
+}
+
+class _ClockWidget extends StatefulWidget { const _ClockWidget(); @override State<_ClockWidget> createState() => _ClockWidgetState(); }
+class _ClockWidgetState extends State<_ClockWidget> {
+  late Timer _timer; DateTime _now = DateTime.now();
+  @override void initState() { super.initState(); _timer = Timer.periodic(const Duration(seconds: 1), (t) => setState(() => _now = DateTime.now())); }
+  @override void dispose() { _timer.cancel(); super.dispose(); }
+  @override Widget build(BuildContext context) => Text(DateFormat('HH:mm').format(_now), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900));
 }
 
 class _ShowControlsIntent extends Intent { const _ShowControlsIntent(); }
+class _ShowChannelListIntent extends Intent { const _ShowChannelListIntent(); }
 class _SeekBackIntent extends Intent { const _SeekBackIntent(); }
 class _SeekForwardIntent extends Intent { const _SeekForwardIntent(); }
+class _ChannelUpIntent extends Intent { const _ChannelUpIntent(); }
+class _ChannelDownIntent extends Intent { const _ChannelDownIntent(); }
