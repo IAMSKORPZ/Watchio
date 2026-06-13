@@ -506,7 +506,7 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
     _selectedFilePath = null;
 
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      FilePickerResult? result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['m3u', 'm3u8'],
         allowMultiple: false,

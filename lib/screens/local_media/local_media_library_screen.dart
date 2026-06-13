@@ -113,7 +113,7 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
   }
 
   void _openFilePicker(FileType type) async {
-    final result = await FilePicker.platform.pickFiles(type: type);
+    final result = await FilePicker.pickFiles(type: type);
     if (result != null && result.files.single.path != null) {
       _playFile(File(result.files.single.path!));
     }

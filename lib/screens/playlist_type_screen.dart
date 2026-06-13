@@ -126,7 +126,7 @@ class _PlaylistTypeScreenState extends State<PlaylistTypeScreen> {
                     ),
                   ),
                   
-                  const SizedBox(height: 20), // Reduced gap between title and cards
+                  SizedBox(height: titleGap), // Use the titleGap variable
                   
                   // 3. Main Dashboard (Expanded & Centered)
                   Expanded(

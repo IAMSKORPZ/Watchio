@@ -621,8 +621,6 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     );
   }
 
-  String _formatDuration(Duration duration) => '${duration.inHours}h ${duration.inMinutes.remainder(60)}m';
-
   Future<void> _openTrailer(BuildContext context) async {
     final trailerKey = seriesInfo?.youtubeTrailer;
     final String urlString = (trailerKey != null && trailerKey.isNotEmpty)
@@ -642,22 +640,6 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
       return Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (_, _, _) => _buildPlaceholder());
     }
     return _buildPlaceholder();
-  }
-
-  Widget _buildDetailCard({required IconData icon, required String title, required String value}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.withValues(alpha: 0.2))),
-      child: Row(children: [
-        Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: Icon(icon, size: 20, color: Colors.blue)),
-        const SizedBox(width: 16),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-        ])),
-      ]),
-    );
   }
 }
 

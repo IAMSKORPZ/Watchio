@@ -8,18 +8,23 @@ environment:
   sdk: ^3.9.2
 
 dependencies:
-  flutter :
+  flutter:
     sdk: flutter
+
   flutter_localizations:
     sdk: flutter
+
   intl: ^0.20.2
   get_it: ^9.2.1
   media_kit: ^1.1.10+1
   media_kit_video: ^2.0.1
   media_kit_libs_video: ^1.0.4
   provider: ^6.1.1
-  drift: ^2.26.1
+
+  drift: ^2.34.0
   sqlite3_flutter_libs: ^0.6.0+eol
+  sqlite3: ^3.3.3
+
   cupertino_icons: ^1.0.8
   http: ^1.4.0
   cached_network_image: ^3.4.1
@@ -31,41 +36,43 @@ dependencies:
   persistent_bottom_nav_bar: ^6.2.1
   shared_preferences: ^2.5.5
   audio_session: ^0.2.3
-  drift_dev: any
-  sqlite3: any
-  path_provider: any
-  path: any
-  meta: any
-  file_picker: ^8.1.7
+
+  path_provider: ^2.1.5
+  path: ^1.9.1
+  meta: ^1.18.0
+  file_picker: ^11.0.2
   uuid: ^4.5.1
   collection: ^1.19.1
   connectivity_plus: ^7.1.1
   url_launcher: ^6.3.2
   package_info_plus: ^8.3.1
-  wakelock_plus: ^1.2.10
+  wakelock_plus: ^1.3.3
   flutter_secure_storage: ^10.3.1
   google_fonts: ^8.1.0
-  permission_handler: ^11.3.1
-  device_info_plus: ^10.1.0
+  permission_handler: ^12.0.3
+  device_info_plus: ^12.4.0
 
 dependency_overrides: {}
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
   build_runner: ^2.5.4
   flutter_lints: ^6.0.0
-  build_web_compilers: ^4.1.5
+  build_web_compilers: ^4.8.0
+  drift_dev: ^2.34.0
+  build: ^4.0.3
+  mockito: ^5.6.4
 
-  build: any
-  mockito: ^5.4.6
 flutter:
   uses-material-design: true
   generate: true
+
   assets:
     - assets/images/
 
-flutter_icons:
+flutter_launcher_icons:
   android: true
   ios: true
   remove_alpha_ios: true

@@ -806,17 +806,6 @@ class _PlayerWidgetState extends State<PlayerWidget>
     }
   }
 
-  String _formatDuration(Duration duration) {
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-
-    if (hours > 0) {
-      return '${hours}s ${minutes}dk';
-    } else {
-      return '${minutes}dk';
-    }
-  }
-
   String _getContentTypeDisplayName() {
     switch (widget.contentItem.contentType) {
       case ContentType.liveStream:

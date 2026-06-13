@@ -655,10 +655,10 @@ class IptvRepository {
             playlistId: drift.Value(_playlistId),
             airDate: drift.Value(safeString(season['air_date'])),
             episodeCount: drift.Value(safeInt(season['episode_count'])),
-            seasonId: drift.Value(safeInt(season['id']) ?? 0),
+            seasonId: drift.Value(safeInt(season['id'])),
             name: drift.Value(safeString(season['name'])),
             overview: drift.Value(safeString(season['overview'])),
-            seasonNumber: drift.Value(safeInt(season['season_number']) ?? 1),
+            seasonNumber: drift.Value(safeInt(season['season_number'])),
             voteAverage: drift.Value(safeInt(season['vote_average'])),
             cover: drift.Value(safeString(season['cover'])),
             coverBig: drift.Value(safeString(season['cover_big'])),
@@ -680,9 +680,10 @@ class IptvRepository {
               dynamic info = episode['info'];
 
               // Get season number from episodes, fallback to seasonKey if needed
-              int seasonNumber = safeInt(episode['season']) ?? 0;
+              int seasonNumber = safeInt(episode['season']);
               if (seasonNumber == 0) {
-                seasonNumber = safeInt(seasonKey) ?? 1;
+                seasonNumber = safeInt(seasonKey);
+                if (seasonNumber == 0) seasonNumber = 1;
               }
               seasonNumbersFromEpisodes.add(seasonNumber);
 
@@ -690,7 +691,7 @@ class IptvRepository {
                 seriesId: drift.Value(seriesId),
                 playlistId: drift.Value(_playlistId),
                 episodeId: drift.Value(safeString(episode['id'])),
-                episodeNum: drift.Value(safeInt(episode['episode_num']) ?? 0),
+                episodeNum: drift.Value(safeInt(episode['episode_num'])),
                 title: drift.Value(safeString(episode['title'])),
                 containerExtension: drift.Value(
                   safeString(episode['container_extension']),
@@ -758,7 +759,11 @@ class IptvRepository {
                 final seasonEpisodes = episodes[seasonKey];
                 if (seasonEpisodes is List) {
                   for (final episode in seasonEpisodes) {
-                    final epSeason = safeInt(episode['season']) ?? safeInt(seasonKey) ?? 1;
+                    int epSeason = safeInt(episode['season']);
+                    if (epSeason == 0) {
+                      epSeason = safeInt(seasonKey);
+                      if (epSeason == 0) epSeason = 1;
+                    }
                     if (epSeason == seasonNumber) {
                       episodeCount++;
                     }

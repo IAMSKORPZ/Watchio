@@ -156,13 +156,13 @@ class UserPreferences {
   static Future<FontWeight> getSubtitleFontWeight() async {
     final prefs = await SharedPreferences.getInstance();
     final weightIndex =
-        prefs.getInt(_keySubtitleFontWeight) ?? FontWeight.normal.index;
+        prefs.getInt(_keySubtitleFontWeight) ?? FontWeight.normal.value;
     return FontWeight.values[weightIndex];
   }
 
   static Future<void> setSubtitleFontWeight(FontWeight fontWeight) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keySubtitleFontWeight, fontWeight.index);
+    await prefs.setInt(_keySubtitleFontWeight, fontWeight.value);
   }
 
   static Future<TextAlign> getSubtitleTextAlign() async {
