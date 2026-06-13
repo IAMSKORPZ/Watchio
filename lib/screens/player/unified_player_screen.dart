@@ -80,6 +80,11 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   }
 
   Future<void> _initPlayer() async {
+    if (AppState.currentPlaylist == null) {
+      debugPrint('UnifiedPlayer Error: AppState.currentPlaylist is NULL');
+      return;
+    }
+
     final engineStr = await UserPreferences.getPlayerEngine();
     final engine = PlayerEngine.values.firstWhere(
       (e) => e.name == engineStr, 
@@ -102,16 +107,21 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
 
     final playItem = _currentPlaybackItem.copyWith(startPosition: startPos);
     
-    debugPrint('UnifiedPlayer: Initializing with ${playItem.title}');
-    debugPrint('UnifiedPlayer: URL: ${playItem.url}');
-    debugPrint('UnifiedPlayer: Engine: ${engine.name}');
+    debugPrint('--- WATCHIO PLAYBACK PIPELINE TRACE ---');
+    debugPrint('Provider: ${AppState.currentPlaylist?.name ?? "N/A"}');
+    debugPrint('Provider Type: ${AppState.currentPlaylist?.type ?? "N/A"}');
+    debugPrint('Username: ${AppState.currentPlaylist?.username ?? "N/A"}');
+    debugPrint('Server: ${AppState.currentPlaylist?.url ?? "N/A"}');
+    debugPrint('Content: ${playItem.title}');
+    debugPrint('Type: ${playItem.contentType}');
+    debugPrint('Stream ID: ${playItem.id}');
+    debugPrint('Episode ID: ${playItem.originalItem?.season != null ? playItem.id : "N/A"}');
+    debugPrint('Generated URL: ${playItem.url}');
+    debugPrint('User-Agent: ${playItem.headers['User-Agent']}');
+    debugPrint('--------------------------------------');
 
-    if (playItem.url.isEmpty || playItem.url == playItem.id) {
-       debugPrint('UnifiedPlayer Error: Invalid stream URL generated');
-       setState(() {
-         // This will trigger the buildErrorOverlay via _playerController.error
-         // But since we haven't set data source yet, we must set it manually if we want to show it.
-       });
+    if (playItem.url.isEmpty || (!playItem.url.startsWith('http') && playItem.url == playItem.id)) {
+       debugPrint('UnifiedPlayer: CRITICAL - Invalid URL generated');
     }
 
     await _playerController.setDataSource(playItem);
@@ -134,7 +144,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
         end: DateTime.now().add(const Duration(hours: 6)),
         limit: 2,
       );
-      if (mounted) setState(() => _epgPrograms = programs);
+      if (mounted) {
+        setState(() => _epgPrograms = programs);
+      }
     } catch (e) {
       debugPrint('EPG Fetch Error: $e');
     }
@@ -178,15 +190,21 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     if (_playerController.error != null) return;
     setState(() {
       _showControls = !_showControls;
-      if (_showControls) _showChannelList = false;
+      if (_showControls) {
+        _showChannelList = false;
+      }
     });
-    if (_showControls) _startControlsTimer();
+    if (_showControls) {
+      _startControlsTimer();
+    }
   }
 
   void _toggleChannelList() {
     setState(() {
       _showChannelList = !_showChannelList;
-      if (_showChannelList) _showControls = false;
+      if (_showChannelList) {
+        _showControls = false;
+      }
     });
   }
 
@@ -535,7 +553,7 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
         _ActionBtn(icon: Icons.list_rounded, label: 'CHANNELS', onTap: _toggleChannelList),
         _ActionBtn(icon: Icons.calendar_view_day_rounded, label: 'EPG', onTap: _showEpgModal),
         _ActionBtn(icon: _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded, 
-          label: 'FAVOURITE', color: _isFavorite ? Colors.redAccent : null, onTap: _toggleFavorite),
+          label: 'FAVOURITE', iconColor: _isFavorite ? Colors.redAccent : null, onTap: _toggleFavorite),
         _ActionBtn(icon: Icons.more_horiz_rounded, label: 'MORE', onTap: _showMoreMenu),
       ],
     );
@@ -601,48 +619,56 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     return Positioned.fill(
       child: Container(
         color: Colors.black,
-        child: Center(
-          child: GlassPanel(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline, color: Colors.redAccent, size: 64),
-                const SizedBox(height: 24),
-                const Text('Playback Failed', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 8),
-                const Text('Unable to connect to stream', style: TextStyle(color: Colors.white70, fontSize: 15)),
-                const SizedBox(height: 32),
-                Row(
+        child: Stack(
+          children: [
+            Positioned(
+              top: 24, left: 24,
+              child: _CircleBtn(icon: Icons.arrow_back_rounded, onTap: () => Navigator.pop(context)),
+            ),
+            Center(
+              child: GlassPanel(
+                padding: const EdgeInsets.all(32),
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.refresh_rounded),
-                      onPressed: () => _playerController.setDataSource(_currentPlaybackItem),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFC12CFF),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      label: const Text('RETRY'),
-                    ),
-                    const SizedBox(width: 16),
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.list_rounded),
-                      onPressed: _toggleChannelList,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white24),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      label: const Text('CHANNELS'),
+                    const Icon(Icons.error_outline, color: Colors.redAccent, size: 64),
+                    const SizedBox(height: 24),
+                    const Text('Playback Failed', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 8),
+                    const Text('Unable to connect to stream', style: TextStyle(color: Colors.white70, fontSize: 15)),
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.refresh_rounded),
+                          onPressed: () => _playerController.setDataSource(_currentPlaybackItem),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFC12CFF),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          label: const Text('RETRY'),
+                        ),
+                        const SizedBox(width: 16),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.list_rounded),
+                          onPressed: _toggleChannelList,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white24),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          label: const Text('CHANNELS'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -769,10 +795,21 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
                       itemCount: _epgPrograms.length,
                       itemBuilder: (context, i) {
                         final p = _epgPrograms[i];
+                        
                         return ListTile(
                           title: Text(p.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                           subtitle: Text('${DateFormat('HH:mm').format(p.start)} - ${DateFormat('HH:mm').format(p.end)}', style: const TextStyle(color: Colors.white54)),
-                          trailing: i == 0 ? const Badge(label: Text('LIVE'), backgroundColor: Colors.redAccent) : null,
+                          trailing: i == 0 
+                            ? const Badge(label: Text('LIVE'), backgroundColor: Colors.redAccent)
+                            : (p.start.isBefore(DateTime.now()) 
+                                ? IconButton(
+                                    icon: const Icon(Icons.history_rounded, color: Color(0xFF00B7FF)),
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      _playCatchup(p);
+                                    },
+                                  )
+                                : null),
                         );
                       },
                     ),
@@ -782,6 +819,17 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
         ),
       ),
     );
+  }
+
+  void _playCatchup(EpgProgramWindow program) {
+    final durationMinutes = program.end.difference(program.start).inMinutes;
+    final newItem = widget.contentItem.copyWith(
+      description: program.title,
+      catchupStartTime: program.start,
+      catchupDurationMinutes: durationMinutes,
+    );
+
+    _playItem(newItem);
   }
 }
 
@@ -825,10 +873,33 @@ class _ChannelListTileState extends State<_ChannelListTile> {
 }
 
 class _CircleBtn extends StatelessWidget {
-  final IconData icon; final VoidCallback onTap; final Color? color; final double size;
-  const _CircleBtn({required this.icon, required this.onTap, this.color, this.size = 36});
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color? iconColor;
+  final double size;
+
+  const _CircleBtn({
+    required this.icon,
+    required this.onTap,
+    this.iconColor,
+    this.size = 36,
+  });
+
   @override
-  Widget build(BuildContext context) => InkWell(onTap: onTap, borderRadius: BorderRadius.circular(size), child: Container(width: size, height: size, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), shape: BoxShape.circle, border: Border.all(color: Colors.white10)), child: Icon(icon, color: color ?? Colors.white, size: size * 0.6)));
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(size),
+    child: Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Icon(icon, color: iconColor ?? Colors.white, size: size * 0.6),
+    ),
+  );
 }
 
 class _LargeControlBtn extends StatefulWidget {
@@ -848,8 +919,18 @@ class _LargeControlBtnState extends State<_LargeControlBtn> {
 }
 
 class _ActionBtn extends StatefulWidget {
-  final IconData icon; final String label; final VoidCallback onTap; final Color? color;
-  const _ActionBtn({required this.icon, required this.label, required this.onTap, this.color});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? iconColor;
+
+  const _ActionBtn({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.iconColor,
+  });
+
   @override
   State<_ActionBtn> createState() => _ActionBtnState();
 }
@@ -861,7 +942,26 @@ class _ActionBtnState extends State<_ActionBtn> {
     padding: const EdgeInsets.symmetric(horizontal: 12),
     child: FocusableActionDetector(
       onFocusChange: (v) => setState(() => _isFocused = v),
-      child: InkWell(onTap: widget.onTap, borderRadius: BorderRadius.circular(10), child: AnimatedContainer(duration: const Duration(milliseconds: 200), padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: _isFocused ? Colors.white.withValues(alpha: 0.1) : Colors.transparent, borderRadius: BorderRadius.circular(10)), child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(widget.icon, color: _isFocused ? const Color(0xFFC12CFF) : (widget.color ?? Colors.white70), size: 24), const SizedBox(height: 6), Text(widget.label, style: TextStyle(color: _isFocused ? Colors.white : Colors.white54, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5))]))),
+      child: InkWell(
+        onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: _isFocused ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(widget.icon, color: _isFocused ? const Color(0xFFC12CFF) : (widget.iconColor ?? Colors.white70), size: 24),
+              const SizedBox(height: 6),
+              Text(widget.label, style: TextStyle(color: _isFocused ? Colors.white : Colors.white54, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+            ],
+          ),
+        ),
+      ),
     ),
   );
 }

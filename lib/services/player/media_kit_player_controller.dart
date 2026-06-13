@@ -85,15 +85,19 @@ class MediaKitPlayerController extends AppPlayerController {
   @override
   Future<void> setDataSource(PlaybackItem item) async {
     _error = null;
+    debugPrint('MediaKit: STARTING PIPELINE');
     debugPrint('MediaKit: Loading ${item.url}');
+    debugPrint('MediaKit: Headers: ${item.headers}');
+    
     try {
       await _player.open(Media(item.url, httpHeaders: item.headers), play: true);
       if (item.startPosition > Duration.zero) {
+        debugPrint('MediaKit: Seeking to ${item.startPosition}');
         await _player.seek(item.startPosition);
       }
     } catch (e) {
-      debugPrint('MediaKit: Error opening media: $e');
-      _error = 'Playback Error: $e';
+      debugPrint('MediaKit: CRITICAL ERROR: $e');
+      _error = 'Playback Failed: Unable to open stream';
       notifyListeners();
     }
   }
