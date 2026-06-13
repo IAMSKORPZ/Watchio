@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/xtream_code_home_controller.dart';
+import '../../models/category_type.dart';
 import '../../models/category_view_model.dart';
+import '../../models/playlist_content_model.dart';
 import '../../shared/widgets/glass_panel.dart';
 import '../../shared/widgets/sidebar_item.dart';
 import '../../shared/widgets/poster_card.dart';
@@ -16,19 +18,88 @@ class XtreamSeriesScreen extends StatefulWidget {
 
 class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
   CategoryViewModel? _selectedCategory;
+  final List<ContentItem> _currentItems = [];
+  bool _isMoreLoading = false;
+  bool _hasMore = true;
+  int _currentOffset = 0;
+  static const int _pageSize = 60;
+  final Map<String, int> _categoryCounts = {};
+  
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _scrollController.addListener(_scrollListener);
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final controller = Provider.of<XtreamCodeHomeController>(context, listen: false);
       if (controller.seriesCategories.isNotEmpty) {
-        setState(() {
-          _selectedCategory = controller.seriesCategories.first;
-        });
+        // Load counts in bulk
+        final counts = await controller.getAllCategoryCounts(CategoryType.series);
+        if (mounted) {
+          setState(() {
+            _categoryCounts.addAll(counts);
+            _onCategorySelected(controller.seriesCategories.first);
+          });
+        }
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 400) {
+      if (!_isMoreLoading && _hasMore) {
+        _loadMoreItems();
+      }
+    }
+  }
+
+  Future<void> _onCategorySelected(CategoryViewModel category) async {
+    setState(() {
+      _selectedCategory = category;
+      _currentItems.clear();
+      _currentOffset = 0;
+      _hasMore = true;
+      _isMoreLoading = true;
+    });
+
+    await _loadMoreItems();
+  }
+
+  Future<void> _loadMoreItems() async {
+    if (_selectedCategory == null) return;
+    
+    setState(() => _isMoreLoading = true);
+    
+    try {
+      final controller = Provider.of<XtreamCodeHomeController>(context, listen: false);
+      final newItems = await controller.getCategoryItems(
+        _selectedCategory!.category,
+        top: _pageSize,
+        offset: _currentOffset,
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentItems.addAll(newItems);
+          _currentOffset += newItems.length;
+          _isMoreLoading = false;
+          if (newItems.length < _pageSize) {
+            _hasMore = false;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isMoreLoading = false);
+    }
   }
 
   @override
@@ -57,9 +128,12 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
                       icon: Icons.tv_outlined,
                       label: category.category.categoryName,
                       selected: isSelected,
+                      count: _categoryCounts[category.category.categoryId],
                       onTap: () {
-                        setState(() => _selectedCategory = category);
-                        _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+                        if (!isSelected) {
+                          _onCategorySelected(category);
+                          _scrollController.jumpTo(0);
+                        }
                       },
                     );
                   },
@@ -93,15 +167,19 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 16,
                         ),
-                        itemCount: _selectedCategory?.contentItems.length ?? 0,
+                        itemCount: _currentItems.length + (_isMoreLoading ? 1 : 0),
                         itemBuilder: (context, index) {
-                          final item = _selectedCategory!.contentItems[index];
-                          return PosterCard(
-                            title: item.name,
-                            imageUrl: item.imagePath,
-                            rating: item.seriesStream?.rating,
-                            onTap: () => navigateByContentType(context, item),
-                          );
+                          if (index < _currentItems.length) {
+                            final item = _currentItems[index];
+                            return PosterCard(
+                              title: item.name,
+                              imageUrl: item.imagePath,
+                              rating: item.seriesStream?.rating,
+                              onTap: () => navigateByContentType(context, item),
+                            );
+                          } else {
+                            return const Center(child: CircularProgressIndicator());
+                          }
                         },
                       ),
                     ),

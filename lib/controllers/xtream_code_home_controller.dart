@@ -1,6 +1,8 @@
 import 'package:another_iptv_player/models/api_response.dart';
 import 'package:flutter/material.dart';
 import 'package:another_iptv_player/l10n/localization_extension.dart';
+import 'package:another_iptv_player/models/category.dart';
+import 'package:another_iptv_player/models/category_type.dart';
 import 'package:another_iptv_player/models/category_view_model.dart';
 import 'package:another_iptv_player/models/content_type.dart';
 import 'package:another_iptv_player/models/playlist_content_model.dart';
@@ -105,6 +107,11 @@ class XtreamCodeHomeController extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
       _userInfo = await _repository.getPlayerInfo();
+
+      // Prepend virtual categories
+      _addVirtualCategories(CategoryType.live, _liveCategories);
+      _addVirtualCategories(CategoryType.vod, _movieCategories);
+      _addVirtualCategories(CategoryType.series, _seriesCategories);
       
       final liveCats = await _repository.getLiveCategories();
       if (liveCats != null) {
@@ -148,7 +155,81 @@ class XtreamCodeHomeController extends ChangeNotifier {
     finally { _isLoading = false; notifyListeners(); }
   }
 
+  void _addVirtualCategories(CategoryType type, List<CategoryViewModel> list) {
+    final playlistId = AppState.currentPlaylist?.id ?? '';
+    
+    // 1. All
+    list.add(CategoryViewModel(
+      category: Category(
+        categoryId: IptvRepository.virtualAll, 
+        categoryName: _getAllLabel(type), 
+        parentId: 0, 
+        playlistId: playlistId, 
+        type: type
+      ), 
+      contentItems: []
+    ));
+    
+    // 2. Favorites
+    list.add(CategoryViewModel(
+      category: Category(
+        categoryId: IptvRepository.virtualFavorites, 
+        categoryName: 'FAVOURITES', 
+        parentId: 0, 
+        playlistId: playlistId, 
+        type: type
+      ), 
+      contentItems: []
+    ));
+    
+    // 3. History
+    list.add(CategoryViewModel(
+      category: Category(
+        categoryId: IptvRepository.virtualHistory, 
+        categoryName: 'RECENTLY WATCHED', 
+        parentId: 0, 
+        playlistId: playlistId, 
+        type: type
+      ), 
+      contentItems: []
+    ));
+  }
+
+  String _getAllLabel(CategoryType type) {
+    switch (type) {
+      case CategoryType.live: return 'ALL CHANNELS';
+      case CategoryType.vod: return 'ALL MOVIES';
+      case CategoryType.series: return 'ALL SERIES';
+    }
+  }
+
   void refresh() => notifyListeners();
+
+  Future<List<ContentItem>> getCategoryItems(Category category, {int top = 60, int offset = 0}) async {
+    if (_repository == null) return [];
+    
+    switch (category.type) {
+      case CategoryType.live:
+        final streams = await _repository.getLiveChannelsByCategoryId(categoryId: category.categoryId, top: top, offset: offset);
+        return streams?.map((x) => ContentItem(x.streamId, x.name, x.streamIcon, ContentType.liveStream, liveStream: x)).toList() ?? [];
+      case CategoryType.vod:
+        final movies = await _repository.getMovies(categoryId: category.categoryId, top: top, offset: offset);
+        return movies?.map((x) => ContentItem(x.streamId, x.name, x.streamIcon, ContentType.vod, containerExtension: x.containerExtension, vodStream: x)).toList() ?? [];
+      case CategoryType.series:
+        final series = await _repository.getSeries(categoryId: category.categoryId, top: top, offset: offset);
+        return series?.map((x) => ContentItem(x.seriesId, x.name, x.cover ?? '', ContentType.series, seriesStream: x)).toList() ?? [];
+    }
+  }
+
+  Future<int> getCategoryItemCount(Category category) async {
+    if (_repository == null) return 0;
+    return await _repository.getItemCountByCategory(category.categoryId, category.type);
+  }
+
+  Future<Map<String, int>> getAllCategoryCounts(CategoryType type) async {
+    if (_repository == null) return {};
+    return await _repository.getAllCategoryCounts(type);
+  }
 
   void refreshAllData(BuildContext context) {
     if (AppState.currentPlaylist == null) return;

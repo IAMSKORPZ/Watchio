@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/xtream_code_home_controller.dart';
+import '../../models/category_type.dart';
 import '../../models/category_view_model.dart';
 import '../../models/playlist_content_model.dart';
 import '../../services/config_service.dart';
@@ -20,6 +21,13 @@ class XtreamLiveScreen extends StatefulWidget {
 class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
   CategoryViewModel? _selectedCategory;
   ContentItem? _focusedChannel;
+  final List<ContentItem> _currentItems = [];
+  bool _isMoreLoading = false;
+  bool _hasMore = true;
+  int _currentOffset = 0;
+  static const int _pageSize = 60;
+  final Map<String, int> _categoryCounts = {};
+
   final ScrollController _categoryScrollController = ScrollController();
   final ScrollController _channelScrollController = ScrollController();
   
@@ -35,17 +43,20 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) setState(() => _now = DateTime.now());
     });
+
+    _channelScrollController.addListener(_scrollListener);
     
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final controller = Provider.of<XtreamCodeHomeController>(context, listen: false);
       if (controller.liveCategories != null && controller.liveCategories!.isNotEmpty) {
-        setState(() {
-          _selectedCategory = controller.liveCategories!.first;
-          if (_selectedCategory!.contentItems.isNotEmpty) {
-            _focusedChannel = _selectedCategory!.contentItems.first;
-            _fetchEpg(_focusedChannel!);
-          }
-        });
+        // Load all category counts in bulk
+        final counts = await controller.getAllCategoryCounts(CategoryType.live);
+        if (mounted) {
+          setState(() {
+            _categoryCounts.addAll(counts);
+            _onCategorySelected(controller.liveCategories!.first);
+          });
+        }
       }
     });
   }
@@ -53,9 +64,67 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
   @override
   void dispose() {
     _clockTimer.cancel();
+    _channelScrollController.removeListener(_scrollListener);
     _categoryScrollController.dispose();
     _channelScrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_channelScrollController.position.pixels >= _channelScrollController.position.maxScrollExtent - 400) {
+      if (!_isMoreLoading && _hasMore) {
+        _loadMoreItems();
+      }
+    }
+  }
+
+  Future<void> _onCategorySelected(CategoryViewModel category) async {
+    setState(() {
+      _selectedCategory = category;
+      _currentItems.clear();
+      _currentOffset = 0;
+      _hasMore = true;
+      _isMoreLoading = true;
+      _focusedChannel = null;
+      _epgPrograms = [];
+    });
+
+    await _loadMoreItems();
+
+    if (_currentItems.isNotEmpty && mounted) {
+      setState(() {
+        _focusedChannel = _currentItems.first;
+      });
+      _fetchEpg(_focusedChannel!);
+    }
+  }
+
+  Future<void> _loadMoreItems() async {
+    if (_selectedCategory == null) return;
+    
+    setState(() => _isMoreLoading = true);
+    
+    try {
+      final controller = Provider.of<XtreamCodeHomeController>(context, listen: false);
+      final newItems = await controller.getCategoryItems(
+        _selectedCategory!.category,
+        top: _pageSize,
+        offset: _currentOffset,
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentItems.addAll(newItems);
+          _currentOffset += newItems.length;
+          _isMoreLoading = false;
+          if (newItems.length < _pageSize) {
+            _hasMore = false;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isMoreLoading = false);
+    }
   }
 
   Future<void> _fetchEpg(ContentItem channel) async {
@@ -236,16 +305,13 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
               
               return _CategoryItem(
                 label: cat.category.categoryName.toUpperCase(),
-                count: cat.contentItems.length,
+                count: _categoryCounts[cat.category.categoryId] ?? cat.contentItems.length,
                 isSelected: isSelected,
                 onTap: () {
-                  setState(() {
-                    _selectedCategory = cat;
-                    if (cat.contentItems.isNotEmpty) {
-                      _focusedChannel = cat.contentItems.first;
-                      _fetchEpg(_focusedChannel!);
-                    }
-                  });
+                  if (!isSelected) {
+                    _onCategorySelected(cat);
+                    _channelScrollController.jumpTo(0);
+                  }
                 },
               );
             },
@@ -256,26 +322,33 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
   }
 
   Widget _buildChannelPanel() {
-    final channels = _selectedCategory?.contentItems ?? [];
-    
     return Column(
       children: [
         Expanded(
           child: ListView.separated(
             controller: _channelScrollController,
-            itemCount: channels.length,
+            itemCount: _currentItems.length + (_isMoreLoading ? 1 : 0),
             separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
-              final channel = channels[index];
-              final isFocused = _focusedChannel?.id == channel.id;
-              
-              return _ChannelItem(
-                channel: channel,
-                index: index + 1,
-                isFocused: isFocused,
-                onFocus: () => _onChannelFocused(channel),
-                onTap: () => navigateByContentType(context, channel),
-              );
+              if (index < _currentItems.length) {
+                final channel = _currentItems[index];
+                final isFocused = _focusedChannel?.id == channel.id;
+                
+                return _ChannelItem(
+                  channel: channel,
+                  index: index + 1,
+                  isFocused: isFocused,
+                  onFocus: () => _onChannelFocused(channel),
+                  onTap: () => navigateByContentType(context, channel),
+                );
+              } else {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                );
+              }
             },
           ),
         ),
