@@ -14,6 +14,22 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
   PlayerEngine _engine = PlayerEngine.auto;
   bool _hardwareDecoding = true;
   String _aspectRatio = 'fit';
+  String _audioLang = 'en';
+  String _subLang = 'en';
+
+  final List<Map<String, String>> _languages = [
+    {'code': 'en', 'name': 'English'},
+    {'code': 'tr', 'name': 'Turkish'},
+    {'code': 'es', 'name': 'Spanish'},
+    {'code': 'fr', 'name': 'French'},
+    {'code': 'de', 'name': 'German'},
+    {'code': 'it', 'name': 'Italian'},
+    {'code': 'pt', 'name': 'Portuguese'},
+    {'code': 'ru', 'name': 'Russian'},
+    {'code': 'ar', 'name': 'Arabic'},
+    {'code': 'hi', 'name': 'Hindi'},
+    {'code': 'zh', 'name': 'Chinese'},
+  ];
 
   @override
   void initState() {
@@ -25,11 +41,15 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
     final engineStr = await UserPreferences.getPlayerEngine();
     final hardware = await UserPreferences.getHardwareDecoding();
     final ratio = await UserPreferences.getPlayerAspectRatio();
+    final audio = await UserPreferences.getAudioTrack();
+    final sub = await UserPreferences.getSubtitleTrack();
     
     setState(() {
       _engine = PlayerEngine.values.firstWhere((e) => e.name == engineStr, orElse: () => PlayerEngine.auto);
       _hardwareDecoding = hardware;
       _aspectRatio = ratio;
+      _audioLang = audio;
+      _subLang = sub;
     });
   }
 
@@ -47,6 +67,7 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
         children: [
           _buildSection('Player Engine', [
             _buildDropdown<PlayerEngine>(
+              title: 'Preferred Engine',
               value: _engine,
               items: PlayerEngine.values,
               onChanged: (v) {
@@ -72,8 +93,37 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
             ),
           ]),
           const SizedBox(height: 24),
+          _buildSection('Preferred Languages', [
+            _buildDropdown<String>(
+              title: 'Audio Language',
+              value: _audioLang,
+              items: _languages.map((l) => l['code']!).toList(),
+              onChanged: (v) {
+                if (v != null) {
+                  setState(() => _audioLang = v);
+                  UserPreferences.setAudioTrack(v);
+                }
+              },
+              labelBuilder: (c) => _languages.firstWhere((l) => l['code'] == c)['name']!,
+            ),
+            const Divider(color: Colors.white10),
+            _buildDropdown<String>(
+              title: 'Subtitle Language',
+              value: _subLang,
+              items: _languages.map((l) => l['code']!).toList(),
+              onChanged: (v) {
+                if (v != null) {
+                  setState(() => _subLang = v);
+                  UserPreferences.setSubtitleTrack(v);
+                }
+              },
+              labelBuilder: (c) => _languages.firstWhere((l) => l['code'] == c)['name']!,
+            ),
+          ]),
+          const SizedBox(height: 24),
           _buildSection('Default Aspect Ratio', [
             _buildDropdown<String>(
+              title: 'Aspect Ratio',
               value: _aspectRatio,
               items: ['fit', 'fill', 'stretch', '16:9', '4:3'],
               onChanged: (v) {
@@ -104,13 +154,14 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
   }
 
   Widget _buildDropdown<T>({
+    required String title,
     required T value,
     required List<T> items,
     required Function(T?) onChanged,
     required String Function(T) labelBuilder,
   }) {
     return ListTile(
-      title: const Text('Value', style: TextStyle(color: Colors.white)),
+      title: Text(title, style: const TextStyle(color: Colors.white)),
       trailing: DropdownButton<T>(
         value: value,
         dropdownColor: const Color(0xFF1A1D29),

@@ -8,6 +8,7 @@ abstract class AppPlayerController extends ChangeNotifier {
   Duration get position;
   Duration get duration;
   String? get error;
+  double? get aspectRatio;
 
   PlaybackItem? get currentItem;
 

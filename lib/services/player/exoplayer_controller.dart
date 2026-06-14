@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
-import '../../utils/get_playlist_type.dart';
-import '../app_state.dart';
 import 'app_player_controller.dart';
 import '../../models/playback_item.dart';
 
@@ -16,6 +14,9 @@ class ExoPlayerController extends AppPlayerController {
   Duration _duration = Duration.zero;
   String? _error;
   PlaybackItem? _currentItem;
+  double? _aspectRatio;
+  int _retryCount = 0;
+  static const int _maxRetries = 3;
 
   @override
   bool get isInitialized => _isInitialized;
@@ -31,10 +32,11 @@ class ExoPlayerController extends AppPlayerController {
   String? get error => _error;
   @override
   PlaybackItem? get currentItem => _currentItem;
+  @override
+  double? get aspectRatio => _aspectRatio;
 
   @override
   Future<void> initialize() async {
-    // Basic initialization, actual controller created in setDataSource
     _isInitialized = true;
     notifyListeners();
   }
@@ -43,36 +45,19 @@ class ExoPlayerController extends AppPlayerController {
   Future<void> setDataSource(PlaybackItem item) async {
     _error = null;
     _currentItem = item;
+    _retryCount = 0;
+    await _setupController(item);
+  }
+
+  Future<void> _setupController(PlaybackItem item) async {
     if (_controller != null) {
-      debugPrint('ExoPlayer: Disposing previous controller');
       await _controller!.dispose();
       _controller = null;
     }
 
-    final playlist = AppState.currentPlaylist;
-    debugPrint('--- WATCHIO PLAYBACK PIPELINE AUDIT ---');
-    debugPrint('Provider Type: ${isXtreamCode ? "Xtream Codes" : (isM3u ? "M3U" : "Unknown")}');
-    debugPrint('Playlist Name: ${playlist?.name ?? "NULL"}');
-    debugPrint('Username: ${playlist?.username ?? "NULL"}');
-    debugPrint('Server URL: ${playlist?.url ?? "NULL"}');
-    debugPrint('Content Type: ${item.contentType}');
-    debugPrint('Stream ID: ${item.id}');
-    debugPrint('Generated URL: ${item.url}');
-    debugPrint('User-Agent: ${item.headers['User-Agent']}');
-    debugPrint('Referer: ${item.headers['Referer']}');
-    debugPrint('---------------------------------------');
-
-    if (item.url.isEmpty || item.url == item.id) {
-      debugPrint('ExoPlayer: REJECTED - URL is empty or matches ID (Generation failed)');
-      _error = 'Playback Failed: Invalid stream configuration';
-      notifyListeners();
-      return;
-    }
-
     final uri = Uri.tryParse(item.url);
     if (uri == null || !uri.hasScheme || !uri.scheme.startsWith('http')) {
-      debugPrint('ExoPlayer: REJECTED - Invalid URI format: ${item.url}');
-      _error = 'Playback Failed: Invalid stream URL format';
+      _error = 'Invalid stream URL';
       notifyListeners();
       return;
     }
@@ -85,36 +70,31 @@ class ExoPlayerController extends AppPlayerController {
     _controller!.addListener(_updateState);
 
     try {
-      debugPrint('ExoPlayer: Initializing with Media3...');
       await _controller!.initialize().timeout(
         const Duration(seconds: 15),
         onTimeout: () {
-          throw TimeoutException('Stream connection timed out (15s)');
+          throw TimeoutException('Connection timed out');
         },
       );
       
       _duration = _controller!.value.duration;
-      debugPrint('ExoPlayer: Initialized Successfully. Duration: $_duration');
-      debugPrint('LIVE TV PLAYER STARTED');
       
       if (item.startPosition > Duration.zero) {
-        debugPrint('ExoPlayer: Resuming at ${item.startPosition}');
         await _controller!.seekTo(item.startPosition);
       }
       
       await _controller!.play();
-      debugPrint('ExoPlayer: Playing');
     } catch (e) {
-      debugPrint('ExoPlayer: CRITICAL FAILURE');
-      debugPrint('Error Details: $e');
-      _error = 'Playback Failed: Unable to connect to stream';
-      
-      try {
-        await _controller?.dispose();
-        _controller = null;
-      } catch (_) {}
-      
-      notifyListeners();
+      debugPrint('ExoPlayer Error: $e');
+      if (_retryCount < _maxRetries) {
+        _retryCount++;
+        debugPrint('ExoPlayer: Retrying... ($_retryCount/$_maxRetries)');
+        await Future.delayed(const Duration(seconds: 2));
+        await _setupController(item);
+      } else {
+        _error = 'Playback Error: $e';
+        notifyListeners();
+      }
     }
   }
 
@@ -124,20 +104,13 @@ class ExoPlayerController extends AppPlayerController {
     final value = _controller!.value;
     
     if (value.hasError) {
-      debugPrint('ExoPlayer Error Event: ${value.errorDescription}');
-    }
-
-    if (_isBuffering != value.isBuffering) {
-      debugPrint('ExoPlayer State: ${value.isBuffering ? "BUFFERING" : "READY"}');
+      debugPrint('ExoPlayer Controller Error: ${value.errorDescription}');
+      _error = value.errorDescription;
     }
 
     _isPlaying = value.isPlaying;
     _isBuffering = value.isBuffering;
     _position = value.position;
-    
-    if (value.hasError) {
-       _error = 'Playback Failed: Source error';
-    }
     
     notifyListeners();
   }
@@ -152,55 +125,53 @@ class ExoPlayerController extends AppPlayerController {
   Future<void> seek(Duration position) async => await _controller?.seekTo(position);
 
   @override
-  Future<void> setVolume(double volume) async => await _controller?.setVolume(volume);
+  Future<void> setVolume(double volume) async => await _controller?.setVolume(volume / 100.0);
 
   @override
   Future<void> setAspectRatio(double? ratio) async {
-    // Standard video_player doesn't easily support dynamic aspect ratio override on the controller itself,
-    // usually handled by AspectRatio widget in buildPlayerView.
+    _aspectRatio = ratio;
+    notifyListeners();
   }
 
   @override
-  Future<List<String>> getAudioTracks() async {
-    // video_player doesn't easily expose multiple audio tracks in Dart yet
-    return ['Default'];
-  }
+  Future<List<String>> getAudioTracks() async => ['Default'];
 
   @override
-  Future<void> setAudioTrack(int index) async {
-    // Not supported in basic video_player
-  }
+  Future<void> setAudioTrack(int index) async {}
 
   @override
-  Future<List<String>> getSubtitleTracks() async {
-    return ['None'];
-  }
+  Future<List<String>> getSubtitleTracks() async => ['None'];
 
   @override
-  Future<void> setSubtitleTrack(int index) async {
-    // Not supported in basic video_player
-  }
+  Future<void> setSubtitleTrack(int index) async {}
 
   @override
   Widget buildPlayerView(BuildContext context) {
     if (_controller == null || !_controller!.value.isInitialized) {
-      return const SizedBox.shrink(); // Let the parent screen show the loading state
+      return const SizedBox.shrink();
     }
-    return Center(
-      child: AspectRatio(
+    
+    Widget player = VideoPlayer(_controller!);
+    
+    if (_aspectRatio != null) {
+      player = AspectRatio(
+        aspectRatio: _aspectRatio!,
+        child: player,
+      );
+    } else {
+      player = AspectRatio(
         aspectRatio: _controller!.value.aspectRatio,
-        child: VideoPlayer(_controller!),
-      ),
-    );
+        child: player,
+      );
+    }
+
+    return Center(child: player);
   }
 
   @override
   void dispose() {
-    debugPrint('LIVE TV PLAYER STOPPED');
-    _controller?.pause();
     _controller?.removeListener(_updateState);
     _controller?.dispose();
-    debugPrint('LIVE TV PLAYER DISPOSED');
     super.dispose();
   }
 }

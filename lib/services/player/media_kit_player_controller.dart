@@ -4,10 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'app_player_controller.dart';
-import '../app_state.dart';
 import '../../models/playback_item.dart';
 import '../../repositories/user_preferences.dart';
-import '../../utils/get_playlist_type.dart';
 
 class MediaKitPlayerController extends AppPlayerController {
   late Player _player;
@@ -19,6 +17,8 @@ class MediaKitPlayerController extends AppPlayerController {
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   String? _error;
+  PlaybackItem? _currentItem;
+  double? _aspectRatio;
 
   StreamSubscription? _posSub;
   StreamSubscription? _durSub;
@@ -26,7 +26,8 @@ class MediaKitPlayerController extends AppPlayerController {
   StreamSubscription? _buffSub;
   StreamSubscription? _errSub;
 
-  PlaybackItem? _currentItem;
+  int _retryCount = 0;
+  static const int _maxRetries = 3;
 
   @override
   bool get isInitialized => _isInitialized;
@@ -42,6 +43,8 @@ class MediaKitPlayerController extends AppPlayerController {
   String? get error => _error;
   @override
   PlaybackItem? get currentItem => _currentItem;
+  @override
+  double? get aspectRatio => _aspectRatio;
 
   @override
   Future<void> initialize() async {
@@ -50,14 +53,12 @@ class MediaKitPlayerController extends AppPlayerController {
     
     if (hardwareDecoding && !kIsWeb) {
       try {
-        // Safe way to set properties for native platforms without explicit cast that causes stub errors on web
-        // Using dynamic to bypass static analysis for platform-specific methods
         final dynamic platform = _player.platform;
         if (platform.toString().contains('NativePlayer')) {
           await platform.setProperty('hwdec', 'auto');
         }
       } catch (e) {
-        debugPrint('MediaKit: Could not set hardware decoding: $e');
+        debugPrint('MediaKit: Hardware decoding error: $e');
       }
     }
 
@@ -84,6 +85,7 @@ class MediaKitPlayerController extends AppPlayerController {
     });
 
     _errSub = _player.stream.error.listen((e) {
+      debugPrint('MediaKit Stream Error: $e');
       _error = e;
       notifyListeners();
     });
@@ -96,30 +98,30 @@ class MediaKitPlayerController extends AppPlayerController {
   Future<void> setDataSource(PlaybackItem item) async {
     _error = null;
     _currentItem = item;
-    final playlist = AppState.currentPlaylist;
-    
-    debugPrint('--- WATCHIO PLAYBACK PIPELINE AUDIT (MediaKit) ---');
-    debugPrint('Provider Type: ${isXtreamCode ? "Xtream Codes" : (isM3u ? "M3U" : "Unknown")}');
-    debugPrint('Playlist Name: ${playlist?.name ?? "NULL"}');
-    debugPrint('Username: ${playlist?.username ?? "NULL"}');
-    debugPrint('Server URL: ${playlist?.url ?? "NULL"}');
-    debugPrint('Content Type: ${item.contentType}');
-    debugPrint('Stream ID: ${item.id}');
-    debugPrint('Generated URL: ${item.url}');
-    debugPrint('User-Agent: ${item.headers['User-Agent']}');
-    debugPrint('--------------------------------------------------');
+    _retryCount = 0;
+    await _openMedia(item);
+  }
 
+  Future<void> _openMedia(PlaybackItem item) async {
     try {
-      await _player.open(Media(item.url, httpHeaders: item.headers), play: true);
-      debugPrint('LIVE TV PLAYER STARTED');
+      await _player.open(
+        Media(item.url, httpHeaders: item.headers), 
+        play: true
+      ).timeout(const Duration(seconds: 15));
+      
       if (item.startPosition > Duration.zero) {
-        debugPrint('MediaKit: Resuming at ${item.startPosition}');
         await _player.seek(item.startPosition);
       }
     } catch (e) {
-      debugPrint('MediaKit: CRITICAL FAILURE: $e');
-      _error = 'Playback Failed: Unable to connect to stream';
-      notifyListeners();
+      debugPrint('MediaKit Error: $e');
+      if (_retryCount < _maxRetries) {
+        _retryCount++;
+        await Future.delayed(const Duration(seconds: 2));
+        await _openMedia(item);
+      } else {
+        _error = 'Playback Error: $e';
+        notifyListeners();
+      }
     }
   }
 
@@ -137,13 +139,28 @@ class MediaKitPlayerController extends AppPlayerController {
 
   @override
   Future<void> setAspectRatio(double? ratio) async {
-    // media_kit supports aspect ratio via mpv properties if needed, 
-    // but usually it's handled by the Video widget's fit property.
+    _aspectRatio = ratio;
+    // For media_kit, we can also set the property on mpv
+    if (!kIsWeb) {
+      try {
+        final dynamic platform = _player.platform;
+        if (platform.toString().contains('NativePlayer')) {
+          if (ratio != null) {
+            await platform.setProperty('video-aspect-override', ratio.toString());
+          } else {
+            await platform.setProperty('video-aspect-override', '-1');
+          }
+        }
+      } catch (e) {
+        debugPrint('MediaKit: Could not set aspect ratio property: $e');
+      }
+    }
+    notifyListeners();
   }
 
   @override
   Future<List<String>> getAudioTracks() async {
-    return _player.state.tracks.audio.map((t) => t.title ?? t.language ?? 'Unknown').toList();
+    return _player.state.tracks.audio.map((t) => t.title ?? t.language ?? 'Audio track').toList();
   }
 
   @override
@@ -153,7 +170,7 @@ class MediaKitPlayerController extends AppPlayerController {
 
   @override
   Future<List<String>> getSubtitleTracks() async {
-    return _player.state.tracks.subtitle.map((t) => t.title ?? t.language ?? 'Unknown').toList();
+    return _player.state.tracks.subtitle.map((t) => t.title ?? t.language ?? 'Subtitle').toList();
   }
 
   @override
@@ -163,23 +180,21 @@ class MediaKitPlayerController extends AppPlayerController {
 
   @override
   Widget buildPlayerView(BuildContext context) {
-    return Video(controller: _videoController);
+    return Video(
+      controller: _videoController,
+      fill: _aspectRatio != null ? Colors.black : Colors.transparent,
+      fit: _aspectRatio != null ? BoxFit.fill : BoxFit.contain,
+    );
   }
 
   @override
   void dispose() {
-    debugPrint('LIVE TV PLAYER STOPPED');
-    try {
-      _player.pause();
-      _player.stop();
-    } catch (_) {}
     _posSub?.cancel();
     _durSub?.cancel();
     _playSub?.cancel();
     _buffSub?.cancel();
     _errSub?.cancel();
     _player.dispose();
-    debugPrint('LIVE TV PLAYER DISPOSED');
     super.dispose();
   }
 }
