@@ -258,7 +258,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // BACKGROUND (Requirement 4: Covers 100% of viewport, uniform overlay)
+          // BACKGROUND
           _buildBackground(),
           
           // CONTENT
@@ -268,15 +268,13 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
               slivers: [
                 SliverToBoxAdapter(
                   child: Container(
-                    // Requirement 9: Force details to fill viewport height so episodes start below the fold
-                    // Requirement 11: But ensure no unnecessary gaps by aligning content appropriately
+                    // Force details to fill viewport height
                     constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Requirement 5: Move content area upward (reduced top padding)
-                        const SizedBox(height: 8),
+                        SizedBox(height: MediaQuery.of(context).padding.top),
                         _buildHeader(title, year),
                         _buildTwoColumnLayout(title, year),
                       ],
@@ -321,7 +319,6 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
           child: Container(
             width: double.infinity,
             height: double.infinity,
-            // Uniform dark overlay across entire screen (Requirement 4)
             color: Colors.black.withValues(alpha: 0.75),
           ),
         ),
@@ -331,7 +328,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
 
   Widget _buildHeader(String title, String year) {
     return Container(
-      height: 90, // Increased height to accommodate larger logo
+      height: 90, // Reverted to stable height (Requirement: ROLL BACK)
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -340,20 +337,20 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 32), // Slightly larger back button
+                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), // Restored size
                 onPressed: () => Navigator.of(context).pop(),
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
               ),
-              const SizedBox(width: 16), // Balanced gap
+              const SizedBox(width: 12),
               Image.asset(
                 'assets/images/App_Logo.png',
-                height: 64, // Significantly increased logo size
+                height: 64, // Kept larger logo as requested
                 fit: BoxFit.contain,
                 errorBuilder: (ctx, err, st) => const Text(
                   'WATCHIO',
                   style: TextStyle(
-                    color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1.2,
+                    color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.0,
                   ),
                 ),
               ),
@@ -418,22 +415,22 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     final rating = double.tryParse(seriesInfo?.rating?.toString() ?? '0') ?? 0.0;
     
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12.0, 0.0, 12.0, 0.0), // Reduced right padding (Requirement 1)
+      padding: const EdgeInsets.fromLTRB(12.0, 0.0, 12.0, 0.0), // Restored padding (Requirement: ROLL BACK)
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // LEFT COLUMN: Poster -> Stars -> Tabs
           SizedBox(
-            width: 210, // Maintain current structure (Requirement 6)
+            width: 210, 
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center, // Centering everything (Requirement 2, 5)
+              crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildPoster(),
-                const SizedBox(height: 6),
-                _buildStars(rating), // Centered under poster
-                const SizedBox(height: 20), // Moved lower (Requirement 5)
-                _buildHorizontalTabs(), // Centered under stars
+                const SizedBox(height: 8), // Requirement: Directly underneath
+                _buildStars(rating),
+                const SizedBox(height: 12), // Requirement: Directly underneath
+                _buildHorizontalTabs(),
               ],
             ),
           ),
@@ -452,16 +449,16 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                 _buildMetadataRow('Cast:', seriesInfo?.cast ?? 'Unknown', maxLines: 1),
                 _buildMetadataRow('Rating:', seriesInfo?.rating?.toString() ?? '0.0'),
                 
-                const SizedBox(height: 10), // Improved hierarchy spacing (Requirement 8)
-                const Text('Plot:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), // Increased size (Requirement 2)
-                const SizedBox(height: 4),
+                const SizedBox(height: 6), // Reduced gap (Requirement 1, 2)
+                const Text('Plot:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                const SizedBox(height: 2), // Reduced gap (Requirement 1, 2)
                 GestureDetector(
                   onTap: () => _showFullPlotDialog(seriesInfo?.plot ?? widget.contentItem.description ?? 'No description available.'),
                   child: RichText(
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     text: TextSpan(
-                      style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.3), // Increased font size (Requirement 2)
+                      style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.3),
                       children: [
                         TextSpan(text: seriesInfo?.plot ?? widget.contentItem.description ?? 'No description available.'),
                         const TextSpan(text: ' ...Read More', style: TextStyle(color: Color(0xFFC12CFF), fontWeight: FontWeight.bold)),
@@ -470,7 +467,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: 16), // Increased spacing for action row (Requirement 8)
+                const SizedBox(height: 10), // Reduced gap (Requirement 1, 2)
                 _buildActionRow(),
               ],
             ),
@@ -481,17 +478,17 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
   }
 
   Widget _buildPoster() {
-    // Requirement Issue 1: Reduce height (200 -> 180) to fix overflow
+    // Requirement 1: Reduce height by ~15% (230 -> 195), Keep width ratio
     return Container(
-      width: 120, 
-      height: 180,
+      width: 130, 
+      height: 195,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.white24, width: 1),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 8)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 10)],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         child: _posterUrl != null 
           ? CachedNetworkImage(
               imageUrl: _posterUrl!, fit: BoxFit.cover,
@@ -514,7 +511,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
           isActive: _activeTab == 'episodes', 
           onTap: () => setState(() => _activeTab = 'episodes')
         ),
-        const SizedBox(width: 24), // Requirement Issue 2: Gap 24px
+        const SizedBox(width: 16),
         _TabItem(
           label: 'Cast', 
           icon: Icons.people_outline,
@@ -526,14 +523,13 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
   }
 
   Widget _buildMetadataRow(String label, String value, {int maxLines = 1}) {
-    // Increased font size and spacing (Requirement 2)
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4.0), // Increased row spacing
+      padding: const EdgeInsets.only(bottom: 2.0), // Reduced row spacing (Requirement 2)
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120, // Increased label width for better spacing (Requirement 2)
+            width: 120,
             child: Text(label, style: const TextStyle(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 13)),
           ),
           Expanded(
@@ -554,7 +550,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     final seasonNum = _selectedSeason?.seasonNumber ?? 1;
 
     return SizedBox(
-      height: 54, // Slightly increased height (Requirement 4)
+      height: 54, // Restored height
       child: Row(
         children: [
           // PLAY BUTTON
@@ -587,7 +583,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
           const SizedBox(width: 12),
           // SEASON SELECTOR
           Expanded(
-            flex: 4, // Requirement 4: Increase width by approx 25% (from 3 to 4 relative to play)
+            flex: 4, 
             child: Material(
               color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
@@ -732,7 +728,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     final starRating = (rating / 2.0).clamp(0.0, 5.0);
     return Row(
       mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center, // Requirement 2: Centered under poster
+      mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(5, (index) {
         if (index < starRating.floor()) {
           return const Icon(Icons.star_rounded, color: Colors.amber, size: 16);
@@ -771,13 +767,13 @@ class _TabItem extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(icon, size: 17, color: isActive ? Colors.white : Colors.white38), // Slightly reduced (Requirement 5)
+              Icon(icon, size: 17, color: isActive ? Colors.white : Colors.white38),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
                   color: isActive ? Colors.white : Colors.white38,
-                  fontWeight: FontWeight.bold, fontSize: 17, // Slightly reduced (Requirement 5)
+                  fontWeight: FontWeight.bold, fontSize: 17,
                 ),
               ),
             ],
