@@ -1,6 +1,7 @@
-import 'package:another_iptv_player/controllers/branding_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:another_iptv_player/controllers/branding_controller.dart';
+import 'package:another_iptv_player/shared/widgets/app_card.dart';
 
 class AnnouncementCenterScreen extends StatelessWidget {
   const AnnouncementCenterScreen({super.key});
@@ -11,7 +12,11 @@ class AnnouncementCenterScreen extends StatelessWidget {
     final announcements = controller.activeAnnouncements;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Announcements')),
+      appBar: AppBar(
+        title: const Text('Announcements'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: announcements.isEmpty
           ? const Center(child: Text('No active announcements.'))
           : ListView.separated(
@@ -20,12 +25,14 @@ class AnnouncementCenterScreen extends StatelessWidget {
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final item = announcements[index];
-                return Card(
+                return AppCard(
+                  padding: EdgeInsets.zero,
                   child: ListTile(
                     leading: CircleAvatar(child: Text('${item.priority}')),
-                    title: Text(item.title),
+                    title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text(
                       '${item.body}\nCreated: ${_format(item.createdAt)}',
+                      style: const TextStyle(color: Colors.white70),
                     ),
                     isThreeLine: true,
                   ),

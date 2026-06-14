@@ -1,6 +1,7 @@
 import 'package:another_iptv_player/l10n/localization_extension.dart';
 import 'package:flutter/material.dart';
 import '../../../../models/playlist_model.dart';
+import '../../shared/widgets/app_card.dart';
 import '../../utils/playlist_utils.dart';
 import 'tv_focusable.dart';
 
@@ -21,10 +22,9 @@ class PlaylistCard extends StatelessWidget {
     return TvFocusable(
       onPressed: onTap,
       margin: const EdgeInsets.only(bottom: 12),
-      child: Card(
-        elevation: 2,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        borderRadius: 12,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),

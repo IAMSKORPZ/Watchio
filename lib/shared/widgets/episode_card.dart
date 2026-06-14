@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'app_card.dart';
 
 class EpisodeCard extends StatelessWidget {
   final String title;
@@ -25,9 +26,10 @@ class EpisodeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return InkWell(
+    return AppCard(
+      padding: const EdgeInsets.all(12),
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: 12,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

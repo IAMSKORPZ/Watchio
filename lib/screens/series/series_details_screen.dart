@@ -12,6 +12,8 @@ import 'package:another_iptv_player/services/tmdb_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../controllers/favorites_controller.dart';
+import '../../../shared/widgets/app_card.dart';
+import '../../../core/theme/theme_extensions.dart';
 import 'episode_screen.dart';
 
 class SeriesDetailsScreen extends StatefulWidget {
@@ -300,6 +302,8 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
 
   Widget _buildBackground() {
     final url = _backdropUrl ?? _posterUrl;
+    final theme = BingieThemeExtension.of(context);
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -319,7 +323,9 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
           child: Container(
             width: double.infinity,
             height: double.infinity,
-            color: Colors.black.withValues(alpha: 0.75),
+            decoration: BoxDecoration(
+              gradient: theme.glassGradient,
+            ),
           ),
         ),
       ],
@@ -819,40 +825,46 @@ class _EpisodeRowState extends State<_EpisodeRow> {
         child: AnimatedScale(
           scale: _isFocused ? 1.03 : 1.0,
           duration: const Duration(milliseconds: 200),
-          child: Container(
-            height: 145, 
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _isFocused ? const Color(0xFFC12CFF) : Colors.transparent, width: 3),
-              boxShadow: _isFocused ? [BoxShadow(color: const Color(0xFFC12CFF).withValues(alpha: 0.3), blurRadius: 15, spreadRadius: 2)] : [],
-            ),
-            child: Row(
-              children: [
-                _buildThumbnail(),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        displayTitle,
-                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                        maxLines: 2, overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      _buildStars(rating),
-                      const SizedBox(height: 10),
-                      if (widget.episode.duration != null && widget.episode.duration!.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                          child: Text(widget.episode.duration!, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ),
-                    ],
-                  ),
+          child: AppCard(
+            padding: EdgeInsets.zero,
+            borderRadius: 12,
+            child: Container(
+              height: 145, 
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _isFocused ? const Color(0xFFC12CFF) : Colors.transparent, 
+                  width: 3
                 ),
-              ],
+              ),
+              child: Row(
+                children: [
+                  _buildThumbnail(),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          displayTitle,
+                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          maxLines: 2, overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        _buildStars(rating),
+                        const SizedBox(height: 10),
+                        if (widget.episode.duration != null && widget.episode.duration!.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                            child: Text(widget.episode.duration!, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -58,13 +58,20 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF050812),
       appBar: AppBar(
-        title: const Text('Playback Settings', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        title: const Text('Playback Settings',
+            style: TextStyle(fontWeight: FontWeight.bold)),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background.png'),
+            fit: BoxFit.cover,
+            opacity: 0.3,
+          ),
+        ),
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
           _buildSection('Player Engine', [
             _buildDropdown<PlayerEngine>(
               title: 'Preferred Engine',
@@ -137,6 +144,7 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
           ]),
         ],
       ),
+    ),
     );
   }
 

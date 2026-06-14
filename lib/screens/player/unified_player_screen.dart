@@ -15,6 +15,7 @@ import '../../models/watch_history.dart';
 import '../../services/app_state.dart';
 import '../../services/epg_storage_service.dart';
 import '../../shared/widgets/glass_panel.dart';
+import '../../shared/widgets/app_card.dart';
 
 class UnifiedPlayerScreen extends StatefulWidget {
   final ContentItem contentItem;
@@ -667,7 +668,11 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
             const SizedBox(height: 8),
             Container(
               height: 140, width: 32,
-              decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
+              decoration: BoxDecoration(
+                color: const Color(0xAA30274F), // Standard glass bottom color
+                borderRadius: BorderRadius.circular(16), 
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+              ),
               child: RotatedBox(
                 quarterTurns: 3,
                 child: Slider(
@@ -761,15 +766,11 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     return Positioned(
       left: 0, top: 0, bottom: 0,
       child: SafeArea(
-        child: Container(
+        child: AppCard(
           width: 300,
           margin: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF050812).withValues(alpha: 0.95),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white10),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 40)],
-          ),
+          padding: EdgeInsets.zero,
+          borderRadius: 24,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

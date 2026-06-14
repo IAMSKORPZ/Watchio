@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:another_iptv_player/models/content_type.dart';
 import 'package:another_iptv_player/models/watch_history.dart';
+import 'package:another_iptv_player/shared/widgets/app_card.dart';
 
 class WatchHistoryCard extends StatelessWidget {
   final WatchHistory history;
@@ -27,9 +28,9 @@ class WatchHistoryCard extends StatelessWidget {
       width: width,
       height: height,
       margin: EdgeInsets.symmetric(horizontal: 4),
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        borderRadius: 12,
         child: InkWell(
           onTap: onTap,
           child: Stack(

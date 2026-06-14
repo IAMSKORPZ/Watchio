@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../models/content_type.dart';
 import '../../models/playlist_content_model.dart';
 import '../../utils/navigate_by_content_type.dart';
+import '../../shared/widgets/app_card.dart';
 
 class M3uItemsScreen extends StatefulWidget {
   final List<M3uItem> m3uItems;
@@ -151,23 +152,13 @@ class _M3uItemsScreenState extends State<M3uItemsScreen> {
               itemBuilder: (context, index) {
                 final channel = filteredItems[index];
 
-                return Container(
+                return AppCard(
                   height: 80,
                   margin: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 2,
                   ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withValues(alpha: 0.1),
-                        spreadRadius: 1,
-                        blurRadius: 2,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
+                  padding: EdgeInsets.zero,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(8),
                     onTap: () => _onChannelTap(context, channel),

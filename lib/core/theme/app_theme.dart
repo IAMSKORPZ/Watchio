@@ -105,16 +105,26 @@ class AppTheme {
       colorScheme: ColorScheme.dark(
         primary: primary,
         secondary: secondary,
-        surface: surface,
+        surface: const Color(0xCC1A1A2A), // Semi-transparent surface
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: Colors.white,
       ),
       scaffoldBackgroundColor: background,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+      ),
       cardTheme: CardThemeData(
-        color: surface,
+        color: const Color(0xAA30274F), // Standard glass bottom color as base
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: const Color(0xEE1A1A2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
       extensions: [
         BingieThemeExtension(
@@ -124,8 +134,8 @@ class AppTheme {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          glassColor: Colors.white.withValues(alpha: 0.1),
-          glassBorder: Colors.white.withValues(alpha: 0.1),
+          glassColor: const Color(0xAA4A3D6A),
+          glassBorder: Colors.white.withValues(alpha: 0.15),
         ),
       ],
       fontFamily: 'Roboto',

@@ -4,6 +4,7 @@ import 'package:another_iptv_player/l10n/localization_extension.dart';
 import 'package:another_iptv_player/utils/subscription_utils.dart';
 import 'info_tile_widget.dart';
 import 'section_title_widget.dart';
+import 'package:another_iptv_player/shared/widgets/app_card.dart';
 
 class SubscriptionInfoWidget extends StatelessWidget {
   final ApiResponse? serverInfo;
@@ -17,7 +18,8 @@ class SubscriptionInfoWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionTitleWidget(title: context.loc.subscription_details),
-        Card(
+        AppCard(
+          padding: EdgeInsets.zero,
           child: Column(
             children: [
               InfoTileWidget(

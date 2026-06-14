@@ -2,6 +2,7 @@ import 'package:another_iptv_player/controllers/branding_controller.dart';
 import 'package:another_iptv_player/controllers/update_controller.dart';
 import 'package:another_iptv_player/services/github_release_service.dart';
 import 'package:another_iptv_player/services/update_service.dart';
+import 'package:another_iptv_player/shared/widgets/app_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,11 +17,16 @@ class UpdateScreen extends StatelessWidget {
     final result = controller.result;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Updates')),
+      appBar: AppBar(
+        title: const Text('Updates'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
+          AppCard(
+            padding: EdgeInsets.zero,
             child: Column(
               children: [
                 _row(

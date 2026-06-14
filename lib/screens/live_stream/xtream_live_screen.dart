@@ -313,14 +313,20 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
                           // LEFT PANEL (22%) - Categories
                           Expanded(
                             flex: 22,
-                            child: _buildCategoryPanel(controller),
+                            child: GlassPanel(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: _buildCategoryPanel(controller),
+                            ),
                           ),
                           const SizedBox(width: 16),
                           
                           // CENTER PANEL (28%) - Channels
                           Expanded(
                             flex: 28,
-                            child: _buildChannelPanel(),
+                            child: GlassPanel(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: _buildChannelPanel(),
+                            ),
                           ),
                           const SizedBox(width: 16),
                           
@@ -627,14 +633,14 @@ class _CategoryItemState extends State<_CategoryItem> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: active ? const Color(0xFFC12CFF).withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+              color: active ? const Color(0xFFC12CFF).withValues(alpha: 0.15) : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: active ? const Color(0xFFC12CFF) : Colors.white10,
-                width: active ? 2 : 1,
+                color: active ? const Color(0xFFC12CFF) : Colors.transparent,
+                width: active ? 2 : 0,
               ),
               boxShadow: _isFocused ? [
-                BoxShadow(color: const Color(0xFFC12CFF).withValues(alpha: 0.3), blurRadius: 10)
+                BoxShadow(color: const Color(0xFFC12CFF).withValues(alpha: 0.2), blurRadius: 8)
               ] : [],
             ),
             child: Row(
@@ -715,11 +721,11 @@ class _ChannelItemState extends State<_ChannelItem> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Reduced vertical padding
             decoration: BoxDecoration(
-              color: active ? Colors.white.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.03),
+              color: active ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: active ? const Color(0xFFC12CFF) : Colors.white10,
-                width: active ? 2 : 1,
+                color: active ? const Color(0xFFC12CFF) : Colors.transparent,
+                width: active ? 2 : 0,
               ),
             ),
             child: Row(

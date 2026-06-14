@@ -12,33 +12,45 @@ class AppearanceScreen extends StatelessWidget {
     final themeManager = context.watch<ThemeManager>();
     
     return Scaffold(
-      appBar: AppBar(title: const Text('Appearance')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text('Themes', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 180,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.15,
-            ),
-            itemCount: AppThemeType.values.length - 1, // Exclude custom for now
-            itemBuilder: (context, index) {
-              final type = AppThemeType.values[index];
-              final selected = themeManager.currentThemeType == type;
-              return _ThemeTile(
-                type: type,
-                selected: selected,
-                onTap: () => themeManager.setThemeType(type),
-              );
-            },
+      appBar: AppBar(
+        title: const Text('Appearance'),
+      ),
+      backgroundColor: const Color(0xFF050812),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background.png'),
+            fit: BoxFit.cover,
+            opacity: 0.3,
           ),
-        ],
+        ),
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text('Themes', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 180,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.15,
+              ),
+              itemCount: AppThemeType.values.length - 1, // Exclude custom for now
+              itemBuilder: (context, index) {
+                final type = AppThemeType.values[index];
+                final selected = themeManager.currentThemeType == type;
+                return _ThemeTile(
+                  type: type,
+                  selected: selected,
+                  onTap: () => themeManager.setThemeType(type),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:another_iptv_player/models/api_response.dart';
 import 'package:another_iptv_player/l10n/localization_extension.dart';
 import 'package:another_iptv_player/utils/subscription_utils.dart';
+import 'package:another_iptv_player/shared/widgets/app_card.dart';
 
 class StatusCardWidget extends StatelessWidget {
   final ApiResponse? serverInfo;
@@ -16,7 +17,8 @@ class StatusCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return AppCard(
+      padding: EdgeInsets.zero,
       child: ListTile(
         leading: Icon(
           SubscriptionUtils.getStatusColor(serverInfo, context) == Colors.green

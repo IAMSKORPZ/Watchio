@@ -51,7 +51,16 @@ class BingieThemeExtension extends ThemeExtension<BingieThemeExtension> {
   static const defaults = BingieThemeExtension(
     primaryGradient: LinearGradient(colors: [Color(0xFF6A11CB), Color(0xFF2575FC)]),
     secondaryGradient: LinearGradient(colors: [Color(0xFF2575FC), Color(0xFF6A11CB)]),
-    glassColor: Color(0x1AFFFFFF),
-    glassBorder: Color(0x1AFFFFFF),
+    glassColor: Color(0xAA4A3D6A), // Default to new standard top color
+    glassBorder: Color(0x33FFFFFF),
   );
+
+  LinearGradient get glassGradient => const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xAA4A3D6A),
+          Color(0xAA30274F),
+        ],
+      );
 }

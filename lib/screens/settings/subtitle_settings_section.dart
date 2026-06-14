@@ -4,6 +4,7 @@ import 'package:another_iptv_player/l10n/localization_extension.dart';
 import '../../widgets/color_picker_tile_widget.dart';
 import '../../widgets/dropdown_tile_widget.dart';
 import '../../widgets/slider_tile_widget.dart';
+import '../../shared/widgets/app_card.dart';
 
 class SubtitleSettingsScreen extends StatefulWidget {
   const SubtitleSettingsScreen({super.key});
@@ -123,54 +124,52 @@ class _SubtitleSettingsScreenState extends State<SubtitleSettingsScreen> {
     return Container(
       width: double.infinity,
       color: Theme.of(context).scaffoldBackgroundColor,
-      child: Card(
+      child: AppCard(
+        padding: const EdgeInsets.all(16),
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.visibility,
-                    size: 18,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    context.loc.preview,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(_padding),
-                decoration: BoxDecoration(
-                  color: Colors.grey[900],
-                  borderRadius: BorderRadius.circular(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.visibility,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
-                child: Text(
-                  context.loc.sample_text,
-                  textAlign: _textAlign,
-                  textScaler: TextScaler.linear(.38),
-                  style: TextStyle(
-                    fontSize: _fontSize,
-                    height: _height,
-                    letterSpacing: _letterSpacing,
-                    wordSpacing: _wordSpacing,
-                    color: _textColor,
-                    backgroundColor: _backgroundColor,
-                    fontWeight: _fontWeight,
-                  ),
+                const SizedBox(width: 8),
+                Text(
+                  context.loc.preview,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(_padding),
+              decoration: BoxDecoration(
+                color: Colors.grey[900],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                context.loc.sample_text,
+                textAlign: _textAlign,
+                textScaler: const TextScaler.linear(.38),
+                style: TextStyle(
+                  fontSize: _fontSize,
+                  height: _height,
+                  letterSpacing: _letterSpacing,
+                  wordSpacing: _wordSpacing,
+                  color: _textColor,
+                  backgroundColor: _backgroundColor,
+                  fontWeight: _fontWeight,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -181,6 +180,7 @@ class _SubtitleSettingsScreenState extends State<SubtitleSettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(context.loc.subtitle_settings),
+        backgroundColor: Colors.transparent,
         actions: [
           if (!_isLoading)
             TextButton(
@@ -189,21 +189,31 @@ class _SubtitleSettingsScreenState extends State<SubtitleSettingsScreen> {
             ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
+      backgroundColor: const Color(0xFF050812),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background.png'),
+            fit: BoxFit.cover,
+            opacity: 0.3,
+          ),
+        ),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
                 _buildPreviewCard(),
 
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.only(bottom: 16),
                     children: [
-                      Card(
+                      AppCard(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 4,
                         ),
+                        padding: EdgeInsets.zero,
                         child: Column(
                           children: [
                             Padding(
@@ -283,11 +293,12 @@ class _SubtitleSettingsScreenState extends State<SubtitleSettingsScreen> {
 
                       const SizedBox(height: 8),
 
-                      Card(
+                      AppCard(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 4,
                         ),
+                        padding: EdgeInsets.zero,
                         child: Column(
                           children: [
                             Padding(
@@ -330,11 +341,12 @@ class _SubtitleSettingsScreenState extends State<SubtitleSettingsScreen> {
                       ),
 
                       const SizedBox(height: 8),
-                      Card(
+                      AppCard(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 4,
                         ),
+                        padding: EdgeInsets.zero,
                         child: Column(
                           children: [
                             Padding(
@@ -420,6 +432,7 @@ class _SubtitleSettingsScreenState extends State<SubtitleSettingsScreen> {
                 ),
               ],
             ),
+      ),
     );
   }
 }

@@ -38,8 +38,17 @@ class PlaylistScreenState extends State<PlaylistScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Consumer<PlaylistController>(
-        builder: (context, controller, child) {
+      backgroundColor: const Color(0xFF050812),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background.png'),
+            fit: BoxFit.cover,
+            opacity: 0.3,
+          ),
+        ),
+        child: Consumer<PlaylistController>(
+          builder: (context, controller, child) {
           // 1. Initial Loading (Only when first opening the app/screen)
           if (controller.isLoading && !_hasAttemptedLoad) {
             return const PlaylistLoadingState();
@@ -60,7 +69,8 @@ class PlaylistScreenState extends State<PlaylistScreen> {
 
           // 4. List of Playlists (Standard UI)
           return _buildPlaylistList(context, controller);
-        },
+          },
+        ),
       ),
       floatingActionButton: _buildFloatingActionButton(context),
     );

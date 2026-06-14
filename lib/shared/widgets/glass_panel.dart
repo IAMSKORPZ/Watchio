@@ -24,18 +24,30 @@ class GlassPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = BingieThemeExtension.of(context);
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: theme.glassColor.withValues(alpha: opacity),
-            borderRadius: BorderRadius.circular(borderRadius),
-            border: border ?? Border.all(color: theme.glassBorder),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          child: child,
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+          child: Container(
+            padding: padding,
+            decoration: BoxDecoration(
+              gradient: theme.glassGradient,
+              borderRadius: BorderRadius.circular(borderRadius),
+              border: border ?? Border.all(color: Colors.white.withValues(alpha: 0.15)),
+            ),
+            child: child,
+          ),
         ),
       ),
     );

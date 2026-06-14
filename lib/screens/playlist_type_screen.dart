@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/config_service.dart';
+import '../core/theme/theme_extensions.dart';
 import 'm3u/new_m3u_playlist_screen.dart';
 import 'xtream-codes/new_xtream_code_playlist_screen.dart';
 import 'local_media/local_media_library_screen.dart';
@@ -291,14 +293,12 @@ class _TypeCardState extends State<_TypeCard> {
               curve: Curves.easeOutCubic,
               width: widget.width,
               height: widget.height,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F1423).withValues(alpha: 0.75),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: active 
                       ? const Color(0xFF00B7FF)
-                      : const Color(0xFF00B7FF).withValues(alpha: 0.2),
+                      : Colors.white.withValues(alpha: 0.15),
                   width: active ? 3 : 1.5,
                 ),
                 boxShadow: active ? [
@@ -307,45 +307,52 @@ class _TypeCardState extends State<_TypeCard> {
                     blurRadius: 24,
                     spreadRadius: 2,
                   ),
-                  BoxShadow(
-                    color: const Color(0xFF00B7FF).withValues(alpha: 0.3),
-                    blurRadius: 18,
-                    spreadRadius: 1,
-                  ),
                 ] : [],
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  AnimatedScale(
-                    scale: active ? 1.15 : 1.0,
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOutCubic,
-                    child: ShaderMask(
-                      shaderCallback: (bounds) => const LinearGradient(
-                        colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
-                      ).createShader(bounds),
-                      child: Icon(widget.icon, size: 48, color: Colors.white),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: BingieThemeExtension.of(context).glassGradient,
                     ),
-                  ),
-                  const SizedBox(height: 16), 
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text(
-                        widget.title,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.8,
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        AnimatedScale(
+                          scale: active ? 1.15 : 1.0,
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOutCubic,
+                          child: ShaderMask(
+                            shaderCallback: (bounds) => const LinearGradient(
+                              colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
+                            ).createShader(bounds),
+                            child: Icon(widget.icon, size: 48, color: Colors.white),
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 16), 
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Text(
+                              widget.title,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:another_iptv_player/models/playlist_model.dart';
 import 'package:another_iptv_player/l10n/localization_extension.dart';
+import 'package:another_iptv_player/shared/widgets/app_card.dart';
 import 'section_title_widget.dart';
 import 'info_tile_widget.dart';
 
@@ -24,7 +25,8 @@ class _PlaylistInfoWidgetState extends State<PlaylistInfoWidget> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionTitleWidget(title: context.loc.playlist_information),
-        Card(
+        AppCard(
+          padding: EdgeInsets.zero,
           child: Column(
             children: [
               InfoTileWidget(

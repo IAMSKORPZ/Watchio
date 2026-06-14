@@ -58,11 +58,6 @@ class _UniversalTopBarState extends State<UniversalTopBar> {
         return Container(
           height: barHeight,
           padding: EdgeInsets.symmetric(horizontal: isSmallHeight ? 16 : 24.0),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05), width: 1),
-            ),
-          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -82,7 +77,7 @@ class _UniversalTopBarState extends State<UniversalTopBar> {
                       )
                     : _buildLogo(context, isSmallHeight),
               ),
-              
+
               // Center: Time
               if (constraints.maxWidth > 700)
                 Expanded(
@@ -98,20 +93,30 @@ class _UniversalTopBarState extends State<UniversalTopBar> {
                     ),
                   ),
                 ),
-              
+
               // Right: Actions
               Expanded(
                 flex: 5,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    if (widget.onSearchTap != null) _buildAction(Icons.search, isSmallHeight, widget.onSearchTap),
-                    if (widget.onSearchTap != null) SizedBox(width: isSmallHeight ? 8 : 12),
-                    if (widget.onProfileTap != null) _buildAction(Icons.person_outline, isSmallHeight, widget.onProfileTap),
-                    if (widget.onProfileTap != null) SizedBox(width: isSmallHeight ? 8 : 12),
-                    if (widget.onRefreshTap != null) _buildAction(Icons.refresh, isSmallHeight, widget.onRefreshTap),
-                    if (widget.onRefreshTap != null) SizedBox(width: isSmallHeight ? 8 : 12),
-                    if (widget.onSettingsTap != null) _buildAction(Icons.settings_outlined, isSmallHeight, widget.onSettingsTap),
+                    if (widget.onSearchTap != null)
+                      _buildAction(Icons.search, isSmallHeight, widget.onSearchTap),
+                    if (widget.onSearchTap != null)
+                      SizedBox(width: isSmallHeight ? 8 : 12),
+                    if (widget.onProfileTap != null)
+                      _buildAction(
+                          Icons.person_outline, isSmallHeight, widget.onProfileTap),
+                    if (widget.onProfileTap != null)
+                      SizedBox(width: isSmallHeight ? 8 : 12),
+                    if (widget.onRefreshTap != null)
+                      _buildAction(
+                          Icons.refresh, isSmallHeight, widget.onRefreshTap),
+                    if (widget.onRefreshTap != null)
+                      SizedBox(width: isSmallHeight ? 8 : 12),
+                    if (widget.onSettingsTap != null)
+                      _buildAction(Icons.settings_outlined, isSmallHeight,
+                          widget.onSettingsTap),
                   ],
                 ),
               ),

@@ -4,6 +4,7 @@ import 'package:another_iptv_player/services/secure_storage_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../shared/widgets/app_card.dart';
 
 class ProviderFormScreen extends StatefulWidget {
   final IptvProvider? provider;
@@ -90,51 +91,67 @@ class _ProviderFormScreenState extends State<ProviderFormScreen> {
       create: (_) => ProviderController(),
       child: Scaffold(
         appBar: AppBar(title: Text(_isEdit ? 'Edit Provider' : 'Add Provider')),
-        body: Consumer<ProviderController>(
+        backgroundColor: const Color(0xFF050812),
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/background.png'),
+              fit: BoxFit.cover,
+              opacity: 0.3,
+            ),
+          ),
+          child: Consumer<ProviderController>(
           builder: (context, controller, child) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildTypeSelector(),
-                    const SizedBox(height: 16),
-                    _field(
-                      controller: _nameController,
-                      label: 'Provider Name',
-                      icon: Icons.badge_outlined,
-                      validator: _required,
-                    ),
-                    const SizedBox(height: 12),
-                    ..._typeFields(),
-                    const SizedBox(height: 12),
-                    if (_type != IptvProviderType.xtreamCodes)
+              padding: const EdgeInsets.all(24),
+              child: AppCard(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildTypeSelector(),
+                      const SizedBox(height: 24),
                       _field(
-                        controller: _epgUrlController,
-                        label: 'EPG URL',
-                        icon: Icons.calendar_month_outlined,
-                        validator: _optionalUrl,
+                        controller: _nameController,
+                        label: 'Provider Name',
+                        icon: Icons.badge_outlined,
+                        validator: _required,
                       ),
-                    if (controller.error != null) ...[
-                      const SizedBox(height: 12),
-                      _errorCard(controller.error!),
+                      const SizedBox(height: 16),
+                      ..._typeFields(),
+                      const SizedBox(height: 16),
+                      if (_type != IptvProviderType.xtreamCodes)
+                        _field(
+                          controller: _epgUrlController,
+                          label: 'EPG URL',
+                          icon: Icons.calendar_month_outlined,
+                          validator: _optionalUrl,
+                        ),
+                      if (controller.error != null) ...[
+                        const SizedBox(height: 12),
+                        _errorCard(controller.error!),
+                      ],
+                      const SizedBox(height: 32),
+                      FilledButton.icon(
+                        onPressed: controller.isLoading
+                            ? null
+                            : () => _save(context, controller),
+                        icon: const Icon(Icons.save),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        label: Text(controller.isLoading ? 'Saving...' : 'Save Provider'),
+                      ),
                     ],
-                    const SizedBox(height: 20),
-                    FilledButton.icon(
-                      onPressed: controller.isLoading
-                          ? null
-                          : () => _save(context, controller),
-                      icon: const Icon(Icons.save),
-                      label: Text(controller.isLoading ? 'Saving...' : 'Save'),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             );
           },
         ),
+      ),
       ),
     );
   }
@@ -276,12 +293,9 @@ class _ProviderFormScreenState extends State<ProviderFormScreen> {
 
   Widget _errorCard(String message) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Card(
+    return AppCard(
       color: colorScheme.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Text(message, style: TextStyle(color: colorScheme.onErrorContainer)),
-      ),
+      child: Text(message, style: TextStyle(color: colorScheme.onErrorContainer)),
     );
   }
 

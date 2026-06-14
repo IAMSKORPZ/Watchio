@@ -34,7 +34,7 @@ class ProfileAvatar extends StatelessWidget {
           ],
         ),
         child: CircleAvatar(
-          backgroundColor: colorScheme.surface,
+          backgroundColor: const Color(0xAA4A3D6A), // Standard glass top color
           backgroundImage: imageUrl != null ? NetworkImage(imageUrl!) : null,
           child: imageUrl == null
               ? Text(

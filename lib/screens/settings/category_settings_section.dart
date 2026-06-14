@@ -67,8 +67,10 @@ class _CategorySettingsScreenState extends State<CategorySettingsScreen> {
           Navigator.pop(context, _hasChanges);
         },
         child: Scaffold(
+          backgroundColor: const Color(0xFF050812),
           appBar: AppBar(
             title: Text(context.loc.hide_category),
+            backgroundColor: Colors.transparent,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: () {
@@ -76,13 +78,21 @@ class _CategorySettingsScreenState extends State<CategorySettingsScreen> {
               },
             ),
           ),
-          body: Consumer<XtreamCodeHomeController>(
-            builder: (context, controller, _) {
-              return ListView(
-                children: [
+          body: Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/background.png'),
+                fit: BoxFit.cover,
+                opacity: 0.3,
+              ),
+            ),
+            child: Consumer<XtreamCodeHomeController>(
+              builder: (context, controller, _) {
+                return ListView(
+                  children: [
                   ListTile(
                     title: Text(context.loc.live),
-                    tileColor: Colors.black12,
+                    tileColor: Colors.white.withValues(alpha: 0.05),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -115,7 +125,7 @@ class _CategorySettingsScreenState extends State<CategorySettingsScreen> {
                   const Divider(),
                   ListTile(
                     title: Text(context.loc.movies),
-                    tileColor: Colors.black12,
+                    tileColor: Colors.white.withValues(alpha: 0.05),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -181,6 +191,7 @@ class _CategorySettingsScreenState extends State<CategorySettingsScreen> {
               );
             },
           ),
+        ),
         ),
       ),
     );
