@@ -48,13 +48,17 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E21),
+      backgroundColor: Colors.black,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0A0E21), Color(0xFF1D1E33)],
+        decoration: BoxDecoration(
+          color: const Color(0xFF050812),
+          image: DecorationImage(
+            image: const AssetImage('assets/images/App_Background.png'),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+              Colors.black.withValues(alpha: 0.6),
+              BlendMode.darken,
+            ),
           ),
         ),
         child: LayoutBuilder(
@@ -66,12 +70,16 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
                 children: [
                   _buildHeader(context, isSmallHeight),
                   Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 30.0,
-                        vertical: isSmallHeight ? 5 : 10,
+                    child: SingleChildScrollView(
+                      physics: const NeverScrollableScrollPhysics(),
+                      child: Container(
+                        height: constraints.maxHeight - (isSmallHeight ? 120 : 180),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 40.0,
+                          vertical: isSmallHeight ? 5 : 20,
+                        ),
+                        child: _buildMainGrid(context, isSmallHeight),
                       ),
-                      child: _buildMainGrid(context, isSmallHeight),
                     ),
                   ),
                   _buildFooter(context, isSmallHeight),
@@ -87,61 +95,46 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
   Widget _buildHeader(BuildContext context, bool isSmallHeight) {
     return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal: 30.0,
-        vertical: isSmallHeight ? 10.0 : 20.0,
+        horizontal: 40.0,
+        vertical: isSmallHeight ? 10.0 : 30.0,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Logo Section
           Expanded(
-            flex: 3,
+            flex: 2,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset('assets/logo.png', height: isSmallHeight ? 35 : 50, 
+                Image.asset('assets/images/App_Logo.png', 
+                  height: isSmallHeight ? 35 : 55, 
                   errorBuilder: (context, error, stackTrace) => 
                     Icon(Icons.tv, color: Colors.blue, size: isSmallHeight ? 30 : 40)),
-                const SizedBox(width: 12),
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('WATCHIO',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: isSmallHeight ? 18 : 24,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text('PRO',
-                        style: TextStyle(
-                          color: Colors.blue.shade400,
-                          fontSize: isSmallHeight ? 10 : 14,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
           
-          // Time/Date Section
+          // Center Section: Time/Date
           Expanded(
-            flex: 2,
+            flex: 3,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(DateFormat('hh:mm a').format(_now),
-                  style: TextStyle(color: Colors.white, fontSize: isSmallHeight ? 16 : 20, fontWeight: FontWeight.w600)),
-                if (!isSmallHeight)
-                  Text(DateFormat('MMM d, yyyy').format(_now),
-                    style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                  style: TextStyle(
+                    color: Colors.white, 
+                    fontSize: isSmallHeight ? 18 : 28, 
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.0,
+                  )),
+                Text(DateFormat('MMM d, yyyy').format(_now),
+                  style: TextStyle(
+                    color: const Color(0xFFC12CFF), 
+                    fontSize: isSmallHeight ? 11 : 14,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  )),
               ],
             ),
           ),
@@ -153,10 +146,14 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 _buildHeaderAction(Icons.search, context.loc.search, () => widget.onSearchTap?.call()),
-                const SizedBox(width: 10),
-                _buildHeaderAction(Icons.refresh, 'Update', () => widget.controller.refreshAllData(context)),
-                const SizedBox(width: 10),
-                _buildHeaderAction(Icons.settings_outlined, '', () => widget.controller.onNavigationTap(5)),
+                const SizedBox(width: 15),
+                _buildHeaderAction(Icons.sports_soccer_outlined, '', () => widget.controller.onNavigationTap(6)), // Assuming 6 is Sports
+                const SizedBox(width: 15),
+                _buildHeaderAction(Icons.notifications_none_rounded, '', () {
+                   Navigator.push(context, MaterialPageRoute(builder: (_) => const AnnouncementCenterScreen()));
+                }),
+                const SizedBox(width: 15),
+                _buildHeaderAction(Icons.info_outline_rounded, '', () {}),
               ],
             ),
           ),
@@ -168,20 +165,21 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
   Widget _buildHeaderAction(IconData icon, String label, VoidCallback onTap) {
     return TvFocusable(
       onPressed: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: label.isEmpty ? 10 : 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.white, size: 20),
+            Icon(icon, color: Colors.white, size: 24),
             if (label.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              Text(label, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+              const SizedBox(width: 10),
+              Text(label.toUpperCase(), 
+                style: const TextStyle(
+                  color: Colors.white, 
+                  fontSize: 14, 
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                )),
             ],
           ],
         ),
@@ -192,39 +190,39 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
   Widget _buildMainGrid(BuildContext context, bool isSmallHeight) {
     return Column(
       children: [
+        // Main Tiles Row
         Expanded(
-          flex: 2,
+          flex: 4,
           child: Row(
             children: [
               Expanded(
                 child: _buildMainTile(
                   title: 'LIVE TV',
                   subtitle: 'Watch Live TV Channels',
-                  icon: Icons.live_tv_rounded,
-                  gradient: const [Color(0xFF6A11CB), Color(0xFF2575FC)],
-                  badge: 'LIVE',
+                  icon: Icons.play_arrow_rounded,
+                  color: const Color(0xFFC12CFF),
                   isSmallHeight: isSmallHeight,
                   onTap: () => widget.controller.onNavigationTap(2),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 20),
               Expanded(
                 child: _buildMainTile(
                   title: 'MOVIES',
-                  subtitle: 'Explore Movies',
-                  icon: Icons.movie_outlined,
-                  gradient: const [Color(0xFF0F766E), Color(0xFF2563EB)],
+                  subtitle: 'Browse a wide selection',
+                  icon: Icons.play_arrow_rounded,
+                  color: Colors.orange.shade800,
                   isSmallHeight: isSmallHeight,
                   onTap: () => widget.controller.onNavigationTap(3),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 20),
               Expanded(
                 child: _buildMainTile(
                   title: 'SERIES',
-                  subtitle: 'Explore Series',
-                  icon: Icons.video_library_outlined,
-                  gradient: const [Color(0xFF581C87), Color(0xFFBE185D)],
+                  subtitle: 'Discover and binge-watch',
+                  icon: Icons.movie_filter_rounded,
+                  color: const Color(0xFF00B7FF),
                   isSmallHeight: isSmallHeight,
                   onTap: () => widget.controller.onNavigationTap(4),
                 ),
@@ -232,45 +230,34 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        
+        const SizedBox(height: 20),
+        
+        // Bottom Actions Row
         Expanded(
           flex: 1,
           child: Row(
             children: [
               Expanded(
-                child: _buildSmallTile(
-                  title: 'ANNOUNCEMENTS',
-                  subtitle: 'Latest Updates',
-                  icon: Icons.campaign_outlined,
-                  iconColor: Colors.purpleAccent,
-                  isSmallHeight: isSmallHeight,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const AnnouncementCenterScreen(),
-                    ),
-                  ),
+                child: _buildBottomAction(
+                  title: 'LIVE + EPG',
+                  icon: Icons.list_alt_rounded,
+                  onTap: () => widget.controller.onNavigationTap(2),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 20),
               Expanded(
-                child: _buildSmallTile(
-                  title: 'MULTI SCREEN',
-                  subtitle: 'Watch on Multiple Screens',
-                  icon: Icons.screenshot_monitor_outlined,
-                  iconColor: Colors.lightBlueAccent,
-                  isSmallHeight: isSmallHeight,
-                  onTap: () => widget.controller.onNavigationTap(1),
+                child: _buildBottomAction(
+                  title: 'REFRESH',
+                  icon: Icons.refresh_rounded,
+                  onTap: () => widget.controller.refreshAllData(context),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 20),
               Expanded(
-                child: _buildSmallTile(
+                child: _buildBottomAction(
                   title: 'SETTINGS',
-                  subtitle: 'App Preferences',
-                  icon: Icons.settings,
-                  iconColor: Colors.orange,
-                  isSmallHeight: isSmallHeight,
+                  icon: Icons.settings_rounded,
                   onTap: () => widget.controller.onNavigationTap(5),
                 ),
               ),
@@ -285,8 +272,7 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
     required String title,
     required String subtitle,
     required IconData icon,
-    required List<Color> gradient,
-    String? badge,
+    required Color color,
     required bool isSmallHeight,
     required VoidCallback onTap,
   }) {
@@ -294,99 +280,96 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
       onPressed: onTap,
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
-          borderRadius: BorderRadius.circular(20),
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(30),
           boxShadow: [
-            BoxShadow(color: gradient.first.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 5)),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
           ],
         ),
-        child: Stack(
-          children: [
-            if (badge != null && !isSmallHeight)
-              Positioned(
-                top: 15, left: 15,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.circle, color: Colors.white, size: 6),
-                      const SizedBox(width: 6),
-                      Text(badge, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.08),
+                    Colors.white.withValues(alpha: 0.02),
+                  ],
                 ),
               ),
-            Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, color: Colors.white, size: isSmallHeight ? 50 : 70),
-                  SizedBox(height: isSmallHeight ? 8 : 15),
-                  Text(title, style: TextStyle(color: Colors.white, fontSize: isSmallHeight ? 20 : 30, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                  if (!isSmallHeight)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                    ),
+                  Icon(icon, color: color, size: isSmallHeight ? 40 : 60),
+                  const SizedBox(height: 20),
+                  Text(title, 
+                    style: TextStyle(
+                      color: Colors.white, 
+                      fontSize: isSmallHeight ? 18 : 26, 
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    )),
+                  const SizedBox(height: 8),
+                  Text(subtitle, 
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white60, 
+                      fontSize: isSmallHeight ? 10 : 12,
+                      fontWeight: FontWeight.w500,
+                    )),
                 ],
               ),
             ),
-            Positioned(
-              bottom: 15, right: 15,
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSmallTile({
+  Widget _buildBottomAction({
     required String title,
-    String? subtitle,
     required IconData icon,
-    Color iconColor = Colors.blue,
-    required bool isSmallHeight,
     required VoidCallback onTap,
   }) {
     return TvFocusable(
       onPressed: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1D1E33),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1),
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(30),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 15),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Flexible(
-              child: Column(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: const BoxDecoration(),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                    style: TextStyle(color: Colors.white, fontSize: isSmallHeight ? 12 : 15, fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (subtitle != null && !isSmallHeight)
-                    Text(
-                      subtitle,
-                      style: const TextStyle(color: Colors.white60, fontSize: 11),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  Icon(icon, color: Colors.white, size: 24),
+                  const SizedBox(width: 15),
+                  Text(title, 
+                    style: const TextStyle(
+                      color: Colors.white, 
+                      fontSize: 16, 
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    )),
                 ],
               ),
             ),
-            Icon(icon, color: iconColor, size: isSmallHeight ? 24 : 35),
-          ],
+          ),
         ),
       ),
     );
@@ -398,39 +381,38 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
     if (userInfo?.userInfo.expDate != null) {
       try {
         final date = DateTime.fromMillisecondsSinceEpoch(int.parse(userInfo!.userInfo.expDate) * 1000);
-        expiration = DateFormat('MMM d, yyyy').format(date);
+        expiration = DateFormat('d MMM yyyy').format(date);
       } catch (_) {}
     }
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 30.0, vertical: isSmallHeight ? 8 : 20),
+      padding: EdgeInsets.symmetric(horizontal: 40.0, vertical: isSmallHeight ? 10 : 30),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.workspace_premium, color: Colors.purpleAccent, size: 16),
-                const SizedBox(width: 8),
-                Text('Exp: $expiration', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-              ],
-            ),
+          // Expiration
+          Row(
+            children: [
+              const Icon(Icons.verified_rounded, color: Color(0xFF00B7FF), size: 18),
+              const SizedBox(width: 10),
+              Text('Expiration: $expiration', 
+                style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+            ],
           ),
-          if (!isSmallHeight)
-            const Expanded(
-              child: Text('By using this app, you agree to the Terms of Service.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 10)),
-            )
-          else
-            const Spacer(),
-          Text('Logged in: ${userInfo?.userInfo.username ?? "Guest"}',
-            style: const TextStyle(color: Colors.white70, fontSize: 11)),
+          
+          // Version
+          const Text('v0.0.1', 
+            style: TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.bold)),
+          
+          // User
+          Row(
+            children: [
+              const Icon(Icons.person_rounded, color: Color(0xFFC12CFF), size: 18),
+              const SizedBox(width: 10),
+              Text('Logged In: ${userInfo?.userInfo.username ?? "Guest"}', 
+                style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+            ],
+          ),
         ],
       ),
     );

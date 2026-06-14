@@ -45,17 +45,17 @@ class _HomeTileState extends State<HomeTile> {
               borderRadius: BorderRadius.circular(30),
               border: Border.all(
                 color: _isFocused 
-                  ? widget.accentColor 
-                  : widget.accentColor.withValues(alpha: 0.3),
+                    ? widget.accentColor 
+                    : widget.accentColor.withValues(alpha: 0.5), // Permanent accent border
                 width: _isFocused ? 2.5 : 1.5,
               ),
-              boxShadow: _isFocused ? [
+              boxShadow: [
                 BoxShadow(
-                  color: widget.accentColor.withValues(alpha: 0.4),
-                  blurRadius: 25,
-                  spreadRadius: 2,
+                  color: widget.accentColor.withValues(alpha: _isFocused ? 0.4 : 0.15),
+                  blurRadius: _isFocused ? 25 : 10,
+                  spreadRadius: _isFocused ? 2 : 1,
                 )
-              ] : [],
+              ],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(30),
