@@ -46,12 +46,12 @@ class _HomeTileState extends State<HomeTile> {
               border: Border.all(
                 color: _isFocused 
                     ? widget.accentColor 
-                    : widget.accentColor.withValues(alpha: 0.5), // Permanent accent border
-                width: _isFocused ? 2.5 : 1.5,
+                    : widget.accentColor.withValues(alpha: 0.4), // 2px consistent border (Requirement)
+                width: 2.0, 
               ),
               boxShadow: [
                 BoxShadow(
-                  color: widget.accentColor.withValues(alpha: _isFocused ? 0.4 : 0.1),
+                  color: widget.accentColor.withValues(alpha: _isFocused ? 0.4 : 0.08), // Reduced glow (Requirement)
                   blurRadius: _isFocused ? 25 : 12,
                   spreadRadius: _isFocused ? 2 : 0,
                 )
@@ -65,7 +65,7 @@ class _HomeTileState extends State<HomeTile> {
                   width: double.infinity,
                   height: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.4), // Restored dark glass background
+                    color: const Color(0xFF252525).withValues(alpha: 0.6), // Lighter grey glass (Requirement)
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: LayoutBuilder(

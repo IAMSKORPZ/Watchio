@@ -39,11 +39,11 @@ class _HomeBottomButtonState extends State<HomeBottomButton> {
             width: double.infinity,
             height: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.4), // Restored dark glass background
+              color: Colors.black.withValues(alpha: 0.5), // Neutral dark grey glass (Requirement)
               borderRadius: BorderRadius.circular(30),
               border: Border.all(
-                color: _isFocused ? widget.accentColor : Colors.transparent,
-                width: _isFocused ? 2.5 : 0,
+                color: _isFocused ? widget.accentColor : Colors.transparent, // No colored borders in normal state (Requirement)
+                width: 2.0,
               ),
               boxShadow: _isFocused ? [
                 BoxShadow(
