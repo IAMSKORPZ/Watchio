@@ -331,7 +331,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
 
   Widget _buildHeader(String title, String year) {
     return Container(
-      height: 85, // Optimized height for prominent logo
+      height: 70, // Balanced header height
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -345,10 +345,10 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
               ),
-              const SizedBox(width: 12), // Tighter gap to logo
+              const SizedBox(width: 14), // Balanced gap
               Image.asset(
                 'assets/images/App_Logo.png',
-                height: 62, // Requirement 1: Increased logo size (~40% from 42px)
+                height: 46, // Requirement: Target height ~40-48px (using 46)
                 fit: BoxFit.contain,
                 errorBuilder: (ctx, err, st) => const Text(
                   'WATCHIO',
@@ -418,13 +418,13 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     final rating = double.tryParse(seriesInfo?.rating?.toString() ?? '0') ?? 0.0;
     
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12.0, 0.0, 24.0, 0.0), // Reduced left padding (Requirement 2)
+      padding: const EdgeInsets.fromLTRB(12.0, 0.0, 12.0, 0.0), // Reduced right padding (Requirement 1)
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // LEFT COLUMN: Poster -> Stars -> Tabs
           SizedBox(
-            width: 210, // Tighter column width to move details closer
+            width: 210, // Maintain current structure (Requirement 6)
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center, // Centering everything (Requirement 2, 5)
               mainAxisSize: MainAxisSize.min,
@@ -452,16 +452,16 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                 _buildMetadataRow('Cast:', seriesInfo?.cast ?? 'Unknown', maxLines: 1),
                 _buildMetadataRow('Rating:', seriesInfo?.rating?.toString() ?? '0.0'),
                 
-                const SizedBox(height: 4), // Tighter gap (Requirement 3)
-                const Text('Plot:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                const SizedBox(height: 2),
+                const SizedBox(height: 10), // Improved hierarchy spacing (Requirement 8)
+                const Text('Plot:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), // Increased size (Requirement 2)
+                const SizedBox(height: 4),
                 GestureDetector(
                   onTap: () => _showFullPlotDialog(seriesInfo?.plot ?? widget.contentItem.description ?? 'No description available.'),
                   child: RichText(
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     text: TextSpan(
-                      style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.25),
+                      style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.3), // Increased font size (Requirement 2)
                       children: [
                         TextSpan(text: seriesInfo?.plot ?? widget.contentItem.description ?? 'No description available.'),
                         const TextSpan(text: ' ...Read More', style: TextStyle(color: Color(0xFFC12CFF), fontWeight: FontWeight.bold)),
@@ -470,7 +470,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: 8), // Tighter gap (Requirement 3)
+                const SizedBox(height: 16), // Increased spacing for action row (Requirement 8)
                 _buildActionRow(),
               ],
             ),
@@ -526,20 +526,20 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
   }
 
   Widget _buildMetadataRow(String label, String value, {int maxLines = 1}) {
-    // Reduced row spacing (Requirement 3)
+    // Increased font size and spacing (Requirement 2)
     return Padding(
-      padding: const EdgeInsets.only(bottom: 1.0),
+      padding: const EdgeInsets.only(bottom: 4.0), // Increased row spacing
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 90, 
-            child: Text(label, style: const TextStyle(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 11)),
+            width: 120, // Increased label width for better spacing (Requirement 2)
+            child: Text(label, style: const TextStyle(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 13)),
           ),
           Expanded(
             child: Text(
               value.isEmpty ? 'Unknown' : value, 
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 11),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
               maxLines: maxLines, overflow: TextOverflow.ellipsis,
             ),
           ),
