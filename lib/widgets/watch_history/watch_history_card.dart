@@ -195,6 +195,8 @@ class WatchHistoryCard extends StatelessWidget {
         return Colors.blue;
       case ContentType.series:
         return Colors.green;
+      case ContentType.all:
+        return Colors.grey;
     }
   }
 
@@ -206,6 +208,8 @@ class WatchHistoryCard extends StatelessWidget {
         return Icons.movie;
       case ContentType.series:
         return Icons.tv;
+      case ContentType.all:
+        return Icons.search;
     }
   }
 

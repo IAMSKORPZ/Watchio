@@ -152,7 +152,16 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
             currentIndex: controller.currentIndex,
             onIndexChanged: controller.onNavigationTap,
             navItems: navItems,
-            onSearchTap: () => _navigateToSearch(ContentType.liveStream),
+            onSearchTap: () {
+              final searchType = switch (controller.currentIndex) {
+                0 => ContentType.all,
+                2 => ContentType.liveStream,
+                3 => ContentType.vod,
+                4 => ContentType.series,
+                _ => ContentType.all,
+              };
+              _navigateToSearch(searchType);
+            },
             onRefreshTap: () => controller.refreshAllData(context),
             onSettingsTap: () => controller.onNavigationTap(5),
             pages: [
@@ -163,7 +172,7 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
                 onAnnouncements: _showAnnouncements,
                 onUpdate: () => controller.refreshAllData(context),
                 onSettings: () => controller.onNavigationTap(5),
-                onSearch: () => _navigateToSearch(ContentType.liveStream),
+                onSearch: () => _navigateToSearch(ContentType.all),
                 onSports: _showSportsHub,
                 onProfile: () => controller.onNavigationTap(5),
                 onAbout: _showAboutDialog,

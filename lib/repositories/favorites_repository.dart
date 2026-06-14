@@ -201,6 +201,8 @@ class FavoritesRepository {
               );
             }
             break;
+          case ContentType.all:
+            break;
         }
       } else if (isM3u) {
         final repository = M3uRepository();
@@ -251,6 +253,8 @@ class FavoritesRepository {
                 m3uItem: m3uItem,
               );
             }
+            break;
+          case ContentType.all:
             break;
         }
       }

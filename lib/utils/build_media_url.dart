@@ -71,6 +71,8 @@ String buildMediaUrl(ContentItem contentItem) {
         final suffix = (ext != null && ext.isNotEmpty) ? '.$ext' : '';
         finalUrl = '$baseUrl/series/$username/$password/${contentItem.id}$suffix';
         break;
+      case ContentType.all:
+        break;
     }
   }
 

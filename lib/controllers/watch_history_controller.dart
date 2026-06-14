@@ -112,6 +112,8 @@ class WatchHistoryController extends ChangeNotifier {
         case ContentType.series:
           await _playSeries(context, history);
           break;
+        case ContentType.all:
+          break;
       }
     } catch (e) {
       _setError('Video oynatılırken hata oluştu: $e');
