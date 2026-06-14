@@ -112,6 +112,10 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     _playerController = PlayerFactory.create(engine);
     await _playerController.initialize();
     
+    // Apply default aspect ratio
+    final ratioStr = await UserPreferences.getPlayerAspectRatio();
+    _applyAspectRatio(ratioStr);
+
     Duration startPos = Duration.zero;
     if (_currentPlaybackItem.contentType != ContentType.liveStream) {
       final history = await _historyService.getWatchHistory(
@@ -172,13 +176,25 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     }
   }
 
+  void _applyAspectRatio(String ratioStr) {
+    double? ratio;
+    switch (ratioStr) {
+      case '16:9': ratio = 16/9; break;
+      case '4:3': ratio = 4/3; break;
+      case 'fill': ratio = MediaQuery.of(context).size.aspectRatio; break;
+      case 'stretch': ratio = MediaQuery.of(context).size.aspectRatio; break;
+      case 'fit': ratio = null; break;
+      default: ratio = null;
+    }
+    _playerController.setAspectRatio(ratio);
+  }
+
   void _onPlayerStateChanged() {
     if (mounted) {
       setState(() {});
     }
-    if (_currentPlaybackItem.contentType != ContentType.liveStream && 
-        _playerController.isPlaying && 
-        _playerController.position.inSeconds % 10 == 0) {
+    // Save history periodically for VOD, or once for Live to mark as "Recent"
+    if (_playerController.isPlaying && _playerController.position.inSeconds % 10 == 0) {
       _saveHistory();
     }
   }
@@ -193,8 +209,8 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
         lastWatched: DateTime.now(),
         title: _currentPlaybackItem.title,
         imagePath: _currentPlaybackItem.imagePath,
-        totalDuration: _playerController.duration,
-        watchDuration: _playerController.position,
+        totalDuration: _currentPlaybackItem.isLive ? Duration.zero : _playerController.duration,
+        watchDuration: _currentPlaybackItem.isLive ? Duration.zero : _playerController.position,
       ),
     );
   }
@@ -814,9 +830,11 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   }
 
   void _showAspectRatioMenu() {
-    final ratios = ['Fit', 'Fill', 'Stretch', '16:9', '4:3'];
-    _showTrackMenu('Aspect Ratio', ratios, (idx) {
-      UserPreferences.setPlayerAspectRatio(ratios[idx].toLowerCase());
+    final ratios = ['fit', 'fill', 'stretch', '16:9', '4:3'];
+    _showTrackMenu('Aspect Ratio', ratios.map((e) => e.toUpperCase()).toList(), (idx) {
+      final selected = ratios[idx];
+      UserPreferences.setPlayerAspectRatio(selected);
+      _applyAspectRatio(selected);
       if (mounted) {
         setState(() {});
       }
