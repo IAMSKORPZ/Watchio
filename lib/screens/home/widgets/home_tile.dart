@@ -51,9 +51,9 @@ class _HomeTileState extends State<HomeTile> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: widget.accentColor.withValues(alpha: _isFocused ? 0.4 : 0.15),
-                  blurRadius: _isFocused ? 25 : 10,
-                  spreadRadius: _isFocused ? 2 : 1,
+                  color: widget.accentColor.withValues(alpha: _isFocused ? 0.4 : 0.1),
+                  blurRadius: _isFocused ? 25 : 12,
+                  spreadRadius: _isFocused ? 2 : 0,
                 )
               ],
             ),
@@ -65,7 +65,7 @@ class _HomeTileState extends State<HomeTile> {
                   width: double.infinity,
                   height: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: Colors.black.withValues(alpha: 0.4), // Restored dark glass background
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: LayoutBuilder(

@@ -297,13 +297,10 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.08),
-                    Colors.white.withValues(alpha: 0.02),
-                  ],
+                color: Colors.black.withValues(alpha: 0.4), // Dark glass background
+                border: Border.all(
+                  color: color.withValues(alpha: 0.5), // Colored accent border
+                  width: 1.5,
                 ),
               ),
               child: Column(
@@ -344,7 +341,7 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
       onPressed: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
+          color: Colors.black.withValues(alpha: 0.4), // Dark glass background
           borderRadius: BorderRadius.circular(30),
         ),
         child: ClipRRect(
