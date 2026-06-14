@@ -65,37 +65,59 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
         ChangeNotifierProvider.value(value: _favoritesController),
       ],
       child: Scaffold(
-        body: Consumer2<WatchHistoryController, FavoritesController>(
-          builder: (context, historyController, favoritesController, child) {
-            if (historyController.isLoading || favoritesController.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        backgroundColor: Colors.transparent,
+        body: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF050812),
+            image: const DecorationImage(
+              image: AssetImage('assets/images/background.png'),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xFF050812).withValues(alpha: 0.2),
+                  const Color(0xFF050812).withValues(alpha: 0.8),
+                ],
+              ),
+            ),
+            child: Consumer2<WatchHistoryController, FavoritesController>(
+              builder: (context, historyController, favoritesController, child) {
+                if (historyController.isLoading || favoritesController.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            if (historyController.errorMessage != null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(historyController.errorMessage!)),
+                if (historyController.errorMessage != null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(historyController.errorMessage!)),
+                    );
+                  });
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    await historyController.loadWatchHistory();
+                    await favoritesController.loadFavorites();
+                  },
+                  child: historyController.isAllEmpty && favoritesController.favorites.isEmpty
+                      ? const WatchHistoryEmptyState()
+                      : WatchHistoryContent(
+                          onHistoryTap: (history) =>
+                              historyController.playContent(context, history),
+                          onHistoryRemove: (history) => _showRemoveDialog(history),
+                          onSeeAllTap: _showAllHistory,
+                          onFavoriteRemove: _removeFavorite,
+                          onSeeAllFavorites: _showAllFavorites,
+                        ),
                 );
-              });
-            }
-
-            return RefreshIndicator(
-              onRefresh: () async {
-                await historyController.loadWatchHistory();
-                await favoritesController.loadFavorites();
               },
-              child: historyController.isAllEmpty && favoritesController.favorites.isEmpty
-                  ? const WatchHistoryEmptyState()
-                  : WatchHistoryContent(
-                      onHistoryTap: (history) =>
-                          historyController.playContent(context, history),
-                      onHistoryRemove: (history) => _showRemoveDialog(history),
-                      onSeeAllTap: _showAllHistory,
-                      onFavoriteRemove: _removeFavorite,
-                      onSeeAllFavorites: _showAllFavorites,
-                    ),
-            );
-          },
+            ),
+          ),
         ),
       ),
     );

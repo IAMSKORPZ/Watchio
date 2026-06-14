@@ -5,6 +5,8 @@ import '../../services/announcement_service.dart';
 import '../../services/config_service.dart';
 import '../home/widgets/home_header.dart';
 import '../home/home_theme.dart';
+import '../../shared/widgets/glass_panel.dart';
+import '../../shared/widgets/app_card.dart';
 
 class WatchioAnnouncementsScreen extends StatelessWidget {
   const WatchioAnnouncementsScreen({super.key});
@@ -134,57 +136,39 @@ class _AnnouncementListCardState extends State<_AnnouncementListCard> {
   Widget build(BuildContext context) {
     return FocusableActionDetector(
       onFocusChange: (val) => setState(() => _isFocused = val),
-      child: InkWell(
+      child: AppCard(
         onTap: widget.onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          decoration: BoxDecoration(
-            color: _isFocused ? Colors.white.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: _isFocused ? Colors.white : Colors.white.withValues(alpha: 0.12),
-              width: _isFocused ? 2 : 1,
-            ),
-            boxShadow: _isFocused ? [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ] : [],
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.campaign_outlined, color: Colors.white70, size: 28),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.announcement.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+        borderRadius: 16,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Row(
+          children: [
+            const Icon(Icons.campaign_outlined, color: Colors.white70, size: 28),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.announcement.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.announcement.date,
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 13,
-                      ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.announcement.date,
+                    style: const TextStyle(
+                      color: Colors.white38,
+                      fontSize: 13,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const Icon(Icons.chevron_right, color: Colors.white38),
-            ],
-          ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.white38),
+          ],
         ),
       ),
     );
@@ -240,25 +224,9 @@ class WatchioAnnouncementDetailsScreen extends StatelessWidget {
               // Content Area
               Expanded(
                 child: Center(
-                  child: Container(
+                  child: AppCard(
                     width: MediaQuery.of(context).size.width * 0.7,
-                    constraints: const BoxConstraints(minHeight: 300),
                     padding: const EdgeInsets.all(40),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.3),
-                          blurRadius: 30,
-                          offset: const Offset(0, 15),
-                        ),
-                      ],
-                    ),
                     child: SingleChildScrollView(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

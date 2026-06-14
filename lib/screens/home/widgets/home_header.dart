@@ -147,11 +147,11 @@ class _HeaderButtonState extends State<HeaderButton> {
                 vertical: 10
             ),
             decoration: BoxDecoration(
-              color: _isFocused ? Colors.white.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.05),
+              color: _isFocused ? const Color(0xAA4A3D6A) : const Color(0x44252525),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: _isFocused ? const Color(0xFFC12CFF) : Colors.white.withValues(alpha: 0.1),
-                width: _isFocused ? 2.5 : 1.0,
+                color: _isFocused ? Colors.white.withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.1),
+                width: _isFocused ? 2.0 : 1.0,
               ),
               boxShadow: _isFocused ? [
                 BoxShadow(
@@ -221,10 +221,11 @@ class _ToolbarItemState extends State<_ToolbarItem> {
             padding: widget.child != null ? EdgeInsets.zero : const EdgeInsets.all(8),
             decoration: BoxDecoration(
               shape: widget.child != null ? BoxShape.rectangle : BoxShape.circle,
-              color: _isFocused ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
+              color: _isFocused ? const Color(0xAA4A3D6A) : Colors.transparent,
+              borderRadius: widget.child != null ? BorderRadius.circular(30) : null,
               boxShadow: _isFocused ? [
                 BoxShadow(
-                  color: const Color(0xFFC12CFF).withValues(alpha: 0.3),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 10,
                 )
               ] : [],

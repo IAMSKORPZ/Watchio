@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/theme_extensions.dart';
 
 class HomeBottomButton extends StatefulWidget {
   final String label;
@@ -39,14 +40,7 @@ class _HomeBottomButtonState extends State<HomeBottomButton> {
             width: double.infinity,
             height: double.infinity,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xAA4A3D6A), // Brighter purple-grey glass
-                  const Color(0xAA30274F), // Brighter purple-grey glass
-                ],
-              ),
+              gradient: BingieThemeExtension.of(context).glassGradient,
               borderRadius: BorderRadius.circular(30),
               border: Border.all(
                 color: _isFocused ? widget.accentColor : Colors.transparent, // No colored borders in normal state (Requirement)

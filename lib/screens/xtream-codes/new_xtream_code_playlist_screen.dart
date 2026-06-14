@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:another_iptv_player/screens/xtream-codes/xtream_code_data_loader_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,7 @@ import '../../../../controllers/playlist_controller.dart';
 import '../../../../models/api_configuration_model.dart';
 import '../../../../models/playlist_model.dart';
 import '../../../../repositories/iptv_repository.dart';
+import '../../../../core/theme/theme_extensions.dart';
 
 class NewXtreamCodePlaylistScreen extends StatefulWidget {
   const NewXtreamCodePlaylistScreen({super.key});
@@ -223,124 +225,138 @@ class NewXtreamCodePlaylistScreenState
                       child: Container(
                         padding: EdgeInsets.symmetric(horizontal: isMobile ? 24 : 60),
                         child: Center(
-                          child: SingleChildScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            child: Consumer<PlaylistController>(
-                              builder: (context, controller, child) {
-                                return Form(
-                                  key: _formKey,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
-                                    children: [
-                                      if (isMobile) ...[
-                                        Image.asset(
-                                          'assets/images/logo.png',
-                                          width: logoWidth,
-                                          fit: BoxFit.contain,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(30),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                              child: Container(
+                                padding: const EdgeInsets.all(40),
+                                decoration: BoxDecoration(
+                                  gradient: BingieThemeExtension.of(context).glassGradient,
+                                  borderRadius: BorderRadius.circular(30),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                                ),
+                                child: SingleChildScrollView(
+                                  physics: const BouncingScrollPhysics(),
+                                  child: Consumer<PlaylistController>(
+                                    builder: (context, controller, child) {
+                                      return Form(
+                                        key: _formKey,
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          crossAxisAlignment: isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+                                          children: [
+                                            if (isMobile) ...[
+                                              Image.asset(
+                                                'assets/images/logo.png',
+                                                width: logoWidth,
+                                                fit: BoxFit.contain,
+                                              ),
+                                              const SizedBox(height: 16),
+                                            ],
+                                            Text(
+                                              'ENTER YOUR PLAYLIST DETAILS',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              textAlign: isMobile ? TextAlign.center : TextAlign.left,
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: titleFontSize,
+                                                fontWeight: FontWeight.w900,
+                                                letterSpacing: 1.2,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 24),
+                                            _XTextField(
+                                              controller: _nameController,
+                                              focusNode: _playlistFocus,
+                                              label: 'Playlist Name',
+                                              icon: Icons.list_rounded,
+                                              height: fieldHeight,
+                                              textInputAction: TextInputAction.next,
+                                              onSubmitted: (_) {
+                                                if (mounted) FocusScope.of(context).requestFocus(_usernameFocus);
+                                              },
+                                            ),
+                                            SizedBox(height: spacing),
+                                            _XTextField(
+                                              controller: _usernameController,
+                                              focusNode: _usernameFocus,
+                                              label: 'Username',
+                                              icon: Icons.person_outline_rounded,
+                                              height: fieldHeight,
+                                              textInputAction: TextInputAction.next,
+                                              onSubmitted: (_) {
+                                                if (mounted) FocusScope.of(context).requestFocus(_passwordFocus);
+                                              },
+                                            ),
+                                            SizedBox(height: spacing),
+                                            _XTextField(
+                                              controller: _passwordController,
+                                              focusNode: _passwordFocus,
+                                              label: 'Password',
+                                              icon: Icons.lock_outline_rounded,
+                                              isPassword: true,
+                                              obscure: _obscurePassword,
+                                              height: fieldHeight,
+                                              textInputAction: TextInputAction.next,
+                                              onSubmitted: (_) {
+                                                if (mounted) FocusScope.of(context).requestFocus(_urlFocus);
+                                              },
+                                              onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
+                                            ),
+                                            SizedBox(height: spacing),
+                                            _XTextField(
+                                              controller: _urlController,
+                                              focusNode: _urlFocus,
+                                              label: 'http://url_here.com:port',
+                                              icon: Icons.link_rounded,
+                                              height: fieldHeight,
+                                              hint: 'http://example.com:8080',
+                                              textInputAction: TextInputAction.done,
+                                              onSubmitted: (_) {
+                                                if (mounted) _savePlaylist();
+                                              },
+                                            ),
+                                            const SizedBox(height: 12),
+                                            _AddPlaylistButton(
+                                              focusNode: _submitFocus,
+                                              isLoading: controller.isLoading,
+                                              height: buttonHeight,
+                                              onTap: controller.isLoading ? null : (_isFormValid ? _savePlaylist : null),
+                                            ),
+                                            if (isMobile) ...[
+                                               const SizedBox(height: 12),
+                                               Row(
+                                                 mainAxisAlignment: MainAxisAlignment.center,
+                                                 children: [
+                                                   IconButton(
+                                                     icon: const Icon(Icons.vpn_lock_rounded, color: Colors.white70),
+                                                     onPressed: () {},
+                                                   ),
+                                                   const SizedBox(width: 20),
+                                                   IconButton(
+                                                     icon: const Icon(Icons.view_list_rounded, color: Colors.white70),
+                                                     onPressed: () => Navigator.pop(context),
+                                                   ),
+                                                 ],
+                                               ),
+                                            ],
+                                            if (controller.error != null) ...[
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                controller.error!,
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                                              ),
+                                            ],
+                                          ],
                                         ),
-                                        const SizedBox(height: 16),
-                                      ],
-                                      Text(
-                                        'ENTER YOUR PLAYLIST DETAILS',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: isMobile ? TextAlign.center : TextAlign.left,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: titleFontSize,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 1.2,
-                                        ),
-                                      ),
-                                      SizedBox(height: spacing),
-                                      _XTextField(
-                                        controller: _nameController,
-                                        focusNode: _playlistFocus,
-                                        label: 'Playlist Name',
-                                        icon: Icons.list_rounded,
-                                        height: fieldHeight,
-                                        textInputAction: TextInputAction.next,
-                                        onSubmitted: (_) {
-                                          if (mounted) FocusScope.of(context).requestFocus(_usernameFocus);
-                                        },
-                                      ),
-                                      SizedBox(height: spacing),
-                                      _XTextField(
-                                        controller: _usernameController,
-                                        focusNode: _usernameFocus,
-                                        label: 'Username',
-                                        icon: Icons.person_outline_rounded,
-                                        height: fieldHeight,
-                                        textInputAction: TextInputAction.next,
-                                        onSubmitted: (_) {
-                                          if (mounted) FocusScope.of(context).requestFocus(_passwordFocus);
-                                        },
-                                      ),
-                                      SizedBox(height: spacing),
-                                      _XTextField(
-                                        controller: _passwordController,
-                                        focusNode: _passwordFocus,
-                                        label: 'Password',
-                                        icon: Icons.lock_outline_rounded,
-                                        isPassword: true,
-                                        obscure: _obscurePassword,
-                                        height: fieldHeight,
-                                        textInputAction: TextInputAction.next,
-                                        onSubmitted: (_) {
-                                          if (mounted) FocusScope.of(context).requestFocus(_urlFocus);
-                                        },
-                                        onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
-                                      ),
-                                      SizedBox(height: spacing),
-                                      _XTextField(
-                                        controller: _urlController,
-                                        focusNode: _urlFocus,
-                                        label: 'http://url_here.com:port',
-                                        icon: Icons.link_rounded,
-                                        height: fieldHeight,
-                                        hint: 'http://example.com:8080',
-                                        textInputAction: TextInputAction.done,
-                                        onSubmitted: (_) {
-                                          if (mounted) _savePlaylist();
-                                        },
-                                      ),
-                                      const SizedBox(height: 12),
-                                      _AddPlaylistButton(
-                                        focusNode: _submitFocus,
-                                        isLoading: controller.isLoading,
-                                        height: buttonHeight,
-                                        onTap: controller.isLoading ? null : (_isFormValid ? _savePlaylist : null),
-                                      ),
-                                      if (isMobile) ...[
-                                         const SizedBox(height: 12),
-                                         Row(
-                                           mainAxisAlignment: MainAxisAlignment.center,
-                                           children: [
-                                             IconButton(
-                                               icon: const Icon(Icons.vpn_lock_rounded, color: Colors.white70),
-                                               onPressed: () {},
-                                             ),
-                                             const SizedBox(width: 20),
-                                             IconButton(
-                                               icon: const Icon(Icons.view_list_rounded, color: Colors.white70),
-                                               onPressed: () => Navigator.pop(context),
-                                             ),
-                                           ],
-                                         ),
-                                      ],
-                                      if (controller.error != null) ...[
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          controller.error!,
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13),
-                                        ),
-                                      ],
-                                    ],
+                                      );
+                                    },
                                   ),
-                                );
-                              },
+                                ),
+                              ),
                             ),
                           ),
                         ),

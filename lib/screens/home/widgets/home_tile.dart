@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/theme_extensions.dart';
 
 class HomeTile extends StatefulWidget {
   final String title;
@@ -65,14 +66,7 @@ class _HomeTileState extends State<HomeTile> {
                   width: double.infinity,
                   height: double.infinity,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        const Color(0xAA4A3D6A), // Brighter purple-grey glass top (Requirement)
-                        const Color(0xAA30274F), // Brighter purple-grey glass bottom (Requirement)
-                      ],
-                    ),
+                    gradient: BingieThemeExtension.of(context).glassGradient,
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: LayoutBuilder(

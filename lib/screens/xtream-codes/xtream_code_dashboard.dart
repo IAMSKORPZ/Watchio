@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:another_iptv_player/l10n/localization_extension.dart';
@@ -6,6 +7,7 @@ import 'package:another_iptv_player/models/playlist_model.dart';
 import 'package:another_iptv_player/controllers/xtream_code_home_controller.dart';
 import 'package:another_iptv_player/screens/settings/announcement_center_screen.dart';
 import 'package:another_iptv_player/widgets/tv_focusable.dart';
+import 'package:another_iptv_player/core/theme/theme_extensions.dart';
 
 class XtreamCodeDashboard extends StatefulWidget {
   final Playlist playlist;
@@ -297,14 +299,7 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    const Color(0xAA4A3D6A), // Brighter purple-grey glass
-                    const Color(0xAA30274F), // Brighter purple-grey glass
-                  ],
-                ),
+                gradient: BingieThemeExtension.of(context).glassGradient,
                 border: Border.all(
                   color: color.withValues(alpha: 0.5), // Colored accent border
                   width: 1.5,
@@ -348,14 +343,7 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
       onPressed: onTap,
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xAA4A3D6A), // Brighter purple-grey glass
-              const Color(0xAA30274F), // Brighter purple-grey glass
-            ],
-          ),
+          gradient: BingieThemeExtension.of(context).glassGradient,
           borderRadius: BorderRadius.circular(30),
         ),
         child: ClipRRect(

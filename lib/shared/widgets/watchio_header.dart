@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -45,7 +44,7 @@ class _WatchioHeaderState extends State<WatchioHeader> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
       child: Row(
         children: [
@@ -64,40 +63,36 @@ class _WatchioHeaderState extends State<WatchioHeader> {
               ),
             ],
           ),
-          
+
           const Spacer(),
-          
+
           // CENTER: Time & Date
           Column(
             children: [
               Text(
                 DateFormat('hh:mm a').format(_now),
                 style: const TextStyle(
-                  color: Colors.white, 
-                  fontSize: 20, 
-                  fontWeight: FontWeight.w900
-                ),
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900),
               ),
               Text(
                 DateFormat('MMM d, yyyy').format(_now),
                 style: const TextStyle(
-                  color: Color(0xFFC12CFF), 
-                  fontSize: 12, 
-                  fontWeight: FontWeight.bold
-                ),
+                    color: Color(0xFFC12CFF),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          
+
           const Spacer(),
-          
+
           // RIGHT: Search + More
           Row(
             children: [
               _HeaderIconButton(
-                icon: Icons.search_rounded, 
-                onTap: widget.onSearch
-              ),
+                  icon: Icons.search_rounded, onTap: widget.onSearch),
               const SizedBox(width: 12),
               _buildMenu(context),
             ],
@@ -115,7 +110,7 @@ class _WatchioHeaderState extends State<WatchioHeader> {
       child: PopupMenuButton<String>(
         icon: const _HeaderIconContainer(icon: Icons.more_vert_rounded),
         offset: const Offset(0, 50),
-        color: const Color(0xFF1A1D29),
+        color: const Color(0xEE1A1A2A), // Dark glass tone for menu
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: Colors.white10),
@@ -156,9 +151,9 @@ class _HeaderIconContainer extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: const Color(0xAA4A3D6A), // Standard glass top color
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
       ),
       child: Icon(
         icon, 
@@ -191,7 +186,7 @@ class _HeaderIconButtonState extends State<_HeaderIconButton> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: _isFocused ? Colors.white.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+            color: _isFocused ? const Color(0xAA4A3D6A) : const Color(0x44252525),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: _isFocused ? const Color(0xFFC12CFF) : Colors.white10

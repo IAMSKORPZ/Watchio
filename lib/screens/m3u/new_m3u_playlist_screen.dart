@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:another_iptv_player/models/playlist_model.dart';
 import 'package:another_iptv_player/screens/m3u/m3u_data_loader_screen.dart';
 import 'package:another_iptv_player/l10n/localization_extension.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../controllers/playlist_controller.dart';
 import '../../../../services/config_service.dart';
+import '../../../../core/theme/theme_extensions.dart';
 
 class NewM3uPlaylistScreen extends StatefulWidget {
   const NewM3uPlaylistScreen({super.key});
@@ -250,148 +252,162 @@ class NewM3uPlaylistScreenState extends State<NewM3uPlaylistScreen> {
                         padding:
                             EdgeInsets.symmetric(horizontal: isMobile ? 24 : 60),
                         child: Center(
-                          child: SingleChildScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            child: Consumer<PlaylistController>(
-                              builder: (context, controller, child) {
-                                return Form(
-                                  key: _formKey,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: isMobile
-                                        ? CrossAxisAlignment.center
-                                        : CrossAxisAlignment.start,
-                                    children: [
-                                      if (isMobile) ...[
-                                        Image.asset(
-                                          'assets/images/logo.png',
-                                          width: logoWidth,
-                                          fit: BoxFit.contain,
-                                        ),
-                                        const SizedBox(height: 16),
-                                      ],
-                                      Text(
-                                        'ADD M3U PLAYLIST',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: isMobile
-                                            ? TextAlign.center
-                                            : TextAlign.left,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: titleFontSize,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 1.2,
-                                        ),
-                                      ),
-                                      SizedBox(height: spacing),
-                                      _XTextField(
-                                        controller: _nameController,
-                                        focusNode: _nameFocus,
-                                        label: context.loc.playlist_name,
-                                        icon: Icons.list_rounded,
-                                        height: fieldHeight,
-                                        textInputAction: TextInputAction.next,
-                                        onSubmitted: (_) {
-                                          if (_isUrlSource) {
-                                            FocusScope.of(context)
-                                                .requestFocus(_urlFocus);
-                                          }
-                                        },
-                                      ),
-                                      SizedBox(height: spacing),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: _SourceTypeCard(
-                                              label: 'M3U URL',
-                                              icon: Icons.link_rounded,
-                                              isSelected: _isUrlSource,
-                                              onTap: () =>
-                                                  _onSourceTypeChanged(true),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 16),
-                                          Expanded(
-                                            child: _SourceTypeCard(
-                                              label: 'M3U FILE',
-                                              icon: Icons.file_present_rounded,
-                                              isSelected: !_isUrlSource,
-                                              onTap: () =>
-                                                  _onSourceTypeChanged(false),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: spacing),
-                                      if (_isUrlSource)
-                                        _XTextField(
-                                          controller: _urlController,
-                                          focusNode: _urlFocus,
-                                          label: 'http://url_here.com/file.m3u',
-                                          icon: Icons.link_rounded,
-                                          height: fieldHeight,
-                                          hint: context.loc.m3u_url_hint,
-                                          textInputAction: TextInputAction.done,
-                                          onSubmitted: (_) => _savePlaylist(),
-                                        )
-                                      else
-                                        _FilePickerCard(
-                                          fileName: _selectedFileName,
-                                          onTap: _pickFile,
-                                          height: fieldHeight,
-                                        ),
-                                      const SizedBox(height: 12),
-                                      _AddPlaylistButton(
-                                        label: context.loc.create_playlist
-                                            .toUpperCase(),
-                                        focusNode: _submitFocus,
-                                        isLoading: controller.isLoading,
-                                        height: buttonHeight,
-                                        onTap: controller.isLoading
-                                            ? null
-                                            : (_isFormValid
-                                                ? _savePlaylist
-                                                : null),
-                                      ),
-                                      if (isMobile) ...[
-                                        const SizedBox(height: 12),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(30),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                              child: Container(
+                                padding: const EdgeInsets.all(40),
+                                decoration: BoxDecoration(
+                                  gradient: BingieThemeExtension.of(context).glassGradient,
+                                  borderRadius: BorderRadius.circular(30),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                                ),
+                                child: SingleChildScrollView(
+                                  physics: const BouncingScrollPhysics(),
+                                  child: Consumer<PlaylistController>(
+                                    builder: (context, controller, child) {
+                                      return Form(
+                                        key: _formKey,
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          crossAxisAlignment: isMobile
+                                              ? CrossAxisAlignment.center
+                                              : CrossAxisAlignment.start,
                                           children: [
-                                            IconButton(
-                                              icon: const Icon(
-                                                  Icons.vpn_lock_rounded,
-                                                  color: Colors.white70),
-                                              onPressed: () {},
+                                            if (isMobile) ...[
+                                              Image.asset(
+                                                'assets/images/logo.png',
+                                                width: logoWidth,
+                                                fit: BoxFit.contain,
+                                              ),
+                                              const SizedBox(height: 16),
+                                            ],
+                                            Text(
+                                              'ADD M3U PLAYLIST',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              textAlign: isMobile
+                                                  ? TextAlign.center
+                                                  : TextAlign.left,
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: titleFontSize,
+                                                fontWeight: FontWeight.w900,
+                                                letterSpacing: 1.2,
+                                              ),
                                             ),
-                                            const SizedBox(width: 20),
-                                            IconButton(
-                                              icon: const Icon(
-                                                  Icons.view_list_rounded,
-                                                  color: Colors.white70),
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
+                                            const SizedBox(height: 24),
+                                            _XTextField(
+                                              controller: _nameController,
+                                              focusNode: _nameFocus,
+                                              label: context.loc.playlist_name,
+                                              icon: Icons.list_rounded,
+                                              height: fieldHeight,
+                                              textInputAction: TextInputAction.next,
+                                              onSubmitted: (_) {
+                                                if (_isUrlSource) {
+                                                  FocusScope.of(context)
+                                                      .requestFocus(_urlFocus);
+                                                }
+                                              },
                                             ),
+                                            SizedBox(height: spacing),
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: _SourceTypeCard(
+                                                    label: 'M3U URL',
+                                                    icon: Icons.link_rounded,
+                                                    isSelected: _isUrlSource,
+                                                    onTap: () =>
+                                                        _onSourceTypeChanged(true),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 16),
+                                                Expanded(
+                                                  child: _SourceTypeCard(
+                                                    label: 'M3U FILE',
+                                                    icon: Icons.file_present_rounded,
+                                                    isSelected: !_isUrlSource,
+                                                    onTap: () =>
+                                                        _onSourceTypeChanged(false),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            SizedBox(height: spacing),
+                                            if (_isUrlSource)
+                                              _XTextField(
+                                                controller: _urlController,
+                                                focusNode: _urlFocus,
+                                                label: 'http://url_here.com/file.m3u',
+                                                icon: Icons.link_rounded,
+                                                height: fieldHeight,
+                                                hint: context.loc.m3u_url_hint,
+                                                textInputAction: TextInputAction.done,
+                                                onSubmitted: (_) => _savePlaylist(),
+                                              )
+                                            else
+                                              _FilePickerCard(
+                                                fileName: _selectedFileName,
+                                                onTap: _pickFile,
+                                                height: fieldHeight,
+                                              ),
+                                            const SizedBox(height: 12),
+                                            _AddPlaylistButton(
+                                              label: context.loc.create_playlist
+                                                  .toUpperCase(),
+                                              focusNode: _submitFocus,
+                                              isLoading: controller.isLoading,
+                                              height: buttonHeight,
+                                              onTap: controller.isLoading
+                                                  ? null
+                                                  : (_isFormValid
+                                                      ? _savePlaylist
+                                                      : null),
+                                            ),
+                                            if (isMobile) ...[
+                                              const SizedBox(height: 12),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  IconButton(
+                                                    icon: const Icon(
+                                                        Icons.vpn_lock_rounded,
+                                                        color: Colors.white70),
+                                                    onPressed: () {},
+                                                  ),
+                                                  const SizedBox(width: 20),
+                                                  IconButton(
+                                                    icon: const Icon(
+                                                        Icons.view_list_rounded,
+                                                        color: Colors.white70),
+                                                    onPressed: () =>
+                                                        Navigator.pop(context),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                            if (controller.error != null) ...[
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                controller.error!,
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(
+                                                    color: Colors.redAccent,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 13),
+                                              ),
+                                            ],
                                           ],
                                         ),
-                                      ],
-                                      if (controller.error != null) ...[
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          controller.error!,
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                              color: Colors.redAccent,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 13),
-                                        ),
-                                      ],
-                                    ],
+                                      );
+                                    },
                                   ),
-                                );
-                              },
+                                ),
+                              ),
                             ),
                           ),
                         ),

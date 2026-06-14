@@ -25,8 +25,17 @@ class WatchHistoryListScreen extends StatelessWidget {
     final crossAxisCount = ResponsiveHelper.getCrossAxisCount(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(title), elevation: 0),
-      body: histories.isEmpty
+      appBar: AppBar(title: Text(title)),
+      backgroundColor: const Color(0xFF050812),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background.png'),
+            fit: BoxFit.cover,
+            opacity: 0.3,
+          ),
+        ),
+        child: histories.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -66,6 +75,7 @@ class WatchHistoryListScreen extends StatelessWidget {
                 );
               },
             ),
+      ),
     );
   }
 }

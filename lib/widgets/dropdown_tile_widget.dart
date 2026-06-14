@@ -58,9 +58,9 @@ class DropdownTileWidget<T> extends StatelessWidget {
           items: items,
           onChanged: onChanged,
           isExpanded: true,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12),
-          dropdownColor: Theme.of(context).colorScheme.surface,
-          icon: Icon(Icons.keyboard_arrow_down, size: 18),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: Colors.white),
+          dropdownColor: const Color(0xFF1A1A2A), // Dark glass tone for dropdown list
+          icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.white70),
         ),
       ),
     );

@@ -6,8 +6,8 @@ import 'package:another_iptv_player/models/playlist_content_model.dart';
 import 'package:another_iptv_player/services/app_state.dart';
 import 'package:another_iptv_player/l10n/localization_extension.dart';
 import '../../../controllers/favorites_controller.dart';
-
 import '../../../models/content_type.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class M3uSeriesScreen extends StatefulWidget {
   final ContentItem contentItem;
@@ -278,13 +278,8 @@ class _M3uSeriesScreenState extends State<M3uSeriesScreen> {
         ),
         const SizedBox(height: 12),
         if (seasons.isEmpty)
-          Container(
+          AppCard(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.2), width: 1),
-            ),
             child: Row(
               children: [
                 Icon(Icons.info_outline, color: Colors.grey.shade600),
@@ -310,49 +305,39 @@ class _M3uSeriesScreenState extends State<M3uSeriesScreen> {
   }
 
   Widget _buildSeasonCard(int season, int index) {
-    return Container(
+    return AppCard(
       width: 200,
       margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2), width: 1),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            _showSeasonEpisodes(season);
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      padding: EdgeInsets.zero,
+      onTap: () {
+        _showSeasonEpisodes(season);
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        context.loc.season_number(season.toString()),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                Expanded(
+                  child: Text(
+                    context.loc.season_number(season.toString()),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  context.loc.episode_count(
-                    getEpisodesBySeason(episodes, season).length,
                   ),
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 8),
+            Text(
+              context.loc.episode_count(
+                getEpisodesBySeason(episodes, season).length,
+              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            ),
+          ],
         ),
       ),
     );
@@ -462,102 +447,95 @@ class _M3uSeriesScreenState extends State<M3uSeriesScreen> {
   }
 
   Widget _buildEpisodeCard(M3uEpisode episode) {
-    return Container(
+    return AppCard(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2), width: 1),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () async {
-          Navigator.pop(context);
+      padding: EdgeInsets.zero,
+      onTap: () async {
+        Navigator.pop(context);
 
-          var m3uItem = await _repository.getM3uItemByUrl(url: episode.url);
+        var m3uItem = await _repository.getM3uItemByUrl(url: episode.url);
 
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => M3uEpisodeScreen(
-                seasons: seasons,
-                episodes: episodes,
-                contentItem: ContentItem(
-                  m3uItem!.id,
-                  episode.name,
-                  episode.cover ?? "",
-                  ContentType.series,
-                  season: episode.seasonNumber,
-                  m3uItem: m3uItem
-                ),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => M3uEpisodeScreen(
+              seasons: seasons,
+              episodes: episodes,
+              contentItem: ContentItem(
+                m3uItem!.id,
+                episode.name,
+                episode.cover ?? "",
+                ContentType.series,
+                season: episode.seasonNumber,
+                m3uItem: m3uItem
               ),
             ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: episode.cover != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          episode.cover!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Center(
-                              child: Text(
-                                '${episode.episodeNumber}',
-                                style: TextStyle(
-                                  color: Theme.of(context).primaryColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      )
-                    : Center(
-                        child: Text(
-                          '${episode.episodeNumber}',
-                          style: TextStyle(
-                            color: Theme.of(context).primaryColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
               ),
-              const SizedBox(width: 12),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      episode.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
+              child: episode.cover != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        episode.cover!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Text(
+                              '${episode.episodeNumber}',
+                              style: TextStyle(
+                                color: Theme.of(context).primaryColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                  : Center(
+                      child: Text(
+                        '${episode.episodeNumber}',
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
-                  ],
-                ),
+            ),
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    episode.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

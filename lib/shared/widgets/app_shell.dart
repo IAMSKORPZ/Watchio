@@ -59,8 +59,17 @@ class _AppShellState extends State<AppShell> {
             }
           },
           child: Scaffold(
-            body: Row(
-              children: [
+            backgroundColor: const Color(0xFF050812),
+            body: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/background.png'),
+                  fit: BoxFit.cover,
+                  opacity: 0.3,
+                ),
+              ),
+              child: Row(
+                children: [
                 if (showSidebar)
                   MouseRegion(
                     onEnter: (_) => setState(() => _isSidebarCollapsed = false),
@@ -69,10 +78,10 @@ class _AppShellState extends State<AppShell> {
                       duration: const Duration(milliseconds: 200),
                       width: _isSidebarCollapsed ? 70 : 200,
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
+                        color: const Color(0xAA30274F), // Standard glass base
                         border: Border(
                           right: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.05),
+                            color: Colors.white.withValues(alpha: 0.1),
                             width: 1,
                           ),
                         ),
@@ -130,7 +139,8 @@ class _AppShellState extends State<AppShell> {
                 ),
               ],
             ),
-            floatingActionButton: widget.floatingActionButton,
+          ),
+          floatingActionButton: widget.floatingActionButton,
             // Hide bottom navigation bar completely in landscape or on specific pages (Home, Live, Movies, Series)
             bottomNavigationBar: (!isLandscape && widget.navItems != null && (widget.currentIndex == 1 || widget.currentIndex == 5))
                 ? BottomNavigationBar(
@@ -140,7 +150,7 @@ class _AppShellState extends State<AppShell> {
                     selectedFontSize: 10,
                     unselectedFontSize: 10,
                     iconSize: 20,
-                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    backgroundColor: const Color(0xEE1A1A2A), // Lighter opaque glass for mobile nav
                     selectedItemColor: Theme.of(context).primaryColor,
                     unselectedItemColor: Colors.white.withValues(alpha: 0.5),
                     items: widget.navItems!

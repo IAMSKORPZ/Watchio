@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../controllers/favorites_controller.dart';
 import '../../../services/tmdb_service.dart';
+import '../../../core/theme/theme_extensions.dart';
 
 class MovieDetailsScreen extends StatefulWidget {
   final ContentItem contentItem;
@@ -258,6 +259,8 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
 
   Widget _buildBackground() {
     final url = _backdropUrl ?? _posterUrl;
+    final theme = BingieThemeExtension.of(context);
+    
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -271,8 +274,12 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
           Container(color: Colors.black),
         
         BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(color: Colors.black.withValues(alpha: 0.7)),
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: theme.glassGradient,
+            ),
+          ),
         ),
       ],
     );

@@ -1,5 +1,6 @@
 import 'package:another_iptv_player/controllers/branding_controller.dart';
 import 'package:another_iptv_player/screens/settings/announcement_center_screen.dart';
+import 'package:another_iptv_player/shared/widgets/app_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -12,12 +13,22 @@ class RemoteConfigScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Remote Configuration')),
-      body: RefreshIndicator(
-        onRefresh: () => controller.load(forceRefresh: true),
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Card(
+      backgroundColor: const Color(0xFF050812),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background.png'),
+            fit: BoxFit.cover,
+            opacity: 0.3,
+          ),
+        ),
+        child: RefreshIndicator(
+          onRefresh: () => controller.load(forceRefresh: true),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+            AppCard(
+              padding: EdgeInsets.zero,
               child: Column(
                 children: [
                   _row('Current Config Source', controller.sourceName),
@@ -31,7 +42,8 @@ class RemoteConfigScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Card(
+            AppCard(
+              padding: EdgeInsets.zero,
               child: Column(
                 children: [
                   ListTile(
@@ -84,6 +96,7 @@ class RemoteConfigScreen extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 

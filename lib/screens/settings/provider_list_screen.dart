@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:another_iptv_player/controllers/provider_controller.dart';
 import 'package:another_iptv_player/models/provider_model.dart';
 import 'package:another_iptv_player/models/stalker_provider_config.dart';
@@ -6,8 +8,7 @@ import 'package:another_iptv_player/screens/settings/provider_form_screen.dart';
 import 'package:another_iptv_player/screens/stalker/stalker_home_screen.dart';
 import 'package:another_iptv_player/screens/xtream-codes/xtream_code_home_screen.dart';
 import 'package:another_iptv_player/widgets/tv_focusable.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:another_iptv_player/shared/widgets/app_card.dart';
 
 class ProviderListScreen extends StatelessWidget {
   const ProviderListScreen({super.key});
@@ -18,27 +19,37 @@ class ProviderListScreen extends StatelessWidget {
       create: (_) => ProviderController()..loadProviders(),
       child: Scaffold(
         appBar: AppBar(title: const Text('Providers')),
-        body: Consumer<ProviderController>(
-          builder: (context, controller, child) {
-            if (controller.isLoading && controller.providers.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (controller.providers.isEmpty) {
-              return const Center(child: Text('No providers yet.'));
-            }
-            return RefreshIndicator(
-              onRefresh: controller.loadProviders,
-              child: ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: controller.providers.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final provider = controller.providers[index];
-                  return _ProviderTile(provider: provider);
-                },
-              ),
-            );
-          },
+        backgroundColor: const Color(0xFF050812),
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/background.png'),
+              fit: BoxFit.cover,
+              opacity: 0.3,
+            ),
+          ),
+          child: Consumer<ProviderController>(
+            builder: (context, controller, child) {
+              if (controller.isLoading && controller.providers.isEmpty) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (controller.providers.isEmpty) {
+                return const Center(child: Text('No providers yet.'));
+              }
+              return RefreshIndicator(
+                onRefresh: controller.loadProviders,
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: controller.providers.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final provider = controller.providers[index];
+                    return _ProviderTile(provider: provider);
+                  },
+                ),
+              );
+            },
+          ),
         ),
         floatingActionButton: Builder(
           builder: (context) => FloatingActionButton(
@@ -75,7 +86,8 @@ class _ProviderTile extends StatelessWidget {
 
     return TvFocusable(
       onPressed: () => _handleAction(context, 'switch'),
-      child: Card(
+      child: AppCard(
+        padding: EdgeInsets.zero,
         child: ListTile(
           leading: CircleAvatar(
             backgroundColor: statusColor.withValues(alpha: 0.15),

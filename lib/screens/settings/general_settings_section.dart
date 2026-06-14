@@ -29,6 +29,7 @@ import 'category_settings_section.dart';
 import 'playback_settings_screen.dart';
 import 'provider_list_screen.dart';
 import 'remote_config_screen.dart';
+import '../../shared/widgets/app_card.dart';
 
 final controller = XtreamCodeHomeController(true);
 
@@ -130,7 +131,8 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
         : Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Card(
+        AppCard(
+          padding: EdgeInsets.zero,
           child: ListTile(
             leading: const Icon(Icons.home),
             title: Text(context.loc.playlist_list),
@@ -147,7 +149,8 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
             },
           ),
         ),
-        Card(
+        AppCard(
+          padding: EdgeInsets.zero,
           child: ListTile(
             leading: const Icon(Icons.hub_outlined),
             title: const Text('Providers'),
@@ -163,7 +166,8 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
             },
           ),
         ),
-        Card(
+        AppCard(
+          padding: EdgeInsets.zero,
           child: ListTile(
             leading: const Icon(Icons.cloud_sync_outlined),
             title: const Text('Remote Configuration'),
@@ -179,7 +183,8 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
             },
           ),
         ),
-        Card(
+        AppCard(
+          padding: EdgeInsets.zero,
           child: ListTile(
             leading: const Icon(Icons.system_update_alt),
             title: const Text('Updates'),
@@ -195,7 +200,8 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
             },
           ),
         ),
-        Card(
+        AppCard(
+          padding: EdgeInsets.zero,
           child: ListTile(
             leading: const Icon(Icons.palette_outlined),
             title: const Text('Appearance'),
@@ -211,7 +217,8 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
             },
           ),
         ),
-        Card(
+        AppCard(
+          padding: EdgeInsets.zero,
           child: ListTile(
             leading: const Icon(Icons.play_circle_filled_rounded),
             title: const Text('Playback'),
@@ -229,7 +236,8 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
         ),
         const SizedBox(height: 10),
         SectionTitleWidget(title: context.loc.general_settings),
-        Card(
+        AppCard(
+          padding: EdgeInsets.zero,
           child: Column(
             children: [
               ListTile(
@@ -344,7 +352,8 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
         ),
         const SizedBox(height: 10),
         SectionTitleWidget(title: context.loc.player_settings),
-        Card(
+        AppCard(
+          padding: EdgeInsets.zero,
           child: Column(
             children: [
               SwitchListTile(
@@ -446,7 +455,8 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
         ),
         const SizedBox(height: 10),
         SectionTitleWidget(title: context.loc.about),
-        Card(
+        AppCard(
+          padding: EdgeInsets.zero,
           child: Column(
             children: [
               ListTile(
