@@ -63,70 +63,46 @@ class HomeHeader extends StatelessWidget {
         
         const Spacer(),
         
-        // RIGHT: Unified Glass Toolbar
-        ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1.5),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Search Bar Area
-                  _ToolbarItem(
-                    onTap: onSearch,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), // Reduced horizontal padding
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.search_rounded, color: Colors.white70, size: 20),
-                          SizedBox(width: 6), // Reduced spacing
-                          Text(
-                            'SEARCH',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.5, // Reduced letter spacing
-                            ),
-                          ),
-                        ],
+        // RIGHT: Floating Navigation Icons (Requirement: Remove blue container)
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Search Bar Area
+            _ToolbarItem(
+              onTap: onSearch,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search_rounded, color: Colors.white, size: 24),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'SEARCH',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.0,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  _ToolbarItem(
-                    icon: Icons.sports_soccer_rounded,
-                    onTap: onSports,
-                  ),
-                  _ToolbarItem(
-                    icon: Icons.grid_view_rounded,
-                    onTap: () {},
-                  ),
-                  _ToolbarItem(
-                    icon: Icons.notifications_rounded,
-                    onTap: onAnnouncements ?? () {},
-                  ),
-                  _ToolbarItem(
-                    icon: Icons.info_outline_rounded,
-                    onTap: onAbout,
-                  ),
-                  // Profile item removed
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 8),
+            _ToolbarItem(
+              icon: Icons.sports_soccer_rounded,
+              onTap: onSports,
+            ),
+            _ToolbarItem(
+              icon: Icons.notifications_rounded,
+              onTap: onAnnouncements ?? () {},
+            ),
+            _ToolbarItem(
+              icon: Icons.info_outline_rounded,
+              onTap: onAbout,
+            ),
+          ],
         ),
       ],
     );
