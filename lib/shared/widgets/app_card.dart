@@ -7,8 +7,10 @@ class AppCard extends StatelessWidget {
   final double borderRadius;
   final bool isGlass;
   final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
   final double? width;
   final double? height;
+  final Color? color;
 
   const AppCard({
     super.key,
@@ -17,8 +19,10 @@ class AppCard extends StatelessWidget {
     this.borderRadius = 16.0,
     this.isGlass = true,
     this.padding,
+    this.margin,
     this.width,
     this.height,
+    this.color,
   });
 
   @override
@@ -26,7 +30,12 @@ class AppCard extends StatelessWidget {
     Widget content = Container(
       width: width,
       height: height,
+      margin: margin,
       padding: padding ?? const EdgeInsets.all(16),
+      decoration: color != null ? BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(borderRadius),
+      ) : null,
       child: child,
     );
 
@@ -37,6 +46,7 @@ class AppCard extends StatelessWidget {
       );
     } else {
       content = Card(
+        color: color,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(borderRadius),
         ),
