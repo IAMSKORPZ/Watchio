@@ -140,17 +140,35 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
     }
 
     final info = _vodInfo?['info'] ?? {};
-    final title = widget.contentItem.name;
     final year = info['releasedate']?.toString().split('-').first ?? info['year']?.toString() ?? '';
     final rating = double.tryParse(info['rating']?.toString() ?? '0') ?? 0.0;
     
-    // Safely extract metadata
-    final director = _getSafeValue(info['director']);
-    final releaseDate = _getSafeValue(info['releasedate'] ?? info['releaseDate'] ?? info['year']);
-    final duration = _getSafeValue(info['duration']);
-    final genre = _getSafeValue(info['genre'] ?? widget.contentItem.vodStream?.genre);
-    final cast = _getSafeValue(info['cast']);
-    final plot = _getSafeValue(info['plot'] ?? widget.contentItem.description);
+    // Title cleanup: Remove duplicated years and quotes
+    String title = widget.contentItem.name.trim();
+    if (title.startsWith('"') && title.endsWith('"')) {
+       title = title.substring(1, title.length - 1).trim();
+    }
+    if (year.isNotEmpty) {
+      final yearPattern = '($year)';
+      if (title.endsWith(yearPattern)) {
+        title = title.substring(0, title.length - yearPattern.length).trim();
+      }
+      if (title.endsWith(year)) {
+        title = title.substring(0, title.length - year.length).trim();
+        if (title.endsWith('(')) {
+          title = title.substring(0, title.length - 1).trim();
+        }
+      }
+    }
+    if (title.endsWith('"')) title = title.substring(0, title.length - 1).trim();
+
+    // Defensively handle metadata values
+    final String director = _getSafeValue(info['director'], fallback: 'Unknown');
+    final String releaseDate = _getSafeValue(info['releasedate'] ?? info['releaseDate'] ?? info['year'], fallback: 'Unknown');
+    final String duration = _getSafeValue(info['duration'], fallback: 'Unknown');
+    final String genre = _getSafeValue(info['genre'] ?? widget.contentItem.vodStream?.genre, fallback: 'Unknown');
+    final String cast = _getSafeValue(info['cast'], fallback: 'Unknown');
+    final String plot = _getSafeValue(info['plot'] ?? widget.contentItem.description, fallback: 'Unknown');
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -166,14 +184,13 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 8.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // TOP BAR
+                  // TOP BAR: [Back] [Logo] [Center Title]
                   _buildTopBar(title, year),
                   
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   
-                  // MAIN ROW (Poster + Metadata)
+                  // MAIN ROW (2 Columns: Poster, Metadata/Actions)
                   Expanded(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,13 +206,13 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (director != null) _buildMetadataRow('Directed By:', director),
-                              if (releaseDate != null) _buildMetadataRow('Release Date:', releaseDate),
-                              if (duration != null) _buildMetadataRow('Duration:', duration, isBadge: true),
-                              if (genre != null) _buildMetadataRow('Genre:', genre),
-                              if (cast != null) _buildMetadataRow('Cast:', cast, maxLines: 1),
+                              if (director != 'Unknown') _buildMetadataRow('Directed By:', director),
+                              if (releaseDate != 'Unknown') _buildMetadataRow('Release Date:', releaseDate),
+                              if (duration != 'Unknown') _buildMetadataRow('Duration:', duration, isBadge: true),
+                              if (genre != 'Unknown') _buildMetadataRow('Genre:', genre),
+                              if (cast != 'Unknown') _buildMetadataRow('Cast:', cast, maxLines: 1),
                               
-                              const SizedBox(height: 6), // Tight spacing
+                              const SizedBox(height: 12),
                               
                               // BUTTONS
                               Row(
@@ -206,10 +223,10 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                                 ],
                               ),
 
-                              const SizedBox(height: 6), // Tight spacing
+                              const SizedBox(height: 12),
                               
                               // DESCRIPTION (max 2 lines) - respect width of metadata column
-                              if (plot != null) _buildDescription(plot),
+                              _buildDescription(plot),
                             ],
                           ),
                         ),
@@ -220,15 +237,22 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
               ),
             ),
           ),
+          
+          // PINNED ACTION COLUMN (Top Right)
+          Positioned(
+            top: 10, // Requirement 4: Pinned to top-right, moved upward
+            right: 32,
+            child: _buildRightActionColumn(),
+          ),
         ],
       ),
     );
   }
 
-  String? _getSafeValue(dynamic val) {
-    if (val == null) return null;
+  String _getSafeValue(dynamic val, {String fallback = 'Unknown'}) {
+    if (val == null) return fallback;
     final s = val.toString().trim();
-    if (s.isEmpty || s.toLowerCase() == 'n/a' || s == '0') return null;
+    if (s.isEmpty || s.toLowerCase() == 'n/a' || s == '0') return fallback;
     return s;
   }
 
@@ -255,66 +279,58 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   }
 
   Widget _buildTopBar(String title, String year) {
-    return Row(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 32),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        const SizedBox(width: 16),
-        // WATCHIO LOGO - Restored
-        Image.asset(
-          'assets/images/App_Logo.png',
-          height: 44, // 40-50px requirement
-          fit: BoxFit.contain,
-          errorBuilder: (ctx, err, st) => const Text(
-            'WATCHIO',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.0,
+    return SizedBox(
+      height: 80, // Increased height for 64px logo
+      child: Stack(
+        children: [
+          // Left part: Back + Logo
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center, // Vertically center items
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 32),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                const SizedBox(width: 20), // 20px spacing
+                // WATCHIO LOGO - Fixed 64px height
+                Image.asset(
+                  'assets/images/App_Logo.png',
+                  height: 64,
+                  fit: BoxFit.contain,
+                  errorBuilder: (ctx, err, st) => const Text(
+                    'WATCHIO',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        const Spacer(),
-        // CENTER TITLE
-        Padding(
-          padding: const EdgeInsets.only(top: 16.0), // Maintained alignment from approved pass
-          child: Text(
-            year.isNotEmpty ? '"$title" ($year)' : '"$title"',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        const Spacer(),
-        // RIGHT MENU & FAVOURITE ICON
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: const Icon(Icons.more_vert, color: Colors.white, size: 32),
-              onPressed: () {},
-            ),
-            const SizedBox(height: 2), // Kept closer underneath as approved
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: Icon(
-                _isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: _isFavorite ? Colors.redAccent : Colors.white,
-                size: 32,
+          
+          // Center part: Title
+          Align(
+            alignment: Alignment.center,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 16.0), // Maintained alignment
+              child: Text(
+                year.isNotEmpty ? '$title ($year)' : title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              onPressed: _toggleFavorite,
             ),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -347,7 +363,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
               : Container(color: Colors.white10),
           ),
         ),
-        const SizedBox(height: 4), // Stars closer to poster
+        const SizedBox(height: 4),
         _buildStars(rating),
       ],
     );
@@ -379,12 +395,12 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   }
 
   Widget _buildMetadataRow(String label, String value, {bool isBadge = false, int maxLines = 1}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 0.0), 
+    return SizedBox(
+      height: 28, 
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // FIXED-WIDTH LABEL COLUMN to align values
+          // FIXED-WIDTH LABEL COLUMN
           SizedBox(
             width: 140,
             child: Text(
@@ -392,6 +408,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
               style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ),
+          // VALUE COLUMN - Expanded will take remaining width (Requirement 3)
           Expanded(
             child: isBadge 
               ? Align(
@@ -417,6 +434,31 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRightActionColumn() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          icon: const Icon(Icons.more_vert, color: Colors.white, size: 32),
+          onPressed: () {},
+        ),
+        const SizedBox(height: 12), // Requirement 5: 12px spacing
+        IconButton(
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          icon: Icon(
+            _isFavorite ? Icons.favorite : Icons.favorite_border,
+            color: _isFavorite ? Colors.redAccent : Colors.white,
+            size: 32,
+          ),
+          onPressed: _toggleFavorite,
+        ),
+      ],
     );
   }
 
