@@ -331,7 +331,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
 
   Widget _buildHeader(String title, String year) {
     return Container(
-      height: 70, // Balanced header height
+      height: 90, // Increased height to accommodate larger logo
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -340,20 +340,20 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 32), // Slightly larger back button
                 onPressed: () => Navigator.of(context).pop(),
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
               ),
-              const SizedBox(width: 14), // Balanced gap
+              const SizedBox(width: 16), // Balanced gap
               Image.asset(
                 'assets/images/App_Logo.png',
-                height: 46, // Requirement: Target height ~40-48px (using 46)
+                height: 64, // Significantly increased logo size
                 fit: BoxFit.contain,
                 errorBuilder: (ctx, err, st) => const Text(
                   'WATCHIO',
                   style: TextStyle(
-                    color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.0,
+                    color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1.2,
                   ),
                 ),
               ),
