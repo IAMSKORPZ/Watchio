@@ -331,7 +331,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
 
   Widget _buildHeader(String title, String year) {
     return Container(
-      height: 80, // Increased for visual balance (Requirement 1)
+      height: 85, // Optimized height for prominent logo
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -345,10 +345,10 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12), // Tighter gap to logo
               Image.asset(
                 'assets/images/App_Logo.png',
-                height: 58, // Increased logo size by ~40% (Requirement 1)
+                height: 62, // Requirement 1: Increased logo size (~40% from 42px)
                 fit: BoxFit.contain,
                 errorBuilder: (ctx, err, st) => const Text(
                   'WATCHIO',
@@ -418,27 +418,27 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     final rating = double.tryParse(seriesInfo?.rating?.toString() ?? '0') ?? 0.0;
     
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16.0, 0.0, 24.0, 0.0), // Reduced left padding to move poster left (Requirement 2)
+      padding: const EdgeInsets.fromLTRB(12.0, 0.0, 24.0, 0.0), // Reduced left padding (Requirement 2)
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // LEFT COLUMN: Poster -> Stars -> Tabs
           SizedBox(
-            width: 240, // Balanced width (Requirement 6)
+            width: 210, // Tighter column width to move details closer
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center, // Centering (Requirement 2)
+              crossAxisAlignment: CrossAxisAlignment.center, // Centering everything (Requirement 2, 5)
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildPoster(),
                 const SizedBox(height: 6),
                 _buildStars(rating), // Centered under poster
-                const SizedBox(height: 16), // Moved slightly lower (Requirement 5)
+                const SizedBox(height: 20), // Moved lower (Requirement 5)
                 _buildHorizontalTabs(), // Centered under stars
               ],
             ),
           ),
           
-          const SizedBox(width: 24), // Balanced gap (Requirement 2)
+          const SizedBox(width: 24),
           
           // RIGHT COLUMN: Metadata -> Plot -> Buttons
           Expanded(
@@ -452,7 +452,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                 _buildMetadataRow('Cast:', seriesInfo?.cast ?? 'Unknown', maxLines: 1),
                 _buildMetadataRow('Rating:', seriesInfo?.rating?.toString() ?? '0.0'),
                 
-                const SizedBox(height: 6), // Reduced gap (Requirement 3)
+                const SizedBox(height: 4), // Tighter gap (Requirement 3)
                 const Text('Plot:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 2),
                 GestureDetector(
@@ -470,7 +470,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: 10), // Reduced gap (Requirement 3)
+                const SizedBox(height: 8), // Tighter gap (Requirement 3)
                 _buildActionRow(),
               ],
             ),
@@ -526,14 +526,14 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
   }
 
   Widget _buildMetadataRow(String label, String value, {int maxLines = 1}) {
-    // Requirement 2: Reduced row spacing (2px gap)
+    // Reduced row spacing (Requirement 3)
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2.0),
+      padding: const EdgeInsets.only(bottom: 1.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 90, // Tighter label column
+            width: 90, 
             child: Text(label, style: const TextStyle(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 11)),
           ),
           Expanded(
@@ -554,7 +554,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
     final seasonNum = _selectedSeason?.seasonNumber ?? 1;
 
     return SizedBox(
-      height: 52, // Increased height (Requirement 4)
+      height: 54, // Slightly increased height (Requirement 4)
       child: Row(
         children: [
           // PLAY BUTTON
@@ -587,7 +587,7 @@ class _SeriesDetailsScreenState extends State<SeriesDetailsScreen> {
           const SizedBox(width: 12),
           // SEASON SELECTOR
           Expanded(
-            flex: 3, // Increased flex to fill more horizontal space (Requirement 4)
+            flex: 4, // Requirement 4: Increase width by approx 25% (from 3 to 4 relative to play)
             child: Material(
               color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
@@ -771,13 +771,13 @@ class _TabItem extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(icon, size: 18, color: isActive ? Colors.white : Colors.white38), // Reduced (Requirement 5)
-              const SizedBox(width: 8),
+              Icon(icon, size: 17, color: isActive ? Colors.white : Colors.white38), // Slightly reduced (Requirement 5)
+              const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
                   color: isActive ? Colors.white : Colors.white38,
-                  fontWeight: FontWeight.bold, fontSize: 18, // Reduced (Requirement 5)
+                  fontWeight: FontWeight.bold, fontSize: 17, // Slightly reduced (Requirement 5)
                 ),
               ),
             ],
@@ -785,7 +785,7 @@ class _TabItem extends StatelessWidget {
           const SizedBox(height: 4),
           Container(
             height: 4.0, 
-            width: 40,
+            width: 36,
             decoration: BoxDecoration(
               color: isActive ? const Color(0xFFC12CFF) : Colors.transparent,
               borderRadius: BorderRadius.circular(4),
