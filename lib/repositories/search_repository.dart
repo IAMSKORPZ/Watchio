@@ -181,7 +181,7 @@ FROM series_streams WHERE playlist_id = ? AND name LIKE ? ESCAPE '\\'
       ContentType.liveStream => variables.sublist(0, 2),
       ContentType.vod => variables.sublist(2, 4),
       ContentType.series => variables.sublist(4, 6),
-      null => variables,
+      ContentType.all || null => variables,
     };
     final rows = await database.customSelect(
       '''
@@ -210,7 +210,7 @@ LIMIT ? OFFSET ?
       ContentType.liveStream => 'live',
       ContentType.vod => 'vod',
       ContentType.series => 'series',
-      null => null,
+      ContentType.all || null => null,
     };
   }
 

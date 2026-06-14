@@ -242,6 +242,7 @@ class StreamingM3uImportService {
       ContentType.liveStream => CategoryType.live,
       ContentType.vod => CategoryType.vod,
       ContentType.series => CategoryType.series,
+      ContentType.all => throw ArgumentError('ContentType.all cannot be converted to CategoryType'),
     };
   }
 

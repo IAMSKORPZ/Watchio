@@ -185,6 +185,8 @@ class FavoritesSection extends StatelessWidget {
             favorite.contentType,
             seriesStream: seriesStream,
           );
+        case ContentType.all:
+          throw UnimplementedError('Global search type is not valid for favorites');
       }
     }
     else if (isM3u) {

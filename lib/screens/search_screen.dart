@@ -56,6 +56,8 @@ class SearchScreenState extends State<SearchScreen> {
         return context.loc.search_movie;
       case ContentType.series:
         return context.loc.search_series;
+      case ContentType.all:
+        return 'Search everything...';
     }
   }
 
@@ -67,6 +69,8 @@ class SearchScreenState extends State<SearchScreen> {
         return context.loc.search_movie;
       case ContentType.series:
         return context.loc.search_series;
+      case ContentType.all:
+        return 'Global Search';
     }
   }
 
@@ -155,36 +159,51 @@ class SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF050812),
       appBar: AppBar(
         title: isSearching
             ? TextField(
                 controller: searchController,
                 focusNode: searchFocusNode,
+                style: const TextStyle(color: Colors.white, fontSize: 18),
                 decoration: InputDecoration(
                   hintText: _getSearchHint(context),
+                  hintStyle: const TextStyle(color: Colors.white38),
                   border: InputBorder.none,
                 ),
                 autofocus: true,
                 onChanged: _performSearch,
               )
-            : SelectableText(
+            : Text(
                 _getScreenTitle(context),
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.1),
               ),
         actions: [
           if (isSearching)
-            IconButton(icon: Icon(Icons.clear), onPressed: stopSearch)
+            IconButton(icon: const Icon(Icons.close_rounded), onPressed: stopSearch)
           else
-            IconButton(icon: Icon(Icons.search), onPressed: startSearch),
+            IconButton(icon: const Icon(Icons.search_rounded), onPressed: startSearch),
+          const SizedBox(width: 8),
         ],
       ),
-      body: _buildBody(context),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background.png'),
+            fit: BoxFit.cover,
+            opacity: 0.1,
+          ),
+        ),
+        child: _buildBody(context),
+      ),
     );
   }
 
   Widget _buildBody(BuildContext context) {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: Color(0xFFC12CFF)));
     }
 
     if (errorMessage != null) {
@@ -205,12 +224,90 @@ class SearchScreenState extends State<SearchScreen> {
       return _buildInitialState();
     }
 
+    if (widget.contentType == ContentType.all) {
+      return _buildGroupedResults(context);
+    }
+
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: _buildGridDelegate(context),
       itemCount: contentItems.length,
       itemBuilder: (context, index) =>
           _buildContentItem(context, index, contentItems),
+    );
+  }
+
+  Widget _buildGroupedResults(BuildContext context) {
+    final live = contentItems
+        .where((i) => i.contentType == ContentType.liveStream)
+        .toList();
+    final movies =
+        contentItems.where((i) => i.contentType == ContentType.vod).toList();
+    final series =
+        contentItems.where((i) => i.contentType == ContentType.series).toList();
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (live.isNotEmpty) _buildGroupSection(context, 'LIVE TV', live),
+        if (movies.isNotEmpty) _buildGroupSection(context, 'MOVIES', movies),
+        if (series.isNotEmpty) _buildGroupSection(context, 'TV SHOWS', series),
+      ],
+    );
+  }
+
+  Widget _buildGroupSection(
+    BuildContext context,
+    String title,
+    List<ContentItem> items,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC12CFF),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '(${items.length})',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.white54,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: _buildGridDelegate(context),
+          itemCount: items.length,
+          itemBuilder: (context, index) =>
+              _buildContentItem(context, index, items),
+        ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 
@@ -277,6 +374,8 @@ class SearchScreenState extends State<SearchScreen> {
         return Icons.movie_outlined;
       case ContentType.series:
         return Icons.tv_outlined;
+      case ContentType.all:
+        return Icons.search_off_outlined;
     }
   }
 
@@ -288,6 +387,8 @@ class SearchScreenState extends State<SearchScreen> {
         return context.loc.movie_not_found;
       case ContentType.series:
         return 'Dizi bulunamadı'; // Bu için localization key'ine ihtiyaç var
+      case ContentType.all:
+        return 'No results found';
     }
   }
 

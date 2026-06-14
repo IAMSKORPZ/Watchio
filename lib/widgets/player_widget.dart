@@ -792,6 +792,8 @@ class _PlayerWidgetState extends State<PlayerWidget>
         return Icons.movie;
       case ContentType.series:
         return Icons.tv;
+      case ContentType.all:
+        return Icons.search;
     }
   }
 
@@ -803,6 +805,8 @@ class _PlayerWidgetState extends State<PlayerWidget>
         return 'Film';
       case ContentType.series:
         return 'Dizi';
+      default:
+        return '';
     }
   }
 
@@ -814,6 +818,8 @@ class _PlayerWidgetState extends State<PlayerWidget>
         return 'Film';
       case ContentType.series:
         return 'Dizi';
+      default:
+        return '';
     }
   }
 

@@ -766,6 +766,8 @@ class _VideoChannelSelectorWidgetState
         return Icons.movie;
       case ContentType.series:
         return Icons.tv;
+      case ContentType.all:
+        return Icons.search;
     }
   }
 
@@ -777,6 +779,8 @@ class _VideoChannelSelectorWidgetState
         return context.loc.movie_content_type;
       case ContentType.series:
         return context.loc.series_content_type;
+      case ContentType.all:
+        return 'All';
     }
   }
 }

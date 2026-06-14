@@ -461,6 +461,8 @@ class _VideoInfoWidgetState extends State<VideoInfoWidget> {
         return context.loc.movie_content_type;
       case ContentType.series:
         return context.loc.series_content_type;
+      case ContentType.all:
+        return 'All';
     }
   }
 

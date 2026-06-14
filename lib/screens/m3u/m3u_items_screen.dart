@@ -300,6 +300,8 @@ class _M3uItemsScreenState extends State<M3uItemsScreen> {
         return Colors.blue;
       case ContentType.series:
         return Colors.green;
+      case ContentType.all:
+        return Colors.grey;
     }
   }
 
@@ -311,6 +313,8 @@ class _M3uItemsScreenState extends State<M3uItemsScreen> {
         return context.loc.movie_content;
       case ContentType.series:
         return context.loc.series_content;
+      case ContentType.all:
+        return 'All';
     }
   }
 
