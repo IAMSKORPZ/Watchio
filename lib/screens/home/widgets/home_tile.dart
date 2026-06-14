@@ -65,7 +65,14 @@ class _HomeTileState extends State<HomeTile> {
                   width: double.infinity,
                   height: double.infinity,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF252525).withValues(alpha: 0.6), // Lighter grey glass (Requirement)
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        const Color(0xAA4A3D6A), // Brighter purple-grey glass top (Requirement)
+                        const Color(0xAA30274F), // Brighter purple-grey glass bottom (Requirement)
+                      ],
+                    ),
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: LayoutBuilder(

@@ -297,7 +297,14 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.4), // Dark glass background
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xAA4A3D6A), // Brighter purple-grey glass
+                    const Color(0xAA30274F), // Brighter purple-grey glass
+                  ],
+                ),
                 border: Border.all(
                   color: color.withValues(alpha: 0.5), // Colored accent border
                   width: 1.5,
@@ -341,7 +348,14 @@ class _XtreamCodeDashboardState extends State<XtreamCodeDashboard> {
       onPressed: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.4), // Dark glass background
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xAA4A3D6A), // Brighter purple-grey glass
+              const Color(0xAA30274F), // Brighter purple-grey glass
+            ],
+          ),
           borderRadius: BorderRadius.circular(30),
         ),
         child: ClipRRect(
