@@ -219,7 +219,7 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   void _startControlsTimer() {
     _controlsTimer?.cancel();
     _controlsTimer = Timer(const Duration(seconds: 5), () {
-      if (mounted && _playerController.isPlaying) {
+      if (mounted && _playerController.isPlaying && _showControls) {
         setState(() {
           _showControls = false;
         });
@@ -233,10 +233,30 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
       _showControls = !_showControls;
       if (_showControls) {
         _showChannelList = false;
+        _startControlsTimer();
+      } else {
+        _controlsTimer?.cancel();
       }
     });
+  }
+
+  void _showControlsTemporarily() {
+    if (hasError) return;
+    if (!_showControls) {
+      setState(() {
+        _showControls = true;
+        _showChannelList = false;
+      });
+    }
+    _startControlsTimer();
+  }
+
+  void _hideControls() {
     if (_showControls) {
-      _startControlsTimer();
+      setState(() {
+        _showControls = false;
+      });
+      _controlsTimer?.cancel();
     }
   }
 
@@ -245,6 +265,7 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
       _showChannelList = !_showChannelList;
       if (_showChannelList) {
         _showControls = false;
+        _controlsTimer?.cancel();
       }
     });
   }
@@ -265,7 +286,8 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
 
   void _switchChannel(int delta) {
     if (widget.queue == null || widget.queue!.isEmpty) return;
-    final idx = widget.queue!.indexWhere((item) => item.id == _currentPlaybackItem.id);
+    final idx =
+        widget.queue!.indexWhere((item) => item.id == _currentPlaybackItem.id);
     if (idx == -1) return;
     final nextIdx = (idx + delta).clamp(0, widget.queue!.length - 1);
     if (nextIdx == idx) return;
@@ -285,6 +307,21 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     _startControlsTimer();
   }
 
+  void _seekRelative(int seconds) {
+    if (_currentPlaybackItem.isLive) return;
+    final target = _playerController.position + Duration(seconds: seconds);
+    Duration clamped = target;
+    if (target < Duration.zero) {
+      clamped = Duration.zero;
+    } else if (target > _playerController.duration) {
+      clamped = _playerController.duration;
+    }
+    _playerController.seek(clamped);
+    _showControlsTemporarily();
+  }
+
+  bool get hasError => _playerController.error != null;
+
   @override
   void dispose() {
     _controlsTimer?.cancel();
@@ -301,111 +338,153 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hasError = _playerController.error != null;
-
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Shortcuts(
-        shortcuts: const {
-          SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
-          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
-          SingleActivator(LogicalKeyboardKey.arrowUp): _ShowControlsIntent(),
-          SingleActivator(LogicalKeyboardKey.arrowDown): _ShowChannelListIntent(),
-          SingleActivator(LogicalKeyboardKey.arrowLeft): _SeekBackIntent(),
-          SingleActivator(LogicalKeyboardKey.arrowRight): _SeekForwardIntent(),
-          SingleActivator(LogicalKeyboardKey.channelUp): _ChannelUpIntent(),
-          SingleActivator(LogicalKeyboardKey.channelDown): _ChannelDownIntent(),
+      body: PopScope(
+        canPop: !_showControls && !_showChannelList,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          if (_showChannelList) {
+            setState(() => _showChannelList = false);
+            return;
+          }
+          if (_showControls) {
+            _hideControls();
+            return;
+          }
         },
-        child: Actions(
-          actions: {
-            ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
-              if (hasError) return null;
-              if (_showChannelList) return null;
-              if (!_showControls) {
-                _toggleControls();
-              } else {
+        child: Shortcuts(
+          shortcuts: const {
+            SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+            SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+            SingleActivator(LogicalKeyboardKey.space): _PlayPauseIntent(),
+            SingleActivator(LogicalKeyboardKey.mediaPlayPause): _PlayPauseIntent(),
+            SingleActivator(LogicalKeyboardKey.mediaPlay): _PlayPauseIntent(),
+            SingleActivator(LogicalKeyboardKey.mediaPause): _PlayPauseIntent(),
+            SingleActivator(LogicalKeyboardKey.arrowUp): _ShowControlsIntent(),
+            SingleActivator(LogicalKeyboardKey.arrowDown): _ShowControlsIntent(),
+            SingleActivator(LogicalKeyboardKey.arrowLeft): _SeekBackIntent(),
+            SingleActivator(LogicalKeyboardKey.arrowRight): _SeekForwardIntent(),
+            SingleActivator(LogicalKeyboardKey.channelUp): _ChannelUpIntent(),
+            SingleActivator(LogicalKeyboardKey.channelDown): _ChannelDownIntent(),
+            SingleActivator(LogicalKeyboardKey.escape): _HideControlsIntent(),
+          },
+          child: Actions(
+            actions: {
+              ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
+                if (hasError) return null;
+                if (_showChannelList) return null;
+                if (!_showControls) {
+                  _showControlsTemporarily();
+                } else {
+                  // Standard behavior: if visible and button focused, it will be handled by button.
+                  // If nothing specifically handles it, we toggle controls.
+                  _toggleControls();
+                }
+                return null;
+              }),
+              _PlayPauseIntent: CallbackAction<_PlayPauseIntent>(onInvoke: (_) {
+                if (hasError) return null;
+                _showControlsTemporarily();
                 if (_playerController.isPlaying) {
                   _playerController.pause();
                 } else {
                   _playerController.play();
                 }
-                _startControlsTimer();
-              }
-              return null;
-            }),
-            _ShowControlsIntent: CallbackAction<_ShowControlsIntent>(onInvoke: (_) {
-              if (hasError) return null;
-              if (!_showChannelList) {
-                _toggleControls();
-              }
-              return null;
-            }),
-            _ShowChannelListIntent: CallbackAction<_ShowChannelListIntent>(onInvoke: (_) {
-              _toggleChannelList();
-              return null;
-            }),
-            _SeekBackIntent: CallbackAction<_SeekBackIntent>(onInvoke: (_) {
-              if (hasError) return null;
-              if (!_currentPlaybackItem.isLive) {
-                _playerController.seek(_playerController.position - const Duration(seconds: 10));
-                if (!_showControls) {
-                  _toggleControls();
+                return null;
+              }),
+              _ShowControlsIntent:
+                  CallbackAction<_ShowControlsIntent>(onInvoke: (_) {
+                _showControlsTemporarily();
+                return null;
+              }),
+              _HideControlsIntent:
+                  CallbackAction<_HideControlsIntent>(onInvoke: (_) {
+                _hideControls();
+                return null;
+              }),
+              _SeekBackIntent: CallbackAction<_SeekBackIntent>(onInvoke: (_) {
+                if (hasError) return null;
+                if (!_currentPlaybackItem.isLive) {
+                  _seekRelative(-10);
                 }
-              }
-              return null;
-            }),
-            _SeekForwardIntent: CallbackAction<_SeekForwardIntent>(onInvoke: (_) {
-              if (hasError) return null;
-              if (!_currentPlaybackItem.isLive) {
-                _playerController.seek(_playerController.position + const Duration(seconds: 30));
-                if (!_showControls) {
-                  _toggleControls();
+                return null;
+              }),
+              _SeekForwardIntent:
+                  CallbackAction<_SeekForwardIntent>(onInvoke: (_) {
+                if (hasError) return null;
+                if (!_currentPlaybackItem.isLive) {
+                  _seekRelative(30);
                 }
-              }
-              return null;
-            }),
-            _ChannelUpIntent: CallbackAction<_ChannelUpIntent>(onInvoke: (_) {
-              _switchChannel(1);
-              return null;
-            }),
-            _ChannelDownIntent: CallbackAction<_ChannelDownIntent>(onInvoke: (_) {
-              _switchChannel(-1);
-              return null;
-            }),
-          },
-          child: Focus(
-            autofocus: true,
-            onKeyEvent: (node, event) {
-              if (hasError) return KeyEventResult.ignored;
-              if (!_showControls && !_showChannelList && event is KeyDownEvent) {
-                if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                   _toggleControls();
-                   return KeyEventResult.handled;
-                }
-                if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                   _toggleChannelList();
-                   return KeyEventResult.handled;
-                }
-              }
-              return KeyEventResult.ignored;
+                return null;
+              }),
+              _ChannelUpIntent: CallbackAction<_ChannelUpIntent>(onInvoke: (_) {
+                _switchChannel(1);
+                return null;
+              }),
+              _ChannelDownIntent:
+                  CallbackAction<_ChannelDownIntent>(onInvoke: (_) {
+                _switchChannel(-1);
+                return null;
+              }),
             },
-            child: Stack(
-              children: [
-                Positioned.fill(child: _playerController.buildPlayerView(context)),
-                if (_playerController.isBuffering && !hasError)
-                  const Center(child: CircularProgressIndicator(color: Color(0xFFC12CFF))),
-                
-                if (hasError) _buildErrorOverlay(),
+            child: Focus(
+              autofocus: true,
+              onKeyEvent: (node, event) {
+                if (event is KeyDownEvent) {
+                  _showControlsTemporarily();
+                }
+                return KeyEventResult.ignored;
+              },
+              child: Stack(
+                children: [
+                  // VIDEO LAYER
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: _toggleControls,
+                      behavior: HitTestBehavior.opaque,
+                      child: _playerController.buildPlayerView(context),
+                    ),
+                  ),
 
-                // Sidebar Sliders - TiviMate style: only when adjusting
-                if (_showSideSliders && !hasError) ...[
-                  _buildSideSlider(true), // Brightness
-                  _buildSideSlider(false), // Volume
+                  if (_playerController.isBuffering && !hasError)
+                    const Center(
+                        child: CircularProgressIndicator(color: Color(0xFFC12CFF))),
+
+                  if (hasError) _buildErrorOverlay(),
+
+                  // Sidebar Sliders - TiviMate style: only when adjusting
+                  if (_showSideSliders && !hasError) ...[
+                    _buildSideSlider(true), // Brightness
+                    _buildSideSlider(false), // Volume
+                  ],
+
+                  // CONTROLS LAYER
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: (_showControls && !hasError)
+                        ? Stack(
+                            key: const ValueKey('controls_visible'),
+                            children: [
+                              // Background Overlay
+                              Positioned.fill(
+                                child: GestureDetector(
+                                  onTap: _hideControls,
+                                  behavior: HitTestBehavior.opaque,
+                                  child: Container(
+                                    color: Colors.black.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                              ),
+                              _buildPremiumUI(),
+                            ],
+                          )
+                        : const SizedBox.shrink(key: ValueKey('controls_hidden')),
+                  ),
+
+                  if (_showChannelList) _buildChannelListOverlay(),
                 ],
-
-                if (_showControls && !hasError) _buildPremiumUI(),
-                if (_showChannelList) _buildChannelListOverlay(),
-              ],
+              ),
             ),
           ),
         ),
@@ -491,13 +570,26 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
 
   Widget _buildCenterControls(bool isLargeScreen) {
     final btnSize = isLargeScreen ? 80.0 : 64.0;
+    final isLive = _currentPlaybackItem.isLive;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _LargeControlBtn(icon: Icons.skip_previous_rounded, size: btnSize * 0.7, onTap: () => _switchChannel(-1)),
+        if (isLive)
+          _LargeControlBtn(
+              icon: Icons.skip_previous_rounded,
+              size: btnSize * 0.7,
+              onTap: () => _switchChannel(-1))
+        else
+          _LargeControlBtn(
+              icon: Icons.replay_10_rounded,
+              size: btnSize * 0.7,
+              onTap: () => _seekRelative(-10)),
         const SizedBox(width: 32),
         _LargeControlBtn(
-          icon: _playerController.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+          icon: _playerController.isPlaying
+              ? Icons.pause_rounded
+              : Icons.play_arrow_rounded,
           size: btnSize,
           isPrimary: true,
           onTap: () {
@@ -510,7 +602,16 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
           },
         ),
         const SizedBox(width: 32),
-        _LargeControlBtn(icon: Icons.skip_next_rounded, size: btnSize * 0.7, onTap: () => _switchChannel(1)),
+        if (isLive)
+          _LargeControlBtn(
+              icon: Icons.skip_next_rounded,
+              size: btnSize * 0.7,
+              onTap: () => _switchChannel(1))
+        else
+          _LargeControlBtn(
+              icon: Icons.forward_30_rounded,
+              size: btnSize * 0.7,
+              onTap: () => _seekRelative(30)),
       ],
     );
   }
@@ -519,7 +620,10 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (_currentPlaybackItem.isLive) _buildCompactEpgInfo(isLargeScreen) else _buildVodProgress(isLargeScreen),
+        if (_currentPlaybackItem.isLive)
+          _buildCompactEpgInfo(isLargeScreen)
+        else
+          _buildVodProgress(isLargeScreen),
         const SizedBox(height: 12),
         _buildActionRow(),
         const SizedBox(height: 8),
@@ -623,15 +727,44 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   }
 
   Widget _buildActionRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _ActionBtn(icon: Icons.list_rounded, label: 'CHANNELS', onTap: _toggleChannelList),
-        _ActionBtn(icon: Icons.calendar_view_day_rounded, label: 'EPG', onTap: _showEpgModal),
-        _ActionBtn(icon: _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded, 
-          label: 'FAVOURITE', iconColor: _isFavorite ? Colors.redAccent : null, onTap: _toggleFavorite),
-        _ActionBtn(icon: Icons.more_horiz_rounded, label: 'MORE', onTap: _showMoreMenu),
-      ],
+    final isLive = _currentPlaybackItem.isLive;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _ActionBtn(
+              icon: Icons.list_rounded,
+              label: 'CHANNELS',
+              onTap: _toggleChannelList),
+          if (isLive)
+            _ActionBtn(
+                icon: Icons.calendar_view_day_rounded,
+                label: 'EPG',
+                onTap: _showEpgModal),
+          _ActionBtn(
+              icon: Icons.subtitles_rounded,
+              label: 'SUBTITLES',
+              onTap: _showSubtitleMenu),
+          _ActionBtn(
+              icon: Icons.audiotrack_rounded,
+              label: 'AUDIO',
+              onTap: _showAudioMenu),
+          _ActionBtn(
+              icon: Icons.aspect_ratio_rounded,
+              label: 'RATIO',
+              onTap: _showAspectRatioMenu),
+          _ActionBtn(
+              icon: _isFavorite
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
+              label: 'FAVOURITE',
+              iconColor: _isFavorite ? Colors.redAccent : null,
+              onTap: _toggleFavorite),
+          _ActionBtn(
+              icon: Icons.settings_rounded, label: 'MORE', onTap: _showMoreMenu),
+        ],
+      ),
     );
   }
 
@@ -960,7 +1093,7 @@ class _ChannelListTileState extends State<_ChannelListTile> {
   );
 }
 
-class _CircleBtn extends StatelessWidget {
+class _CircleBtn extends StatefulWidget {
   final IconData icon;
   final VoidCallback onTap;
   final Color? iconColor;
@@ -974,20 +1107,39 @@ class _CircleBtn extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(size),
-    child: Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Icon(icon, color: iconColor ?? Colors.white, size: size * 0.6),
-    ),
-  );
+  State<_CircleBtn> createState() => _CircleBtnState();
+}
+
+class _CircleBtnState extends State<_CircleBtn> {
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) => FocusableActionDetector(
+        onFocusChange: (v) => setState(() => _isFocused = v),
+        child: AnimatedScale(
+          scale: _isFocused ? 1.1 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          child: InkWell(
+            onTap: widget.onTap,
+            borderRadius: BorderRadius.circular(widget.size),
+            child: Container(
+              width: widget.size,
+              height: widget.size,
+              decoration: BoxDecoration(
+                color: _isFocused
+                    ? const Color(0xFFC12CFF)
+                    : Colors.white.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: _isFocused ? Colors.white : Colors.white10),
+              ),
+              child: Icon(widget.icon,
+                  color: widget.iconColor ?? Colors.white,
+                  size: widget.size * 0.6),
+            ),
+          ),
+        ),
+      );
 }
 
 class _LargeControlBtn extends StatefulWidget {
@@ -1062,9 +1214,30 @@ class _ClockWidgetState extends State<_ClockWidget> {
   @override Widget build(BuildContext context) => Text(DateFormat('HH:mm').format(_now), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900));
 }
 
-class _ShowControlsIntent extends Intent { const _ShowControlsIntent(); }
-class _ShowChannelListIntent extends Intent { const _ShowChannelListIntent(); }
-class _SeekBackIntent extends Intent { const _SeekBackIntent(); }
-class _SeekForwardIntent extends Intent { const _SeekForwardIntent(); }
-class _ChannelUpIntent extends Intent { const _ChannelUpIntent(); }
-class _ChannelDownIntent extends Intent { const _ChannelDownIntent(); }
+class _ShowControlsIntent extends Intent {
+  const _ShowControlsIntent();
+}
+
+class _HideControlsIntent extends Intent {
+  const _HideControlsIntent();
+}
+
+class _PlayPauseIntent extends Intent {
+  const _PlayPauseIntent();
+}
+
+class _SeekBackIntent extends Intent {
+  const _SeekBackIntent();
+}
+
+class _SeekForwardIntent extends Intent {
+  const _SeekForwardIntent();
+}
+
+class _ChannelUpIntent extends Intent {
+  const _ChannelUpIntent();
+}
+
+class _ChannelDownIntent extends Intent {
+  const _ChannelDownIntent();
+}
