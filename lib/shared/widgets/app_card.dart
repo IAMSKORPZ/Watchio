@@ -46,6 +46,7 @@ class AppCard extends StatelessWidget {
       );
     } else {
       content = Card(
+        color: color,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(borderRadius),
         ),
