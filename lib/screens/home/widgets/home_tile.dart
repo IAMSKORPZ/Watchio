@@ -102,15 +102,19 @@ class _HomeTileState extends State<HomeTile> {
                         spacing = 10;
                       }
 
-                      return Padding(
+                      return Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        alignment: Alignment.center,
                         padding: EdgeInsets.all(isDesktop ? 24 : 12),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Icon(
-                              widget.icon, 
-                              color: widget.accentColor, 
+                              widget.icon,
+                              color: widget.accentColor,
                               size: iconSize,
                             ),
                             SizedBox(height: spacing),
