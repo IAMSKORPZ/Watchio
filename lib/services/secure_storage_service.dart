@@ -1,35 +1,36 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SecureStorageService {
   SecureStorageService._();
 
   static final SecureStorageService instance = SecureStorageService._();
 
-  static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(),
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-    mOptions: MacOsOptions(accessibility: KeychainAccessibility.first_unlock),
-  );
+  // Use a prefix to avoid collisions with regular settings
+  static const String _prefix = 'secure_v1_';
 
   String _providerPasswordKey(String providerId) =>
-      'bingietv.provider.$providerId.password.v1';
+      '${_prefix}provider_$providerId.password';
 
   Future<void> saveProviderPassword(String providerId, String? password) async {
+    final prefs = await SharedPreferences.getInstance();
     final value = password?.trim();
     final key = _providerPasswordKey(providerId);
+    
     if (value == null || value.isEmpty) {
-      await _storage.delete(key: key);
+      await prefs.remove(key);
       return;
     }
-    await _storage.write(key: key, value: value);
+    await prefs.setString(key, value);
   }
 
-  Future<String?> readProviderPassword(String providerId) {
-    return _storage.read(key: _providerPasswordKey(providerId));
+  Future<String?> readProviderPassword(String providerId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_providerPasswordKey(providerId));
   }
 
-  Future<void> deleteProviderPassword(String providerId) {
-    return _storage.delete(key: _providerPasswordKey(providerId));
+  Future<void> deleteProviderPassword(String providerId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_providerPasswordKey(providerId));
   }
 
   Future<void> saveProviderSecret(
@@ -37,15 +38,18 @@ class SecureStorageService {
     String name,
     String? value,
   ) async {
-    final key = 'bingietv.provider.$providerId.$name.v1';
+    final prefs = await SharedPreferences.getInstance();
+    final key = '${_prefix}provider_$providerId.$name';
+    
     if (value == null || value.trim().isEmpty) {
-      await _storage.delete(key: key);
+      await prefs.remove(key);
       return;
     }
-    await _storage.write(key: key, value: value.trim());
+    await prefs.setString(key, value.trim());
   }
 
-  Future<String?> readProviderSecret(String providerId, String name) {
-    return _storage.read(key: 'bingietv.provider.$providerId.$name.v1');
+  Future<String?> readProviderSecret(String providerId, String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('${_prefix}provider_$providerId.$name');
   }
 }
