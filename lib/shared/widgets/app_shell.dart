@@ -59,6 +59,7 @@ class _AppShellState extends State<AppShell> {
             }
           },
           child: Scaffold(
+            backgroundColor: const Color(0xFF050812),
             body: Row(
               children: [
                 if (showSidebar)

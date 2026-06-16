@@ -73,56 +73,60 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
     // Reinforce fullscreen mode
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
+    final config = context.watch<ConfigService>().config;
+    final homeBg = config.backgrounds.home;
+    final screenSize = MediaQuery.of(context).size;
+
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final config = context.watch<ConfigService>().config;
-          final deviceType = ResponsiveHelper.getDeviceType(context);
-          final isDesktop = deviceType == DeviceType.desktop;
-          final isTablet = deviceType == DeviceType.tablet;
-
-          final double width = constraints.maxWidth;
-          final double height = constraints.maxHeight;
-          
-          final double horizontalPadding = isDesktop ? 60 : width * 0.05;
-          final double verticalPadding = isDesktop ? 40 : height * 0.04;
-          final double gap = isDesktop ? 40 : (isTablet ? 24 : width * 0.015);
-
-          final homeBg = config.backgrounds.home;
-
-          return Stack(
-            children: [
-              // BACKGROUND LAYER (Edge-to-Edge)
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF050812),
-                    image: DecorationImage(
-                      image: (homeBg.isNotEmpty)
-                          ? NetworkImage(homeBg)
-                          : const AssetImage('assets/images/background.png')
-                              as ImageProvider,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          const Color(0xFF050812).withValues(alpha: 0.2),
-                          const Color(0xFF050812).withValues(alpha: 0.6),
-                          const Color(0xFF050812).withValues(alpha: 0.9),
-                        ],
-                      ),
-                    ),
+      child: Stack(
+        children: [
+          // BACKGROUND LAYER (Always full window size)
+          Positioned.fill(
+            child: Container(
+              width: screenSize.width,
+              height: screenSize.height,
+              decoration: BoxDecoration(
+                color: const Color(0xFF050812),
+                image: DecorationImage(
+                  image: (homeBg.isNotEmpty)
+                      ? NetworkImage(homeBg)
+                      : const AssetImage('assets/images/background.png')
+                          as ImageProvider,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(0xFF050812).withValues(alpha: 0.2),
+                      const Color(0xFF050812).withValues(alpha: 0.6),
+                      const Color(0xFF050812).withValues(alpha: 0.9),
+                    ],
                   ),
                 ),
               ),
-              // CONTENT LAYER (Centered & Constrained)
-              Center(
+            ),
+          ),
+          
+          // CONTENT LAYER (Centered & Constrained to 1600px)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final deviceType = ResponsiveHelper.getDeviceType(context);
+              final isDesktop = deviceType == DeviceType.desktop;
+              final isTablet = deviceType == DeviceType.tablet;
+
+              final double width = constraints.maxWidth;
+              final double height = constraints.maxHeight;
+              
+              final double horizontalPadding = isDesktop ? 80 : width * 0.05;
+              final double verticalPadding = isDesktop ? 40 : height * 0.04;
+              final double gap = isDesktop ? 80 : (isTablet ? 24 : width * 0.015);
+
+              return Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1600),
                   child: Padding(
@@ -140,17 +144,19 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                           onSports: widget.onSports,
                           onAnnouncements: widget.onAnnouncements,
                         ),
-
-                        const Spacer(flex: 2),
-
+                        
+                        isDesktop
+                            ? const SizedBox(height: 150)
+                            : const Spacer(flex: 2),
+                        
                         // MAIN CONTENT - 3 CARDS
                         isDesktop
                             ? Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   SizedBox(
-                                    width: 360,
-                                    height: 240,
+                                    width: 380,
+                                    height: 260,
                                     child: HomeTile(
                                       title: 'LIVE TV',
                                       subtitle: 'Watch Live TV Channels',
@@ -162,8 +168,8 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                                   ),
                                   SizedBox(width: gap),
                                   SizedBox(
-                                    width: 360,
-                                    height: 240,
+                                    width: 380,
+                                    height: 260,
                                     child: HomeTile(
                                       title: 'MOVIES',
                                       subtitle: 'Browse a wide selection',
@@ -174,8 +180,8 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                                   ),
                                   SizedBox(width: gap),
                                   SizedBox(
-                                    width: 360,
-                                    height: 240,
+                                    width: 380,
+                                    height: 260,
                                     child: HomeTile(
                                       title: 'SERIES',
                                       subtitle: 'Discover and binge-watch',
@@ -189,8 +195,7 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                             : Expanded(
                                 flex: 14,
                                 child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
                                     Expanded(
                                       child: HomeTile(
@@ -225,17 +230,17 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                                   ],
                                 ),
                               ),
-
-                        SizedBox(height: isDesktop ? 32 : 8),
-
+                        
+                        SizedBox(height: isDesktop ? 48 : 8),
+                        
                         // SECONDARY ACTION ROW
                         isDesktop
                             ? Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   SizedBox(
-                                    width: 360,
-                                    height: 75,
+                                    width: 380,
+                                    height: 85,
                                     child: HomeBottomButton(
                                       label: 'LIVE + EPG',
                                       icon: Icons.list_alt_rounded,
@@ -245,8 +250,8 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                                   ),
                                   SizedBox(width: gap),
                                   SizedBox(
-                                    width: 360,
-                                    height: 75,
+                                    width: 380,
+                                    height: 85,
                                     child: HomeBottomButton(
                                       label: 'REFRESH',
                                       icon: Icons.refresh_rounded,
@@ -256,8 +261,8 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                                   ),
                                   SizedBox(width: gap),
                                   SizedBox(
-                                    width: 360,
-                                    height: 75,
+                                    width: 380,
+                                    height: 85,
                                     child: HomeBottomButton(
                                       label: 'SETTINGS',
                                       icon: Icons.settings_rounded,
@@ -300,23 +305,24 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                                   ],
                                 ),
                               ),
-
+                        
                         const Spacer(flex: 2),
-
+                        
                         // BOTTOM STATUS BAR
                         HomeFooter(
                           username: widget.username,
                           expiryDate: widget.expiryDate,
                           version: widget.version,
                         ),
+                        if (isDesktop) const SizedBox(height: 24),
                       ],
                     ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+              );
+            },
+          ),
+        ],
       ),
     );
   }
