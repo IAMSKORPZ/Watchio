@@ -6,6 +6,7 @@ import 'widgets/home_tile.dart';
 import 'widgets/home_header.dart';
 import 'widgets/home_footer.dart';
 import 'widgets/home_bottom_button.dart';
+import '../../../utils/responsive_helper.dart';
 
 class BingieDashboardHome extends StatefulWidget {
   final VoidCallback onLiveTv;
@@ -77,146 +78,243 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
       child: LayoutBuilder(
         builder: (context, constraints) {
           final config = context.watch<ConfigService>().config;
+          final deviceType = ResponsiveHelper.getDeviceType(context);
+          final isDesktop = deviceType == DeviceType.desktop;
+          final isTablet = deviceType == DeviceType.tablet;
+
           final double width = constraints.maxWidth;
           final double height = constraints.maxHeight;
           
-          final double horizontalPadding = width * 0.05;
-          final double verticalPadding = height * 0.04; // Increased vertical padding for more breathing room
-          final double gap = width * 0.015;
+          final double horizontalPadding = isDesktop ? 60 : width * 0.05;
+          final double verticalPadding = isDesktop ? 40 : height * 0.04;
+          final double gap = isDesktop ? 40 : (isTablet ? 24 : width * 0.015);
 
           final homeBg = config.backgrounds.home;
 
-          return Container(
-            width: width,
-            height: height,
-            decoration: BoxDecoration(
-              color: const Color(0xFF050812),
-              image: DecorationImage(
-                image: (homeBg.isNotEmpty)
-                    ? NetworkImage(homeBg)
-                    : const AssetImage('assets/images/background.png') as ImageProvider,
-                fit: BoxFit.cover,
-              ),
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    const Color(0xFF050812).withValues(alpha: 0.2),
-                    const Color(0xFF050812).withValues(alpha: 0.6),
-                    const Color(0xFF050812).withValues(alpha: 0.9),
-                  ],
-                ),
-              ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: horizontalPadding,
-                  vertical: verticalPadding,
-                ),
-                child: Column(
-                  children: [
-                    // TOP HEADER
-                    HomeHeader(
-                      onSearch: widget.onSearch,
-                      onProfile: widget.onProfile,
-                      onAbout: widget.onAbout,
-                      onSports: widget.onSports,
-                      onAnnouncements: widget.onAnnouncements,
+          return Stack(
+            children: [
+              // BACKGROUND LAYER (Edge-to-Edge)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF050812),
+                    image: DecorationImage(
+                      image: (homeBg.isNotEmpty)
+                          ? NetworkImage(homeBg)
+                          : const AssetImage('assets/images/background.png')
+                              as ImageProvider,
+                      fit: BoxFit.cover,
                     ),
-                    
-                    const Spacer(flex: 2),
-                    
-                    // MAIN CONTENT - 3 CARDS
-                    Expanded(
-                      flex: 14, // Increased height by approx 15% to feel more premium
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: HomeTile(
-                              title: 'LIVE TV',
-                              subtitle: 'Watch Live TV Channels',
-                              icon: Icons.live_tv_rounded, // IPTV-style icon
-                              accentColor: const Color(0xFFC12CFF), // Purple
-                              onTap: widget.onLiveTv,
-                              autofocus: true,
-                            ),
-                          ),
-                          SizedBox(width: gap),
-                          Expanded(
-                            child: HomeTile(
-                              title: 'MOVIES',
-                              subtitle: 'Browse a wide selection',
-                              icon: Icons.play_arrow_rounded,
-                              accentColor: Colors.orange,
-                              onTap: widget.onMovies,
-                            ),
-                          ),
-                          SizedBox(width: gap),
-                          Expanded(
-                            child: HomeTile(
-                              title: 'SERIES',
-                              subtitle: 'Discover and binge-watch',
-                              icon: Icons.movie_rounded,
-                              accentColor: const Color(0xFF00B7FF), // Blue/Cyan
-                              onTap: widget.onSeries,
-                            ),
-                          ),
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          const Color(0xFF050812).withValues(alpha: 0.2),
+                          const Color(0xFF050812).withValues(alpha: 0.6),
+                          const Color(0xFF050812).withValues(alpha: 0.9),
                         ],
                       ),
                     ),
-                    
-                    const SizedBox(height: 8), // Reduced gap to move Action Row upward
-                    
-                    // SECONDARY ACTION ROW
-                    Expanded(
-                      flex: 4,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: HomeBottomButton(
-                              label: 'LIVE + EPG',
-                              icon: Icons.list_alt_rounded,
-                              onTap: widget.onLiveTv, // Assuming Live TV with EPG is handled by same callback or similar
-                              accentColor: const Color(0xFFC12CFF),
-                            ),
-                          ),
-                          SizedBox(width: gap),
-                          Expanded(
-                            child: HomeBottomButton(
-                              label: 'REFRESH',
-                              icon: Icons.refresh_rounded,
-                              onTap: widget.onUpdate,
-                              accentColor: Colors.white,
-                            ),
-                          ),
-                          SizedBox(width: gap),
-                          Expanded(
-                            child: HomeBottomButton(
-                              label: 'SETTINGS',
-                              icon: Icons.settings_rounded,
-                              onTap: widget.onSettings,
-                              accentColor: const Color(0xFF00B7FF),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const Spacer(flex: 2),
-                    
-                    // BOTTOM STATUS BAR
-                    HomeFooter(
-                      username: widget.username,
-                      expiryDate: widget.expiryDate,
-                      version: widget.version,
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+              // CONTENT LAYER (Centered & Constrained)
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1600),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                      vertical: verticalPadding,
+                    ),
+                    child: Column(
+                      children: [
+                        // TOP HEADER
+                        HomeHeader(
+                          onSearch: widget.onSearch,
+                          onProfile: widget.onProfile,
+                          onAbout: widget.onAbout,
+                          onSports: widget.onSports,
+                          onAnnouncements: widget.onAnnouncements,
+                        ),
+
+                        const Spacer(flex: 2),
+
+                        // MAIN CONTENT - 3 CARDS
+                        isDesktop
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 360,
+                                    height: 240,
+                                    child: HomeTile(
+                                      title: 'LIVE TV',
+                                      subtitle: 'Watch Live TV Channels',
+                                      icon: Icons.live_tv_rounded,
+                                      accentColor: const Color(0xFFC12CFF),
+                                      onTap: widget.onLiveTv,
+                                      autofocus: true,
+                                    ),
+                                  ),
+                                  SizedBox(width: gap),
+                                  SizedBox(
+                                    width: 360,
+                                    height: 240,
+                                    child: HomeTile(
+                                      title: 'MOVIES',
+                                      subtitle: 'Browse a wide selection',
+                                      icon: Icons.play_arrow_rounded,
+                                      accentColor: Colors.orange,
+                                      onTap: widget.onMovies,
+                                    ),
+                                  ),
+                                  SizedBox(width: gap),
+                                  SizedBox(
+                                    width: 360,
+                                    height: 240,
+                                    child: HomeTile(
+                                      title: 'SERIES',
+                                      subtitle: 'Discover and binge-watch',
+                                      icon: Icons.movie_rounded,
+                                      accentColor: const Color(0xFF00B7FF),
+                                      onTap: widget.onSeries,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Expanded(
+                                flex: 14,
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Expanded(
+                                      child: HomeTile(
+                                        title: 'LIVE TV',
+                                        subtitle: 'Watch Live TV Channels',
+                                        icon: Icons.live_tv_rounded,
+                                        accentColor: const Color(0xFFC12CFF),
+                                        onTap: widget.onLiveTv,
+                                        autofocus: true,
+                                      ),
+                                    ),
+                                    SizedBox(width: gap),
+                                    Expanded(
+                                      child: HomeTile(
+                                        title: 'MOVIES',
+                                        subtitle: 'Browse a wide selection',
+                                        icon: Icons.play_arrow_rounded,
+                                        accentColor: Colors.orange,
+                                        onTap: widget.onMovies,
+                                      ),
+                                    ),
+                                    SizedBox(width: gap),
+                                    Expanded(
+                                      child: HomeTile(
+                                        title: 'SERIES',
+                                        subtitle: 'Discover and binge-watch',
+                                        icon: Icons.movie_rounded,
+                                        accentColor: const Color(0xFF00B7FF),
+                                        onTap: widget.onSeries,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                        SizedBox(height: isDesktop ? 32 : 8),
+
+                        // SECONDARY ACTION ROW
+                        isDesktop
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 360,
+                                    height: 75,
+                                    child: HomeBottomButton(
+                                      label: 'LIVE + EPG',
+                                      icon: Icons.list_alt_rounded,
+                                      onTap: widget.onLiveTv,
+                                      accentColor: const Color(0xFFC12CFF),
+                                    ),
+                                  ),
+                                  SizedBox(width: gap),
+                                  SizedBox(
+                                    width: 360,
+                                    height: 75,
+                                    child: HomeBottomButton(
+                                      label: 'REFRESH',
+                                      icon: Icons.refresh_rounded,
+                                      onTap: widget.onUpdate,
+                                      accentColor: Colors.white,
+                                    ),
+                                  ),
+                                  SizedBox(width: gap),
+                                  SizedBox(
+                                    width: 360,
+                                    height: 75,
+                                    child: HomeBottomButton(
+                                      label: 'SETTINGS',
+                                      icon: Icons.settings_rounded,
+                                      onTap: widget.onSettings,
+                                      accentColor: const Color(0xFF00B7FF),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Expanded(
+                                flex: 4,
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: HomeBottomButton(
+                                        label: 'LIVE + EPG',
+                                        icon: Icons.list_alt_rounded,
+                                        onTap: widget.onLiveTv,
+                                        accentColor: const Color(0xFFC12CFF),
+                                      ),
+                                    ),
+                                    SizedBox(width: gap),
+                                    Expanded(
+                                      child: HomeBottomButton(
+                                        label: 'REFRESH',
+                                        icon: Icons.refresh_rounded,
+                                        onTap: widget.onUpdate,
+                                        accentColor: Colors.white,
+                                      ),
+                                    ),
+                                    SizedBox(width: gap),
+                                    Expanded(
+                                      child: HomeBottomButton(
+                                        label: 'SETTINGS',
+                                        icon: Icons.settings_rounded,
+                                        onTap: widget.onSettings,
+                                        accentColor: const Color(0xFF00B7FF),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                        const Spacer(flex: 2),
+
+                        // BOTTOM STATUS BAR
+                        HomeFooter(
+                          username: widget.username,
+                          expiryDate: widget.expiryDate,
+                          version: widget.version,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),

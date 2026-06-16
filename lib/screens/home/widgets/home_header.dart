@@ -1,6 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../utils/responsive_helper.dart';
 
 class HomeHeader extends StatelessWidget {
   final VoidCallback onSearch;
@@ -21,16 +21,24 @@ class HomeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
+    final deviceType = ResponsiveHelper.getDeviceType(context);
+    final isDesktop = deviceType == DeviceType.desktop;
+    final isTablet = deviceType == DeviceType.tablet;
+
+    double logoHeight = isDesktop ? 110 : (isTablet ? 85 : 70);
+    double timeFontSize = isDesktop ? 44 : (isTablet ? 28 : 22);
+    double dateFontSize = isDesktop ? 18 : (isTablet ? 14 : 12);
+    double iconSize = isDesktop ? 36 : (isTablet ? 28 : 24);
 
     return Row(
       children: [
         // LEFT: Logo
         Image.asset(
           'assets/images/App_Logo.png',
-          height: 70, // Increased from 60 (approx 15%+)
+          height: logoHeight,
           fit: BoxFit.contain,
           errorBuilder: (context, error, stackTrace) =>
-              const Icon(Icons.play_arrow_rounded, color: Color(0xFF00B7FF), size: 48),
+              Icon(Icons.play_arrow_rounded, color: const Color(0xFF00B7FF), size: logoHeight * 0.7),
         ),
         
         const Spacer(),
@@ -42,18 +50,18 @@ class HomeHeader extends StatelessWidget {
           children: [
             Text(
               DateFormat('hh:mm a').format(now),
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
-                fontSize: 22,
+                fontSize: timeFontSize,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.5,
               ),
             ),
             Text(
               DateFormat('MMM d, yyyy').format(now),
-              style: const TextStyle(
-                color: Color(0xFFC12CFF),
-                fontSize: 12,
+              style: TextStyle(
+                color: const Color(0xFFC12CFF),
+                fontSize: dateFontSize,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
               ),
@@ -63,7 +71,7 @@ class HomeHeader extends StatelessWidget {
         
         const Spacer(),
         
-        // RIGHT: Floating Navigation Icons (Requirement: Remove blue container)
+        // RIGHT: Floating Navigation Icons
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -71,16 +79,19 @@ class HomeHeader extends StatelessWidget {
             _ToolbarItem(
               onTap: onSearch,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isDesktop ? 20 : 12, 
+                  vertical: isDesktop ? 12 : 8
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.search_rounded, color: Colors.white, size: 24),
-                    const SizedBox(width: 10),
-                    const Text(
+                    Icon(Icons.search_rounded, color: Colors.white, size: iconSize),
+                    SizedBox(width: isDesktop ? 14 : 10),
+                    Text(
                       'SEARCH',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: isDesktop ? 20 : 16,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1.0,
                       ),
@@ -89,17 +100,20 @@ class HomeHeader extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: isDesktop ? 12 : 8),
             _ToolbarItem(
               icon: Icons.sports_soccer_rounded,
+              iconSize: iconSize,
               onTap: onSports,
             ),
             _ToolbarItem(
               icon: Icons.notifications_rounded,
+              iconSize: iconSize,
               onTap: onAnnouncements ?? () {},
             ),
             _ToolbarItem(
               icon: Icons.info_outline_rounded,
+              iconSize: iconSize,
               onTap: onAbout,
             ),
           ],
@@ -193,11 +207,13 @@ class _ToolbarItem extends StatefulWidget {
   final IconData? icon;
   final Widget? child;
   final VoidCallback onTap;
+  final double iconSize;
 
   const _ToolbarItem({
     this.icon,
     this.child,
     required this.onTap,
+    this.iconSize = 22,
   });
 
   @override
@@ -222,6 +238,7 @@ class _ToolbarItemState extends State<_ToolbarItem> {
             decoration: BoxDecoration(
               shape: widget.child != null ? BoxShape.rectangle : BoxShape.circle,
               color: _isFocused ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
+              borderRadius: widget.child != null ? BorderRadius.circular(30) : null,
               boxShadow: _isFocused ? [
                 BoxShadow(
                   color: const Color(0xFFC12CFF).withValues(alpha: 0.3),
@@ -232,7 +249,7 @@ class _ToolbarItemState extends State<_ToolbarItem> {
             child: widget.child ?? Icon(
               widget.icon,
               color: _isFocused ? Colors.white : Colors.white70,
-              size: 22,
+              size: widget.iconSize,
             ),
           ),
         ),
