@@ -14,6 +14,7 @@ class WatchioHeader extends StatefulWidget {
   final double? customLogoHeight;
   final String? sectionTitle;
   final VoidCallback? onProfile;
+  final VoidCallback? onSetup;
 
   const WatchioHeader({
     super.key,
@@ -28,6 +29,7 @@ class WatchioHeader extends StatefulWidget {
     this.customLogoHeight,
     this.sectionTitle,
     this.onProfile,
+    this.onSetup,
   });
 
   @override
@@ -165,6 +167,9 @@ class _WatchioHeaderState extends State<WatchioHeader> {
         ),
         onSelected: (value) {
           switch (value) {
+            case 'setup':
+              widget.onSetup?.call();
+              break;
             case 'sort':
               widget.onSort?.call();
               break;
@@ -187,39 +192,22 @@ class _WatchioHeaderState extends State<WatchioHeader> {
         },
         itemBuilder: (context) => [
           const PopupMenuItem(
+            value: 'setup',
+            child: Row(
+              children: [
+                Icon(Icons.tune_rounded, color: Colors.white70, size: 20),
+                SizedBox(width: 12),
+                Text('Setup', style: TextStyle(color: Colors.white)),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
             value: 'sort',
             child: Row(
               children: [
                 Icon(Icons.sort_rounded, color: Colors.white70, size: 20),
                 SizedBox(width: 12),
-                Text('Sort Options', style: TextStyle(color: Colors.white)),
-              ],
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'refresh',
-            child: Row(
-              children: [
-                Icon(Icons.refresh_rounded, color: Colors.white70, size: 20),
-                SizedBox(width: 12),
-                Text('Refresh Content', style: TextStyle(color: Colors.white)),
-              ],
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'refresh_epg',
-            child: Row(
-              children: [
-                Icon(
-                  Icons.auto_awesome_rounded,
-                  color: Color(0xFFC12CFF),
-                  size: 20,
-                ),
-                SizedBox(width: 12),
-                Text(
-                  'Force EPG Refresh',
-                  style: TextStyle(color: Colors.white),
-                ),
+                Text('Sort Order', style: TextStyle(color: Colors.white)),
               ],
             ),
           ),

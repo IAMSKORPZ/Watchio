@@ -24,7 +24,6 @@ import '../../shared/widgets/glass_panel.dart';
 import '../../shared/widgets/watchio_header.dart';
 import '../player/unified_player_screen.dart';
 import '../search_screen.dart';
-import '../settings/sections/account_info_page.dart';
 import '../../services/epg_import_service.dart';
 
 class XtreamLiveScreen extends StatefulWidget {
@@ -46,6 +45,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   static const int _pageSize = 60;
   final Map<String, int> _categoryCounts = {};
   String _categoryQuery = '';
+  String _channelSortOrder = 'recent';
 
   final ScrollController _categoryScrollController = ScrollController();
   final ScrollController _channelScrollController = ScrollController();
@@ -290,6 +290,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
       if (mounted) {
         setState(() {
           _currentItems.addAll(newItems);
+          _sortLoadedChannels();
           _currentOffset += newItems.length;
           _isMoreLoading = false;
           if (newItems.length < _pageSize) {
@@ -300,6 +301,120 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     } catch (e) {
       if (mounted) setState(() => _isMoreLoading = false);
     }
+  }
+
+  void _sortLoadedChannels() {
+    int channelNumber(ContentItem item) => int.tryParse(item.id) ?? 0;
+    switch (_channelSortOrder) {
+      case 'az':
+        _currentItems.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
+        break;
+      case 'za':
+        _currentItems.sort(
+          (a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()),
+        );
+        break;
+      case 'number':
+        _currentItems.sort(
+          (a, b) => channelNumber(a).compareTo(channelNumber(b)),
+        );
+        break;
+      default:
+        _currentItems.sort(
+          (a, b) => channelNumber(b).compareTo(channelNumber(a)),
+        );
+    }
+  }
+
+  Future<void> _showSortDialog() async {
+    var pending = _channelSortOrder;
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 16,
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+          backgroundColor: const Color(0xFF111525),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.6),
+            ),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.swap_vert_rounded, color: Color(0xFF06B6D4)),
+              SizedBox(width: 10),
+              Text(
+                'Sort According to',
+                style: TextStyle(color: Colors.white, fontSize: 20),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final option in const [
+                ('recent', 'Recently Added'),
+                ('az', 'A–Z'),
+                ('za', 'Z–A'),
+                ('number', 'Channel Number ASC'),
+              ])
+                ListTile(
+                  dense: true,
+                  visualDensity: const VisualDensity(vertical: -3),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  minTileHeight: 44,
+                  leading: Icon(
+                    pending == option.$1
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_off,
+                    color: pending == option.$1
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.white54,
+                  ),
+                  title: Text(
+                    option.$2,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  onTap: () => setDialogState(() => pending = option.$1),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('CLOSE'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, pending),
+              child: const Text('SAVE'),
+            ),
+          ],
+          actionsAlignment: MainAxisAlignment.end,
+        ),
+      ),
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _channelSortOrder = selected;
+      _sortLoadedChannels();
+    });
+  }
+
+  void _showSetupPlaceholder() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Live TV setup will be added next.')),
+    );
   }
 
   void _startEpgTimer() {
@@ -692,12 +807,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                       ),
                     ),
                     onSettings: () => controller.onNavigationTap(5),
-                    onProfile: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AccountInfoPage(),
-                      ),
-                    ),
+                    onSetup: _showSetupPlaceholder,
+                    onSort: _showSortDialog,
                     onRefresh: () => controller.refreshAllData(context),
                     onRefreshEpg: _forceRefreshEpg,
                   ),
@@ -1336,18 +1447,14 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
       }
     }
 
-    final timeline = _epgPrograms.skip(currentProgramIndex).take(3).toList();
+    final timeline = _epgPrograms.skip(currentProgramIndex).take(2).toList();
     return Column(
       children: List.generate(
         timeline.length,
         (index) => Expanded(
           flex: index == 0 ? 4 : 3,
           child: _buildTimelineItem(
-            index == 0
-                ? 'NOW PLAYING'
-                : index == 1
-                ? 'UP NEXT'
-                : 'LATER',
+            index == 0 ? 'NOW PLAYING' : 'UP NEXT',
             timeline[index],
             index: index,
             isNow: index == 0,
