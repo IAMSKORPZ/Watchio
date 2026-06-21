@@ -70,10 +70,17 @@ class _WatchioHeaderState extends State<WatchioHeader> {
                 onTap: widget.onBack,
               ),
               const SizedBox(width: 16),
-              Image.asset(
-                'assets/images/App_Logo.png',
-                height: logoHeight,
-                fit: BoxFit.contain,
+              SizedBox(
+                height: 60,
+                width: logoHeight * 1.5,
+                child: OverflowBox(
+                  maxHeight: logoHeight,
+                  child: Image.asset(
+                    'assets/images/App_Logo.png',
+                    height: logoHeight,
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
             ],
           ),

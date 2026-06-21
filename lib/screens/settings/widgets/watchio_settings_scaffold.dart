@@ -94,7 +94,7 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
                 child: SizedBox(
-                  height: 110,
+                  height: 70,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -109,10 +109,17 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
                               onTap: widget.onBack,
                             ),
                             const SizedBox(width: 16),
-                            Image.asset(
-                              'assets/images/App_Logo.png',
-                              height: 110,
-                              fit: BoxFit.contain,
+                            SizedBox(
+                              height: 60,
+                              width: 165,
+                              child: OverflowBox(
+                                maxHeight: 110,
+                                child: Image.asset(
+                                  'assets/images/App_Logo.png',
+                                  height: 110,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
                             ),
                           ],
                         ),

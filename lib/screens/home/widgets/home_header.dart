@@ -33,14 +33,21 @@ class HomeHeader extends StatelessWidget {
     return Row(
       children: [
         // LEFT: Logo
-        Image.asset(
-          'assets/images/App_Logo.png',
-          height: logoHeight,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) => Icon(
-            Icons.play_arrow_rounded,
-            color: const Color(0xFF00B7FF),
-            size: logoHeight * 0.7,
+        SizedBox(
+          height: 60,
+          width: logoHeight * 1.5,
+          child: OverflowBox(
+            maxHeight: logoHeight,
+            child: Image.asset(
+              'assets/images/App_Logo.png',
+              height: logoHeight,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => Icon(
+                Icons.play_arrow_rounded,
+                color: const Color(0xFF00B7FF),
+                size: logoHeight * 0.7,
+              ),
+            ),
           ),
         ),
 
