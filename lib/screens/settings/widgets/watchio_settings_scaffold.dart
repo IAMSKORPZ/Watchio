@@ -19,7 +19,8 @@ class WatchioSettingsScaffold extends StatefulWidget {
   });
 
   @override
-  State<WatchioSettingsScaffold> createState() => _WatchioSettingsScaffoldState();
+  State<WatchioSettingsScaffold> createState() =>
+      _WatchioSettingsScaffoldState();
 }
 
 class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
@@ -65,7 +66,7 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
                   image: (homeBg.isNotEmpty)
                       ? NetworkImage(homeBg)
                       : const AssetImage('assets/images/background.png')
-                          as ImageProvider,
+                            as ImageProvider,
                   fit: BoxFit.cover,
                 ),
               ),
@@ -89,7 +90,7 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
             children: [
               // REFINED COMPACT HEADER - MATCHES APPROVED DESIGN
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 0), // SIT AT TOP
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
                 child: SizedBox(
                   height: 60,
                   child: Stack(
@@ -142,9 +143,7 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
               ),
 
               // MAIN CONTENT
-              Expanded(
-                child: widget.child,
-              ),
+              Expanded(child: widget.child),
 
               // MINIMAL FOOTER
               Padding(
@@ -193,10 +192,14 @@ class _HeaderIconButtonState extends State<_HeaderIconButton> {
                 : Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-                color: _isFocused ? const Color(0xFFC12CFF) : Colors.white10),
+              color: _isFocused ? const Color(0xFFC12CFF) : Colors.white10,
+            ),
           ),
-          child: Icon(widget.icon,
-              color: _isFocused ? Colors.white : Colors.white70, size: 22),
+          child: Icon(
+            widget.icon,
+            color: _isFocused ? Colors.white : Colors.white70,
+            size: 22,
+          ),
         ),
       ),
     );
