@@ -19,7 +19,6 @@ class BingieDashboardHome extends StatefulWidget {
   final VoidCallback onSports;
   final VoidCallback onProfile;
   final VoidCallback onAbout;
-  final VoidCallback? onTrakt;
   final String username;
   final String expiryDate;
   final String version;
@@ -36,7 +35,6 @@ class BingieDashboardHome extends StatefulWidget {
     required this.onSports,
     required this.onProfile,
     required this.onAbout,
-    this.onTrakt,
     required this.username,
     required this.expiryDate,
     required this.version,
@@ -46,8 +44,7 @@ class BingieDashboardHome extends StatefulWidget {
   State<BingieDashboardHome> createState() => _BingieDashboardHomeState();
 }
 
-class _BingieDashboardHomeState extends State<BingieDashboardHome>
-    with SingleTickerProviderStateMixin {
+class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTickerProviderStateMixin {
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
@@ -95,7 +92,7 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome>
                   image: (homeBg.isNotEmpty)
                       ? NetworkImage(homeBg)
                       : const AssetImage('assets/images/background.png')
-                            as ImageProvider,
+                          as ImageProvider,
                   fit: BoxFit.cover,
                 ),
               ),
@@ -127,9 +124,7 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome>
 
               final double horizontalPadding = isDesktop ? 80 : width * 0.05;
               final double verticalPadding = isDesktop ? 40 : height * 0.04;
-              final double gap = isDesktop
-                  ? 80
-                  : (isTablet ? 24 : width * 0.015);
+              final double gap = isDesktop ? 80 : (isTablet ? 24 : width * 0.015);
 
               return Center(
                 child: ConstrainedBox(
@@ -200,8 +195,7 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome>
                             : Expanded(
                                 flex: 14,
                                 child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
                                     Expanded(
                                       child: HomeTile(
@@ -248,9 +242,9 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome>
                                     width: 380,
                                     height: 85,
                                     child: HomeBottomButton(
-                                      label: 'MY TRAKT',
-                                      icon: Icons.playlist_add_check_rounded,
-                                      onTap: widget.onTrakt ?? () {},
+                                      label: 'LIVE + EPG',
+                                      icon: Icons.list_alt_rounded,
+                                      onTap: widget.onLiveTv,
                                       accentColor: const Color(0xFFC12CFF),
                                     ),
                                   ),
@@ -284,9 +278,9 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome>
                                   children: [
                                     Expanded(
                                       child: HomeBottomButton(
-                                        label: 'MY TRAKT',
-                                        icon: Icons.playlist_add_check_rounded,
-                                        onTap: widget.onTrakt ?? () {},
+                                        label: 'LIVE + EPG',
+                                        icon: Icons.list_alt_rounded,
+                                        onTap: widget.onLiveTv,
                                         accentColor: const Color(0xFFC12CFF),
                                       ),
                                     ),
