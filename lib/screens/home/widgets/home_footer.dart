@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../utils/responsive_helper.dart';
 
 class HomeFooter extends StatelessWidget {
   final String username;
@@ -28,6 +29,11 @@ class HomeFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String formattedExpiry = _formatExpiry(expiryDate);
+    final deviceType = ResponsiveHelper.getDeviceType(context);
+    final isDesktop = deviceType == DeviceType.desktop;
+    
+    double fontSize = isDesktop ? 14 : 12;
+    double iconSize = isDesktop ? 20 : 18;
     
     return Row(
       children: [
@@ -35,13 +41,13 @@ class HomeFooter extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.verified_outlined, color: Color(0xFF00B7FF), size: 18),
+            Icon(Icons.verified_outlined, color: const Color(0xFF00B7FF), size: iconSize),
             const SizedBox(width: 8),
             Text(
               'Expiration: $formattedExpiry',
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white70,
-                fontSize: 12,
+                fontSize: fontSize,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -54,8 +60,8 @@ class HomeFooter extends StatelessWidget {
         Text(
           'v$version',
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.5), // Increased opacity from 0.2 to 0.5
-            fontSize: 12,
+            color: Colors.white.withValues(alpha: 0.5), 
+            fontSize: fontSize,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -66,13 +72,13 @@ class HomeFooter extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.person_rounded, color: Color(0xFFC12CFF), size: 18),
+            Icon(Icons.person_rounded, color: const Color(0xFFC12CFF), size: iconSize),
             const SizedBox(width: 8),
             Text(
               'Logged In: $username',
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white70,
-                fontSize: 12,
+                fontSize: fontSize,
                 fontWeight: FontWeight.w500,
               ),
             ),

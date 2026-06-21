@@ -64,9 +64,11 @@ class SidebarItem extends StatelessWidget {
                 Text(
                   '$count',
                   style: TextStyle(
-                    color: selected ? Colors.white.withValues(alpha: 0.5) : colorScheme.onSurface.withValues(alpha: 0.3),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                    color: selected
+                        ? Colors.white.withValues(alpha: 0.5)
+                        : colorScheme.onSurface.withValues(alpha: 0.3),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],

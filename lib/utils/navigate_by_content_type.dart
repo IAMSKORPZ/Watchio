@@ -4,7 +4,6 @@ import 'package:another_iptv_player/utils/get_playlist_type.dart';
 import 'package:flutter/material.dart';
 import 'package:another_iptv_player/models/content_type.dart';
 import 'package:another_iptv_player/models/playlist_content_model.dart';
-import '../screens/live_stream/live_stream_screen.dart';
 import '../screens/movies/movie_details_screen.dart';
 import '../screens/series/series_details_screen.dart';
 

@@ -2,6 +2,12 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../core/theme/theme_extensions.dart';
 
+const contentPanelGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xAA4A3D6A), Color(0xAA30274F)],
+);
+
 class GlassPanel extends StatelessWidget {
   final Widget child;
   final double borderRadius;
@@ -9,6 +15,7 @@ class GlassPanel extends StatelessWidget {
   final double opacity;
   final EdgeInsetsGeometry? padding;
   final BoxBorder? border;
+  final Gradient? gradient;
 
   const GlassPanel({
     super.key,
@@ -18,35 +25,26 @@ class GlassPanel extends StatelessWidget {
     this.opacity = 0.1,
     this.padding,
     this.border,
+    this.gradient,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = BingieThemeExtension.of(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          child: Container(
-            padding: padding,
-            decoration: BoxDecoration(
-              gradient: theme.glassGradient,
-              borderRadius: BorderRadius.circular(borderRadius),
-              border: border ?? Border.all(color: Colors.white.withValues(alpha: 0.15)),
-            ),
-            child: child,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          padding: padding,
+          decoration: BoxDecoration(
+            color: gradient == null
+                ? theme.glassColor.withValues(alpha: opacity)
+                : null,
+            gradient: gradient,
+            borderRadius: BorderRadius.circular(borderRadius),
+            border: border ?? Border.all(color: theme.glassBorder),
           ),
         ),
       ),

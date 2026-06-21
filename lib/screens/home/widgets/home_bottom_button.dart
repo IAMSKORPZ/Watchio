@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/theme/theme_extensions.dart';
+import '../../../utils/responsive_helper.dart';
 
 class HomeBottomButton extends StatefulWidget {
   final String label;
@@ -26,6 +26,13 @@ class _HomeBottomButtonState extends State<HomeBottomButton> {
 
   @override
   Widget build(BuildContext context) {
+    final deviceType = ResponsiveHelper.getDeviceType(context);
+    final isDesktop = deviceType == DeviceType.desktop;
+    final isTablet = deviceType == DeviceType.tablet;
+
+    double fontSize = isDesktop ? 22 : (isTablet ? 18 : 16);
+    double iconSize = isDesktop ? 28 : (isTablet ? 26 : 24);
+
     return FocusableActionDetector(
       onFocusChange: (val) => setState(() => _isFocused = val),
       child: AnimatedScale(
@@ -40,10 +47,17 @@ class _HomeBottomButtonState extends State<HomeBottomButton> {
             width: double.infinity,
             height: double.infinity,
             decoration: BoxDecoration(
-              gradient: BingieThemeExtension.of(context).glassGradient,
-              borderRadius: BorderRadius.circular(30),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xAA4A3D6A), // Brighter purple-grey glass
+                  const Color(0xAA30274F), // Brighter purple-grey glass
+                ],
+              ),
+              borderRadius: BorderRadius.circular(isDesktop ? 24 : 30),
               border: Border.all(
-                color: _isFocused ? widget.accentColor : Colors.transparent, // No colored borders in normal state (Requirement)
+                color: _isFocused ? widget.accentColor : Colors.transparent, // No colored borders in normal state
                 width: 2.0,
               ),
               boxShadow: _isFocused ? [
@@ -71,7 +85,7 @@ class _HomeBottomButtonState extends State<HomeBottomButton> {
                       Icon(
                         widget.icon,
                         color: _isFocused ? widget.accentColor : Colors.white,
-                        size: 24,
+                        size: iconSize,
                       ),
                       const SizedBox(width: 12),
                       Flexible(
@@ -82,7 +96,7 @@ class _HomeBottomButtonState extends State<HomeBottomButton> {
                           textAlign: TextAlign.center,
                           style: GoogleFonts.outfit(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: fontSize,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1.2,
                           ),

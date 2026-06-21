@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/theme/theme_extensions.dart';
+import '../../../utils/responsive_helper.dart';
 
 class HomeTile extends StatefulWidget {
   final String title;
@@ -71,22 +71,43 @@ class _HomeTileState extends State<HomeTile> {
                   ),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
+                      final deviceType = ResponsiveHelper.getDeviceType(context);
+                      final isDesktop = deviceType == DeviceType.desktop;
+                      final isTablet = deviceType == DeviceType.tablet;
+
                       // Dynamically adjust sizes based on available height
                       final double h = constraints.maxHeight;
-                      final double iconSize = (h * 0.3).clamp(32.0, 64.0);
-                      final double titleSize = (h * 0.12).clamp(16.0, 24.0);
-                      final double subtitleSize = (h * 0.06).clamp(10.0, 12.0);
-                      final double spacing = (h * 0.05).clamp(4.0, 12.0);
+                      
+                      double iconSize = (h * 0.3).clamp(32.0, 64.0);
+                      double titleSize = (h * 0.12).clamp(16.0, 24.0);
+                      double subtitleSize = (h * 0.06).clamp(10.0, 12.0);
+                      double spacing = (h * 0.05).clamp(4.0, 12.0);
 
-                      return Padding(
-                        padding: const EdgeInsets.all(12),
+                      if (isDesktop) {
+                        iconSize = 72;
+                        titleSize = 32;
+                        subtitleSize = 16;
+                        spacing = 16;
+                      } else if (isTablet) {
+                        iconSize = 60;
+                        titleSize = 26;
+                        subtitleSize = 13;
+                        spacing = 10;
+                      }
+
+                      return Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        alignment: Alignment.center,
+                        padding: EdgeInsets.all(isDesktop ? 24 : 12),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Icon(
-                              widget.icon, 
-                              color: widget.accentColor, 
+                              widget.icon,
+                              color: widget.accentColor,
                               size: iconSize,
                             ),
                             SizedBox(height: spacing),
@@ -103,7 +124,7 @@ class _HomeTileState extends State<HomeTile> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: isDesktop ? 8 : 4),
                             Text(
                               widget.subtitle,
                               textAlign: TextAlign.center,

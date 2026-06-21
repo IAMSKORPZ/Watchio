@@ -8,7 +8,10 @@ class WatchioHeader extends StatefulWidget {
   final VoidCallback? onMenu;
   final VoidCallback? onSort;
   final VoidCallback? onRefresh;
+  final VoidCallback? onRefreshEpg;
   final VoidCallback? onSettings;
+  final bool isCompact;
+  final double? customLogoHeight;
 
   const WatchioHeader({
     super.key,
@@ -17,7 +20,10 @@ class WatchioHeader extends StatefulWidget {
     this.onMenu,
     this.onSort,
     this.onRefresh,
+    this.onRefreshEpg,
     this.onSettings,
+    this.isCompact = false,
+    this.customLogoHeight,
   });
 
   @override
@@ -44,8 +50,16 @@ class _WatchioHeaderState extends State<WatchioHeader> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+    final double verticalPadding = widget.isCompact ? 8 : 16;
+    final double logoHeight = widget.customLogoHeight ?? 110;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        verticalPadding,
+        24,
+        verticalPadding / 2,
+      ),
       child: Row(
         children: [
           // LEFT: Back + Logo
@@ -58,7 +72,7 @@ class _WatchioHeaderState extends State<WatchioHeader> {
               const SizedBox(width: 16),
               Image.asset(
                 'assets/images/App_Logo.png',
-                height: 68,
+                height: logoHeight,
                 fit: BoxFit.contain,
               ),
             ],
@@ -68,21 +82,25 @@ class _WatchioHeaderState extends State<WatchioHeader> {
 
           // CENTER: Time & Date
           Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 DateFormat('hh:mm a').format(_now),
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: widget.isCompact ? 16 : 20,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
-              Text(
-                DateFormat('MMM d, yyyy').format(_now),
-                style: const TextStyle(
+              if (!widget.isCompact)
+                Text(
+                  DateFormat('MMM d, yyyy').format(_now),
+                  style: const TextStyle(
                     color: Color(0xFFC12CFF),
                     fontSize: 12,
-                    fontWeight: FontWeight.bold),
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
             ],
           ),
 
@@ -92,7 +110,9 @@ class _WatchioHeaderState extends State<WatchioHeader> {
           Row(
             children: [
               _HeaderIconButton(
-                  icon: Icons.search_rounded, onTap: widget.onSearch),
+                icon: Icons.search_rounded,
+                onTap: widget.onSearch,
+              ),
               const SizedBox(width: 12),
               _buildMenu(context),
             ],
@@ -104,9 +124,9 @@ class _WatchioHeaderState extends State<WatchioHeader> {
 
   Widget _buildMenu(BuildContext context) {
     return Theme(
-      data: Theme.of(context).copyWith(
-        hoverColor: Colors.white.withValues(alpha: 0.1),
-      ),
+      data: Theme.of(
+        context,
+      ).copyWith(hoverColor: Colors.white.withValues(alpha: 0.1)),
       child: PopupMenuButton<String>(
         icon: const _HeaderIconContainer(icon: Icons.more_vert_rounded),
         offset: const Offset(0, 50),
@@ -117,23 +137,73 @@ class _WatchioHeaderState extends State<WatchioHeader> {
         ),
         onSelected: (value) {
           switch (value) {
-            case 'sort': widget.onSort?.call(); break;
-            case 'refresh': widget.onRefresh?.call(); break;
-            case 'settings': (widget.onSettings ?? widget.onMenu)?.call(); break;
+            case 'sort':
+              widget.onSort?.call();
+              break;
+            case 'refresh':
+              widget.onRefresh?.call();
+              break;
+            case 'refresh_epg':
+              if (Navigator.of(context).canPop()) {
+                // Not the best way but if we are in live screen it works
+              }
+              // We'll pass this via a new callback
+              if (widget.onRefreshEpg != null) {
+                widget.onRefreshEpg!();
+              }
+              break;
+            case 'settings':
+              (widget.onSettings ?? widget.onMenu)?.call();
+              break;
           }
         },
         itemBuilder: (context) => [
           const PopupMenuItem(
             value: 'sort',
-            child: Row(children: [Icon(Icons.sort_rounded, color: Colors.white70, size: 20), SizedBox(width: 12), Text('Sort Options', style: TextStyle(color: Colors.white))]),
+            child: Row(
+              children: [
+                Icon(Icons.sort_rounded, color: Colors.white70, size: 20),
+                SizedBox(width: 12),
+                Text('Sort Options', style: TextStyle(color: Colors.white)),
+              ],
+            ),
           ),
           const PopupMenuItem(
             value: 'refresh',
-            child: Row(children: [Icon(Icons.refresh_rounded, color: Colors.white70, size: 20), SizedBox(width: 12), Text('Refresh Content', style: TextStyle(color: Colors.white))]),
+            child: Row(
+              children: [
+                Icon(Icons.refresh_rounded, color: Colors.white70, size: 20),
+                SizedBox(width: 12),
+                Text('Refresh Content', style: TextStyle(color: Colors.white)),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'refresh_epg',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Color(0xFFC12CFF),
+                  size: 20,
+                ),
+                SizedBox(width: 12),
+                Text(
+                  'Force EPG Refresh',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
           ),
           const PopupMenuItem(
             value: 'settings',
-            child: Row(children: [Icon(Icons.settings_rounded, color: Colors.white70, size: 20), SizedBox(width: 12), Text('Settings', style: TextStyle(color: Colors.white))]),
+            child: Row(
+              children: [
+                Icon(Icons.settings_rounded, color: Colors.white70, size: 20),
+                SizedBox(width: 12),
+                Text('Settings', style: TextStyle(color: Colors.white)),
+              ],
+            ),
           ),
         ],
       ),
@@ -155,11 +225,7 @@ class _HeaderIconContainer extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
       ),
-      child: Icon(
-        icon, 
-        color: Colors.white70,
-        size: 22
-      ),
+      child: Icon(icon, color: Colors.white70, size: 22),
     );
   }
 }
@@ -186,16 +252,18 @@ class _HeaderIconButtonState extends State<_HeaderIconButton> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: _isFocused ? const Color(0xAA4A3D6A) : const Color(0x44252525),
+            color: _isFocused
+                ? Colors.white.withValues(alpha: 0.2)
+                : Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: _isFocused ? const Color(0xFFC12CFF) : Colors.white10
+              color: _isFocused ? const Color(0xFFC12CFF) : Colors.white10,
             ),
           ),
           child: Icon(
-            widget.icon, 
-            color: _isFocused ? Colors.white : Colors.white70, 
-            size: 22
+            widget.icon,
+            color: _isFocused ? Colors.white : Colors.white70,
+            size: 22,
           ),
         ),
       ),
