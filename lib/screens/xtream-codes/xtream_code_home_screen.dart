@@ -56,7 +56,7 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
     );
     AppState.xtreamCodeRepository = repository;
     AppState.currentPlaylist = widget.playlist;
-    unawaited(EpgSourceService.refreshIfDue(widget.playlist));
+    unawaited(EpgSourceService.refreshOnStartup(widget.playlist));
     _controller = XtreamCodeHomeController(false);
   }
 
