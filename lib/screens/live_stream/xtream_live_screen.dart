@@ -33,7 +33,8 @@ class XtreamLiveScreen extends StatefulWidget {
   State<XtreamLiveScreen> createState() => _XtreamLiveScreenState();
 }
 
-class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBindingObserver {
+class _XtreamLiveScreenState extends State<XtreamLiveScreen>
+    with WidgetsBindingObserver {
   CategoryViewModel? _selectedCategory;
   ContentItem? _focusedChannel;
   final List<ContentItem> _currentItems = [];
@@ -67,8 +68,10 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
     _channelScrollController.addListener(_scrollListener);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      _homeController =
-          Provider.of<XtreamCodeHomeController>(context, listen: false);
+      _homeController = Provider.of<XtreamCodeHomeController>(
+        context,
+        listen: false,
+      );
       _homeController?.addListener(_handleTabChange);
 
       final controller = _homeController!;
@@ -89,15 +92,17 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     debugPrint('XtreamLiveScreen: App lifecycle state changed -> $state');
-    if (state == AppLifecycleState.paused || 
-        state == AppLifecycleState.inactive || 
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
       debugPrint('XtreamLiveScreen: Playback Stopped (App Background)');
       _previewDebounce?.cancel();
       _previewController?.pause();
     } else if (state == AppLifecycleState.resumed) {
       if (_homeController?.currentIndex == 2) {
-        debugPrint('XtreamLiveScreen: App resumed on Live TV, resuming preview');
+        debugPrint(
+          'XtreamLiveScreen: App resumed on Live TV, resuming preview',
+        );
         _previewController?.play();
       }
     }
@@ -108,8 +113,10 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
 
     debugPrint('XtreamLiveScreen: Player Created (Preview)');
     final engineStr = await UserPreferences.getPlayerEngine();
-    final engine = PlayerEngine.values.firstWhere((e) => e.name == engineStr,
-        orElse: () => PlayerEngine.auto);
+    final engine = PlayerEngine.values.firstWhere(
+      (e) => e.name == engineStr,
+      orElse: () => PlayerEngine.auto,
+    );
     _previewController = PlayerFactory.create(engine);
     await _previewController!.initialize();
     _previewController!.addListener(_onPreviewStateChanged);
@@ -117,38 +124,43 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
 
   void _onPreviewStateChanged() {
     if (!mounted) return;
-    
+
     if (_previewController?.error != null) {
-      debugPrint('XtreamLiveScreen: Playback Error -> ${_previewController?.error}');
+      debugPrint(
+        'XtreamLiveScreen: Playback Error -> ${_previewController?.error}',
+      );
     }
 
     // Check if the stream ended unexpectedly (common with Live TV drops)
-    if (_previewController?.currentItem != null && 
-        !_previewController!.isPlaying && 
+    if (_previewController?.currentItem != null &&
+        !_previewController!.isPlaying &&
         !_previewController!.isBuffering &&
         !_isReconnecting &&
         _previewController!.error == null) {
-        
-        // Potential unexpected stop
-        debugPrint('XtreamLiveScreen: Playback Stopped (Unexpected) - Reason: EOF or Server Disconnect');
-        _handleReconnect();
+      // Potential unexpected stop
+      debugPrint(
+        'XtreamLiveScreen: Playback Stopped (Unexpected) - Reason: EOF or Server Disconnect',
+      );
+      _handleReconnect();
     }
-    
+
     setState(() {});
   }
 
   Future<void> _handleReconnect() async {
     if (_focusedChannel == null || _isReconnecting) return;
-    
+
     _isReconnecting = true;
     debugPrint('XtreamLiveScreen: Attempting one-time reconnection in 1s...');
     await Future.delayed(const Duration(seconds: 1));
-    
+
     if (mounted && _focusedChannel != null) {
-      debugPrint('XtreamLiveScreen: Retrying playback for ${_focusedChannel!.name}');
+      debugPrint(
+        'XtreamLiveScreen: Retrying playback for ${_focusedChannel!.name}',
+      );
       _onChannelFocused(_focusedChannel!, immediate: true);
     }
-    
+
     await Future.delayed(const Duration(seconds: 2));
     _isReconnecting = false;
   }
@@ -173,7 +185,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
       _startEpgTimer();
       if (_previewController == null) {
         debugPrint(
-            'XtreamLiveScreen: Returned to Live TV tab, re-initializing player');
+          'XtreamLiveScreen: Returned to Live TV tab, re-initializing player',
+        );
         _restorePreview();
       }
     }
@@ -181,7 +194,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
 
   Future<void> _restorePreview() async {
     await _initPreviewController();
-    // BUG FIX: Removed automatic playback on tab restore to ensure 
+    // BUG FIX: Removed automatic playback on tab restore to ensure
     // stream only starts when user explicitly selects/focuses a channel
   }
 
@@ -214,7 +227,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
   }
 
   Future<void> _onCategorySelected(CategoryViewModel category) async {
-    if (_selectedCategory?.category.categoryId == category.category.categoryId) return;
+    if (_selectedCategory?.category.categoryId == category.category.categoryId)
+      return;
 
     setState(() {
       _selectedCategory = category;
@@ -243,8 +257,10 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
     setState(() => _isMoreLoading = true);
 
     try {
-      final controller =
-          Provider.of<XtreamCodeHomeController>(context, listen: false);
+      final controller = Provider.of<XtreamCodeHomeController>(
+        context,
+        listen: false,
+      );
       final newItems = await controller.getCategoryItems(
         _selectedCategory!.category,
         top: _pageSize,
@@ -289,11 +305,11 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
 
     final liveStream = channel.liveStream;
     final m3uItem = channel.m3uItem;
-    
+
     String? playlistId = liveStream?.playlistId ?? m3uItem?.playlistId;
     if (playlistId == null) {
-       final currentPlaylist = widget.playlist ?? AppState.currentPlaylist;
-       playlistId = currentPlaylist?.id;
+      final currentPlaylist = widget.playlist ?? AppState.currentPlaylist;
+      playlistId = currentPlaylist?.id;
     }
 
     if (playlistId == null) {
@@ -325,7 +341,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
       for (final strategy in searchStrategies) {
         final id = strategy['id'];
         if (id == null || id.isEmpty) continue;
-        
+
         programs = await _epgService.getProgramsForWindow(
           playlistId: playlistId,
           epgChannelId: id,
@@ -333,7 +349,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
           end: now.add(const Duration(hours: 12)),
           limit: 3,
         );
-        
+
         if (programs.isNotEmpty) {
           matchedId = id;
           matchedStrategy = strategy['label'];
@@ -353,12 +369,14 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
           limit: 3,
         );
         if (programs.isNotEmpty) {
-           debugPrint('EPG Match Found using Normalized Name');
-           matchedStrategy = 'normalized_name';
+          debugPrint('EPG Match Found using Normalized Name');
+          matchedStrategy = 'normalized_name';
         }
       }
 
-      debugPrint('EPG Matching Status: ${programs.isNotEmpty ? "SUCCESS" : "FAILED"}');
+      debugPrint(
+        'EPG Matching Status: ${programs.isNotEmpty ? "SUCCESS" : "FAILED"}',
+      );
       debugPrint('Lookup Timestamp (Local): $now');
       debugPrint('Lookup Timestamp (UTC): ${now.toUtc()}');
 
@@ -367,19 +385,28 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
       } else {
         debugPrint('Number of programmes found: ${programs.length}');
         final current = programs.firstWhere(
-          (p) => (p.start.isBefore(now) || p.start.isAtSameMomentAs(now)) && p.end.isAfter(now),
+          (p) =>
+              (p.start.isBefore(now) || p.start.isAtSameMomentAs(now)) &&
+              p.end.isAfter(now),
           orElse: () => programs.first,
         );
-        
-        bool isAiringNow = (current.start.isBefore(now) || current.start.isAtSameMomentAs(now)) && current.end.isAfter(now);
-        
-        debugPrint('Current Programme: ${current.title} (${current.start} - ${current.end})');
+
+        bool isAiringNow =
+            (current.start.isBefore(now) ||
+                current.start.isAtSameMomentAs(now)) &&
+            current.end.isAfter(now);
+
+        debugPrint(
+          'Current Programme: ${current.title} (${current.start} - ${current.end})',
+        );
         if (programs.length > 1) {
           debugPrint('Next Programme: ${programs[1].title}');
         }
-        
+
         if (!isAiringNow) {
-           debugPrint('EPG channel matched but no current programme at this time (Current time: $now)');
+          debugPrint(
+            'EPG channel matched but no current programme at this time (Current time: $now)',
+          );
         }
       }
       debugPrint('--- EPG AUDIT END ---');
@@ -402,9 +429,9 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
       _fetchEpg(channel);
       return;
     }
-    
+
     debugPrint('XtreamLiveScreen: Channel Selected -> ${channel.name}');
-    
+
     // BUG FIX: Clear error state and cancel old requests immediately
     _previewController?.stop();
 
@@ -420,7 +447,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
 
     Future<void> startPlayback() async {
       if (!mounted || requestId != _previewLoadRequestId) return;
-      
+
       // BUG FIX: Strictly suppress playback if not on the Live TV tab
       if (_homeController?.currentIndex != 2) {
         debugPrint('XtreamLiveScreen: Suppressing playback, tab is not active');
@@ -430,24 +457,30 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
       // BUG #1 & #5 FIX: Check if we are already playing this exact source
       final currentSourceId = _previewController?.currentItem?.id;
       if (currentSourceId == channel.id) {
-         debugPrint('XtreamLiveScreen: Skipping Playback Requested, source already loaded.');
-         return;
+        debugPrint(
+          'XtreamLiveScreen: Skipping Playback Requested, source already loaded.',
+        );
+        return;
       }
 
       if (_previewController == null) {
         debugPrint('XtreamLiveScreen: Player Created');
         await _initPreviewController();
       }
-      
+
       if (!mounted || requestId != _previewLoadRequestId) return;
 
       final playlist = widget.playlist ?? AppState.currentPlaylist;
       if (playlist == null) {
-        debugPrint('XtreamLiveScreen: CRITICAL - No playlist context available');
+        debugPrint(
+          'XtreamLiveScreen: CRITICAL - No playlist context available',
+        );
         return;
       }
 
-      debugPrint('XtreamLiveScreen: Playback Requested -> ${channel.name} (Req: $requestId)');
+      debugPrint(
+        'XtreamLiveScreen: Playback Requested -> ${channel.name} (Req: $requestId)',
+      );
       final resolvedUrl = await PlaybackUrlResolver.resolveUrl(
         item: channel,
         playlist: playlist,
@@ -456,7 +489,9 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
       if (!mounted || requestId != _previewLoadRequestId) return;
 
       if (resolvedUrl == null || resolvedUrl.isEmpty) {
-        debugPrint('XtreamLiveScreen: Playback Error -> Failed to resolve URL for ${channel.name}');
+        debugPrint(
+          'XtreamLiveScreen: Playback Error -> Failed to resolve URL for ${channel.name}',
+        );
         return;
       }
 
@@ -473,8 +508,10 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
       startPlayback();
     } else {
       // Increased debounce to 500ms for stability on remotes
-      _previewDebounce =
-          Timer(const Duration(milliseconds: 500), startPlayback);
+      _previewDebounce = Timer(
+        const Duration(milliseconds: 500),
+        startPlayback,
+      );
     }
   }
 
@@ -499,7 +536,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
       ),
     ).then((_) {
       debugPrint(
-          'XtreamLiveScreen: Returned from fullscreen, resuming preview and EPG');
+        'XtreamLiveScreen: Returned from fullscreen, resuming preview and EPG',
+      );
       if (mounted) {
         if (_focusedChannel != null) {
           _fetchEpg(_focusedChannel!);
@@ -547,14 +585,12 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
         url: xmltvUrl,
       );
 
-      debugPrint(
-          'EPG Refresh Complete: ${result.currentItem}');
+      debugPrint('EPG Refresh Complete: ${result.currentItem}');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text('EPG Refresh Complete: ${result.currentItem}'),
+            content: Text('EPG Refresh Complete: ${result.currentItem}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -593,7 +629,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
                 image: (homeBg.isNotEmpty)
                     ? NetworkImage(homeBg)
                     : const AssetImage('assets/images/background.png')
-                        as ImageProvider,
+                          as ImageProvider,
                 fit: BoxFit.cover,
               ),
             ),
@@ -614,13 +650,16 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
                   // HEADER
                   WatchioHeader(
                     isCompact: true,
-                    customLogoHeight: 62, // BUG #7 FIX: Increased logo size by ~35%
+                    customLogoHeight:
+                        62, // BUG #7 FIX: Increased logo size by ~35%
                     onBack: () => controller.onNavigationTap(0),
                     onSearch: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => SearchScreen(
-                                contentType: ContentType.liveStream))),
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            SearchScreen(contentType: ContentType.liveStream),
+                      ),
+                    ),
                     onSettings: () => controller.onNavigationTap(5),
                     onRefresh: () => controller.refreshAllData(context),
                     onRefreshEpg: _forceRefreshEpg,
@@ -638,6 +677,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
                             child: GlassPanel(
                               opacity: 0.1,
                               blur: 20,
+                              gradient: contentPanelGradient,
                               child: _buildCategoryPanel(controller),
                             ),
                           ),
@@ -649,16 +689,14 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
                             child: GlassPanel(
                               opacity: 0.1,
                               blur: 20,
+                              gradient: contentPanelGradient,
                               child: _buildChannelPanel(),
                             ),
                           ),
                           const SizedBox(width: 16),
 
                           // RIGHT PANEL (45%) - Preview & EPG
-                          Expanded(
-                            flex: 45,
-                            child: _buildPreviewPanel(),
-                          ),
+                          Expanded(flex: 45, child: _buildPreviewPanel()),
                         ],
                       ),
                     ),
@@ -686,8 +724,11 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
             decoration: InputDecoration(
               hintText: 'SEARCH CATEGORIES',
               hintStyle: const TextStyle(color: Colors.white24, fontSize: 11),
-              prefixIcon:
-                  const Icon(Icons.search, color: Colors.white24, size: 18),
+              prefixIcon: const Icon(
+                Icons.search,
+                color: Colors.white24,
+                size: 18,
+              ),
               filled: true,
               fillColor: Colors.white.withValues(alpha: 0.05),
               contentPadding: const EdgeInsets.symmetric(vertical: 0),
@@ -710,7 +751,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
             separatorBuilder: (_, _) => const SizedBox(height: 4),
             itemBuilder: (context, index) {
               final cat = categories[index];
-              final isSelected = _selectedCategory?.category.categoryId ==
+              final isSelected =
+                  _selectedCategory?.category.categoryId ==
                   cat.category.categoryId;
 
               return _CategoryItem(
@@ -759,7 +801,9 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
                   child: Padding(
                     padding: EdgeInsets.all(8.0),
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Color(0xFFC12CFF)),
+                      strokeWidth: 2,
+                      color: Color(0xFFC12CFF),
+                    ),
                   ),
                 );
               }
@@ -798,16 +842,19 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                      color: _previewFocused
-                          ? const Color(0xFFC12CFF)
-                          : const Color(0xFFC12CFF).withValues(alpha: 0.3),
-                      width: _previewFocused ? 4 : 2),
+                    color: _previewFocused
+                        ? const Color(0xFFC12CFF)
+                        : const Color(0xFFC12CFF).withValues(alpha: 0.3),
+                    width: _previewFocused ? 4 : 2,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                        color: const Color(0xFFC12CFF)
-                            .withValues(alpha: _previewFocused ? 0.3 : 0.1),
-                        blurRadius: _previewFocused ? 30 : 20,
-                        spreadRadius: 5),
+                      color: const Color(
+                        0xFFC12CFF,
+                      ).withValues(alpha: _previewFocused ? 0.3 : 0.1),
+                      blurRadius: _previewFocused ? 30 : 20,
+                      spreadRadius: 5,
+                    ),
                   ],
                 ),
                 child: ClipRRect(
@@ -817,22 +864,30 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
                     children: [
                       // Video Preview
                       if (_previewController != null)
-                        _previewController!
-                            .buildPlayerView(context, fit: BoxFit.cover)
+                        _previewController!.buildPlayerView(
+                          context,
+                          fit: BoxFit.cover,
+                        )
                       else if (_focusedChannel!.imagePath.isNotEmpty)
                         Image.network(
                           _focusedChannel!.imagePath,
                           fit: BoxFit.cover,
                           errorBuilder: (ctx, err, st) => const Center(
-                              child: Icon(Icons.live_tv,
-                                  size: 80, color: Colors.white10)),
+                            child: Icon(
+                              Icons.live_tv,
+                              size: 80,
+                              color: Colors.white10,
+                            ),
+                          ),
                         ),
 
                       // Loading indicator for preview
                       if (_previewController?.isBuffering ?? false)
                         const Center(
-                            child: CircularProgressIndicator(
-                                color: Color(0xFFC12CFF))),
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFC12CFF),
+                          ),
+                        ),
 
                       // Error message for preview
                       if (_previewController?.error != null)
@@ -842,21 +897,27 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.error_outline_rounded,
-                                  color: Colors.redAccent, size: 48),
+                              const Icon(
+                                Icons.error_outline_rounded,
+                                color: Colors.redAccent,
+                                size: 48,
+                              ),
                               const SizedBox(height: 12),
                               const Text(
                                 'Stream unavailable',
                                 style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold),
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               const Text(
                                 'This channel is offline or not responding.',
                                 style: TextStyle(
-                                    color: Colors.white70, fontSize: 12),
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 20),
@@ -864,18 +925,24 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
                                 onPressed: () {
                                   if (_focusedChannel != null) {
                                     debugPrint('Manual retry requested');
-                                    _onChannelFocused(_focusedChannel!,
-                                        immediate: true);
+                                    _onChannelFocused(
+                                      _focusedChannel!,
+                                      immediate: true,
+                                    );
                                   }
                                 },
-                                icon: const Icon(Icons.refresh_rounded,
-                                    size: 18),
+                                icon: const Icon(
+                                  Icons.refresh_rounded,
+                                  size: 18,
+                                ),
                                 label: const Text('Retry'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFC12CFF),
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 24, vertical: 12),
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -894,7 +961,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
                               end: Alignment.bottomCenter,
                               colors: [
                                 Colors.transparent,
-                                Colors.black.withValues(alpha: 0.6)
+                                Colors.black.withValues(alpha: 0.6),
                               ],
                             ),
                           ),
@@ -905,9 +972,11 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
                       Positioned(
                         top: 16,
                         right: 16,
-                        child: Icon(Icons.fullscreen_rounded,
-                            color: Colors.white.withValues(alpha: 0.5),
-                            size: 28),
+                        child: Icon(
+                          Icons.fullscreen_rounded,
+                          color: Colors.white.withValues(alpha: 0.5),
+                          size: 28,
+                        ),
                       ),
                     ],
                   ),
@@ -925,6 +994,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
           child: GlassPanel(
             opacity: 0.1,
             blur: 20,
+            gradient: contentPanelGradient,
             padding: const EdgeInsets.all(20),
             child: _buildEpgContent(),
           ),
@@ -942,17 +1012,23 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
             const Text(
               'No EPG Information Available',
               style: TextStyle(
-                  color: Colors.white38,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600),
+                color: Colors.white38,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 16),
             TextButton.icon(
               onPressed: _forceRefreshEpg,
-              icon: const Icon(Icons.refresh_rounded,
-                  size: 18, color: Color(0xFFC12CFF)),
-              label: const Text('Refresh EPG',
-                  style: TextStyle(color: Colors.white70, fontSize: 12)),
+              icon: const Icon(
+                Icons.refresh_rounded,
+                size: 18,
+                color: Color(0xFFC12CFF),
+              ),
+              label: const Text(
+                'Refresh EPG',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
             ),
           ],
         ),
@@ -962,7 +1038,9 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
     final now = DateTime.now();
     // Try to find the program that is currently airing
     final currentProgramIndex = _epgPrograms.indexWhere(
-      (p) => (p.start.isBefore(now) || p.start.isAtSameMomentAs(now)) && p.end.isAfter(now),
+      (p) =>
+          (p.start.isBefore(now) || p.start.isAtSameMomentAs(now)) &&
+          p.end.isAfter(now),
     );
 
     if (currentProgramIndex == -1) {
@@ -975,9 +1053,10 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
               const Text(
                 'No current programme available',
                 style: TextStyle(
-                    color: Colors.white38,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600),
+                  color: Colors.white38,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const Divider(color: Colors.white10, height: 32),
               _buildEpgSection('UP NEXT', _epgPrograms.first),
@@ -990,9 +1069,10 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
           child: Text(
             'No current programme available',
             style: TextStyle(
-                color: Colors.white38,
-                fontSize: 14,
-                fontWeight: FontWeight.w600),
+              color: Colors.white38,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         );
       }
@@ -1019,26 +1099,33 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
     );
   }
 
-  Widget _buildEpgSection(String header, EpgProgramWindow program,
-      {bool isNow = false}) {
+  Widget _buildEpgSection(
+    String header,
+    EpgProgramWindow program, {
+    bool isNow = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text(header,
-                style: const TextStyle(
-                    color: Color(0xFF00B7FF),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2)),
+            Text(
+              header,
+              style: const TextStyle(
+                color: Color(0xFF00B7FF),
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
+              ),
+            ),
             const Spacer(),
             Text(
               '${DateFormat('HH:mm').format(program.start)} - ${DateFormat('HH:mm').format(program.end)}',
               style: const TextStyle(
-                  color: Colors.white38,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold),
+                color: Colors.white38,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -1046,7 +1133,10 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
         Text(
           program.title,
           style: const TextStyle(
-              color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -1054,8 +1144,11 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
           const SizedBox(height: 6),
           Text(
             program.description!,
-            style:
-                const TextStyle(color: Colors.white60, fontSize: 13, height: 1.4),
+            style: const TextStyle(
+              color: Colors.white60,
+              fontSize: 13,
+              height: 1.4,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1078,14 +1171,17 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
       height: 4,
       width: double.infinity,
       decoration: BoxDecoration(
-          color: Colors.white10, borderRadius: BorderRadius.circular(2)),
+        color: Colors.white10,
+        borderRadius: BorderRadius.circular(2),
+      ),
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
         widthFactor: progress,
         child: Container(
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-                colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)]),
+              colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
+            ),
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -1098,7 +1194,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBinding
     if (categoryId == IptvRepository.virtualFavorites) {
       return Icons.favorite_rounded;
     }
-    if (categoryId == IptvRepository.virtualHistory) return Icons.history_rounded;
+    if (categoryId == IptvRepository.virtualHistory)
+      return Icons.history_rounded;
     return Icons.live_tv_rounded;
   }
 }
@@ -1152,16 +1249,20 @@ class _CategoryItemState extends State<_CategoryItem> {
               boxShadow: active
                   ? [
                       BoxShadow(
-                          color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
-                          blurRadius: 12,
-                          spreadRadius: 1)
+                        color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                      ),
                     ]
                   : [],
             ),
             child: Row(
               children: [
-                Icon(widget.icon,
-                    color: active ? Colors.white : Colors.white70, size: 20),
+                Icon(
+                  widget.icon,
+                  color: active ? Colors.white : Colors.white70,
+                  size: 20,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -1272,7 +1373,9 @@ class _ChannelItemState extends State<_ChannelItem> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 4), // Reduced from 6 (-33%)
+              horizontal: 12,
+              vertical: 4,
+            ), // Reduced from 6 (-33%)
             decoration: BoxDecoration(
               color: active
                   ? const Color(0xAA4A3D6A)
@@ -1285,8 +1388,9 @@ class _ChannelItemState extends State<_ChannelItem> {
               boxShadow: active
                   ? [
                       BoxShadow(
-                          color: const Color(0xFFC12CFF).withValues(alpha: 0.3),
-                          blurRadius: 10)
+                        color: const Color(0xFFC12CFF).withValues(alpha: 0.3),
+                        blurRadius: 10,
+                      ),
                     ]
                   : [],
             ),
@@ -1297,9 +1401,10 @@ class _ChannelItemState extends State<_ChannelItem> {
                   child: Text(
                     widget.channel.liveStream?.streamId ?? '${widget.index}',
                     style: const TextStyle(
-                        color: Colors.white24,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold),
+                      color: Colors.white24,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -1317,12 +1422,18 @@ class _ChannelItemState extends State<_ChannelItem> {
                           child: Image.network(
                             widget.channel.imagePath,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, _, _) => const Icon(Icons.live_tv,
-                                size: 16, color: Colors.white24),
+                            errorBuilder: (_, _, _) => const Icon(
+                              Icons.live_tv,
+                              size: 16,
+                              color: Colors.white24,
+                            ),
                           ),
                         )
-                      : const Icon(Icons.live_tv,
-                          size: 16, color: Colors.white24),
+                      : const Icon(
+                          Icons.live_tv,
+                          size: 16,
+                          color: Colors.white24,
+                        ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1333,9 +1444,10 @@ class _ChannelItemState extends State<_ChannelItem> {
                       Text(
                         widget.channel.name,
                         style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1343,8 +1455,9 @@ class _ChannelItemState extends State<_ChannelItem> {
                       Text(
                         _currentProgram?.title ?? 'No Programme Info',
                         style: TextStyle(
-                            color: active ? Colors.white70 : Colors.white38,
-                            fontSize: 10), // Reduced from 11
+                          color: active ? Colors.white70 : Colors.white38,
+                          fontSize: 10,
+                        ), // Reduced from 11
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1373,7 +1486,9 @@ class _ChannelItemState extends State<_ChannelItem> {
       height: 2,
       width: double.infinity,
       decoration: BoxDecoration(
-          color: Colors.white10, borderRadius: BorderRadius.circular(1)),
+        color: Colors.white10,
+        borderRadius: BorderRadius.circular(1),
+      ),
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
         widthFactor: progress,
