@@ -185,6 +185,12 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     if (_homeController!.currentIndex != 2) {
       _epgUpdateTimer?.cancel();
       debugPrint('EPG timer cancelled');
+      if (mounted) {
+        setState(() {
+          _hasPreviewStarted = false;
+          _previewFocused = false;
+        });
+      }
       if (_previewController != null) {
         debugPrint('XtreamLiveScreen: Playback Stopped (Tab Changed)');
         debugPrint('XtreamLiveScreen: Player Disposed (Tab Changed)');
@@ -944,6 +950,46 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                                 ),
                               ),
 
+                            if (_hasPreviewStarted &&
+                                (_previewController == null ||
+                                    (_previewController?.isBuffering ??
+                                        false)) &&
+                                _previewController?.error == null)
+                              Container(
+                                color: Colors.black.withValues(alpha: 0.72),
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Image.asset(
+                                        'assets/images/App_Logo.png',
+                                        width: 150,
+                                        fit: BoxFit.contain,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      const SizedBox.square(
+                                        dimension: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Color(0xFFA855F7),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        'Loading ${_focusedChannel?.name ?? 'channel'}…',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
                             // Error message for preview
                             if (_previewController?.error != null)
                               Container(
@@ -1273,6 +1319,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
       children: List.generate(
         timeline.length,
         (index) => Expanded(
+          flex: index == 0 ? 4 : 3,
           child: _buildTimelineItem(
             index == 0
                 ? 'NOW PLAYING'
