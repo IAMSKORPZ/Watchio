@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../utils/responsive_helper.dart';
+import '../../../core/theme/theme_extensions.dart';
 
 class HomeBottomButton extends StatefulWidget {
   final String label;
@@ -26,6 +27,7 @@ class _HomeBottomButtonState extends State<HomeBottomButton> {
 
   @override
   Widget build(BuildContext context) {
+    final panelGradient = BingieThemeExtension.of(context).panelGradient;
     final deviceType = ResponsiveHelper.getDeviceType(context);
     final isDesktop = deviceType == DeviceType.desktop;
     final isTablet = deviceType == DeviceType.tablet;
@@ -47,26 +49,23 @@ class _HomeBottomButtonState extends State<HomeBottomButton> {
             width: double.infinity,
             height: double.infinity,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xAA4A3D6A), // Brighter purple-grey glass
-                  const Color(0xAA30274F), // Brighter purple-grey glass
-                ],
-              ),
+              gradient: panelGradient,
               borderRadius: BorderRadius.circular(isDesktop ? 24 : 30),
               border: Border.all(
-                color: _isFocused ? widget.accentColor : Colors.transparent, // No colored borders in normal state
+                color: _isFocused
+                    ? widget.accentColor
+                    : Colors.transparent, // No colored borders in normal state
                 width: 2.0,
               ),
-              boxShadow: _isFocused ? [
-                BoxShadow(
-                  color: widget.accentColor.withValues(alpha: 0.4),
-                  blurRadius: 15,
-                  spreadRadius: 2,
-                )
-              ] : [],
+              boxShadow: _isFocused
+                  ? [
+                      BoxShadow(
+                        color: widget.accentColor.withValues(alpha: 0.4),
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                  : [],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),

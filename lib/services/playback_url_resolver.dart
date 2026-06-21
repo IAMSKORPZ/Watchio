@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/content_type.dart';
 import '../models/playlist_content_model.dart';
 import '../models/playlist_model.dart';
@@ -23,7 +24,8 @@ class PlaybackUrlResolver {
     // Robust Sanitization
     try {
       final uri = Uri.parse(finalBaseUrl);
-      finalBaseUrl = '${uri.scheme}://${uri.host}${uri.hasPort ? ":${uri.port}" : ""}';
+      finalBaseUrl =
+          '${uri.scheme}://${uri.host}${uri.hasPort ? ":${uri.port}" : ""}';
     } catch (e) {
       if (finalBaseUrl.contains('/player_api.php')) {
         finalBaseUrl = finalBaseUrl.split('/player_api.php')[0];
@@ -42,13 +44,15 @@ class PlaybackUrlResolver {
         finalBaseUrl = finalBaseUrl.substring(0, finalBaseUrl.length - 1);
       }
 
-      if (!finalBaseUrl.startsWith('http://') && !finalBaseUrl.startsWith('https://')) {
+      if (!finalBaseUrl.startsWith('http://') &&
+          !finalBaseUrl.startsWith('https://')) {
         finalBaseUrl = 'http://$finalBaseUrl';
       }
     }
 
     if (playlist.type == PlaylistType.m3u) {
-      final url = item.m3uItem?.url ?? (item.id.startsWith('http') ? item.id : null);
+      final url =
+          item.m3uItem?.url ?? (item.id.startsWith('http') ? item.id : null);
       if (url == null) {
         debugPrint('PlaybackUrlResolver: M3U URL missing for ${item.name}');
       }
@@ -60,29 +64,49 @@ class PlaybackUrlResolver {
     String? password = playlist.password;
 
     // Load from secure storage if empty
-    if (username == null || username.isEmpty || password == null || password.isEmpty) {
-      password = await SecureStorageService.instance.readProviderPassword(playlistId);
-      final storedUser = await SecureStorageService.instance.readProviderSecret(playlistId, 'username');
+    if (username == null ||
+        username.isEmpty ||
+        password == null ||
+        password.isEmpty) {
+      password = await SecureStorageService.instance.readProviderPassword(
+        playlistId,
+      );
+      final storedUser = await SecureStorageService.instance.readProviderSecret(
+        playlistId,
+        'username',
+      );
       if (storedUser != null && storedUser.isNotEmpty) {
         username = storedUser;
       }
     }
 
-    if (username == null || username.isEmpty || password == null || password.isEmpty) {
-       debugPrint('PlaybackUrlResolver: Credentials missing for ${playlist.type.name} playlist: ${playlist.name}');
-       return null;
+    if (username == null ||
+        username.isEmpty ||
+        password == null ||
+        password.isEmpty) {
+      debugPrint(
+        'PlaybackUrlResolver: Credentials missing for ${playlist.type.name} playlist: ${playlist.name}',
+      );
+      return null;
     }
 
     String finalUrl;
     if (item.catchupStartTime != null && item.catchupDurationMinutes != null) {
-      final startTimeStr = DateFormat('yyyy-MM-dd:HH-mm').format(item.catchupStartTime!);
+      final startTimeStr = DateFormat(
+        'yyyy-MM-dd:HH-mm',
+      ).format(item.catchupStartTime!);
       final duration = item.catchupDurationMinutes!;
-      finalUrl = '$finalBaseUrl/timeshift/$username/$password/$duration/$startTimeStr/$streamId.ts';
+      finalUrl =
+          '$finalBaseUrl/timeshift/$username/$password/$duration/$startTimeStr/$streamId.ts';
     } else {
       switch (item.contentType) {
         case ContentType.liveStream:
           if (playlist.type == PlaylistType.xtream) {
-            finalUrl = '$finalBaseUrl/live/$username/$password/$streamId.ts';
+            final prefs = await SharedPreferences.getInstance();
+            final format = prefs.getString('stream_format') ?? 'auto';
+            final extension = format == 'hls' ? 'm3u8' : 'ts';
+            finalUrl =
+                '$finalBaseUrl/live/$username/$password/$streamId.$extension';
           } else if (playlist.type == PlaylistType.stalker) {
             finalUrl = '$finalBaseUrl/live/$streamId';
           } else {
@@ -93,7 +117,8 @@ class PlaybackUrlResolver {
           final ext = item.containerExtension ?? 'mp4';
           final suffix = ext.isNotEmpty ? '.$ext' : '';
           if (playlist.type == PlaylistType.xtream) {
-            finalUrl = '$finalBaseUrl/movie/$username/$password/$streamId$suffix';
+            finalUrl =
+                '$finalBaseUrl/movie/$username/$password/$streamId$suffix';
           } else if (playlist.type == PlaylistType.stalker) {
             finalUrl = '$finalBaseUrl/vod/$streamId$suffix';
           } else {
@@ -104,7 +129,8 @@ class PlaybackUrlResolver {
           final ext = item.containerExtension ?? 'mp4';
           final suffix = ext.isNotEmpty ? '.$ext' : '';
           if (playlist.type == PlaylistType.xtream) {
-            finalUrl = '$finalBaseUrl/series/$username/$password/$streamId$suffix';
+            finalUrl =
+                '$finalBaseUrl/series/$username/$password/$streamId$suffix';
           } else if (playlist.type == PlaylistType.stalker) {
             finalUrl = '$finalBaseUrl/series/$streamId$suffix';
           } else {
@@ -116,8 +142,9 @@ class PlaybackUrlResolver {
 
     // Masked logging
     final maskedUrl = finalUrl.replaceAllMapped(
-        RegExp(r'/(live|movie|series|timeshift|vod)/([^/]+)/([^/]+)/'),
-        (match) => '/${match.group(1)}/ *** / *** /');
+      RegExp(r'/(live|movie|series|timeshift|vod)/([^/]+)/([^/]+)/'),
+      (match) => '/${match.group(1)}/ *** / *** /',
+    );
     debugPrint('PlaybackUrlResolver: Resolved URL -> $maskedUrl');
 
     return finalUrl;

@@ -1,12 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../core/theme/theme_extensions.dart';
+import '../../core/theme/theme_manager.dart';
+import 'package:provider/provider.dart';
 
-const contentPanelGradient = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: [Color(0xAA4A3D6A), Color(0xAA30274F)],
-);
+LinearGradient contentPanelGradientOf(BuildContext context) =>
+    BingieThemeExtension.of(context).panelGradient;
 
 class GlassPanel extends StatelessWidget {
   final Widget child;
@@ -31,9 +30,13 @@ class GlassPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = BingieThemeExtension.of(context);
+    final manager = context.watch<ThemeManager>();
+    final effectiveRadius = borderRadius == 16
+        ? manager.tileRadius
+        : borderRadius;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
+      borderRadius: BorderRadius.circular(effectiveRadius),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: Container(
@@ -43,9 +46,10 @@ class GlassPanel extends StatelessWidget {
                 ? theme.glassColor.withValues(alpha: opacity)
                 : null,
             gradient: gradient,
-            borderRadius: BorderRadius.circular(borderRadius),
+            borderRadius: BorderRadius.circular(effectiveRadius),
             border: border ?? Border.all(color: theme.glassBorder),
           ),
+          child: Material(type: MaterialType.transparency, child: child),
         ),
       ),
     );

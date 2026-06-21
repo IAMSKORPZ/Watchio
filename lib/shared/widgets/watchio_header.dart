@@ -12,6 +12,9 @@ class WatchioHeader extends StatefulWidget {
   final VoidCallback? onSettings;
   final bool isCompact;
   final double? customLogoHeight;
+  final String? sectionTitle;
+  final VoidCallback? onProfile;
+  final VoidCallback? onSetup;
 
   const WatchioHeader({
     super.key,
@@ -24,6 +27,9 @@ class WatchioHeader extends StatefulWidget {
     this.onSettings,
     this.isCompact = false,
     this.customLogoHeight,
+    this.sectionTitle,
+    this.onProfile,
+    this.onSetup,
   });
 
   @override
@@ -70,11 +76,29 @@ class _WatchioHeaderState extends State<WatchioHeader> {
                 onTap: widget.onBack,
               ),
               const SizedBox(width: 16),
-              Image.asset(
-                'assets/images/App_Logo.png',
-                height: logoHeight,
-                fit: BoxFit.contain,
+              SizedBox(
+                height: 60,
+                width: logoHeight * 1.5,
+                child: OverflowBox(
+                  maxHeight: logoHeight,
+                  child: Image.asset(
+                    'assets/images/App_Logo.png',
+                    height: logoHeight,
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
+              if (widget.sectionTitle != null) ...[
+                const SizedBox(width: 12),
+                Text(
+                  widget.sectionTitle!,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ],
           ),
 
@@ -92,15 +116,14 @@ class _WatchioHeaderState extends State<WatchioHeader> {
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              if (!widget.isCompact)
-                Text(
-                  DateFormat('MMM d, yyyy').format(_now),
-                  style: const TextStyle(
-                    color: Color(0xFFC12CFF),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+              Text(
+                DateFormat('MMM d, yyyy').format(_now),
+                style: const TextStyle(
+                  color: Color(0xFFC12CFF),
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
                 ),
+              ),
             ],
           ),
 
@@ -113,6 +136,13 @@ class _WatchioHeaderState extends State<WatchioHeader> {
                 icon: Icons.search_rounded,
                 onTap: widget.onSearch,
               ),
+              if (widget.onProfile != null) ...[
+                const SizedBox(width: 12),
+                _HeaderIconButton(
+                  icon: Icons.person_outline_rounded,
+                  onTap: widget.onProfile!,
+                ),
+              ],
               const SizedBox(width: 12),
               _buildMenu(context),
             ],
@@ -137,6 +167,9 @@ class _WatchioHeaderState extends State<WatchioHeader> {
         ),
         onSelected: (value) {
           switch (value) {
+            case 'setup':
+              widget.onSetup?.call();
+              break;
             case 'sort':
               widget.onSort?.call();
               break;
@@ -159,39 +192,22 @@ class _WatchioHeaderState extends State<WatchioHeader> {
         },
         itemBuilder: (context) => [
           const PopupMenuItem(
+            value: 'setup',
+            child: Row(
+              children: [
+                Icon(Icons.tune_rounded, color: Colors.white70, size: 20),
+                SizedBox(width: 12),
+                Text('Setup', style: TextStyle(color: Colors.white)),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
             value: 'sort',
             child: Row(
               children: [
                 Icon(Icons.sort_rounded, color: Colors.white70, size: 20),
                 SizedBox(width: 12),
-                Text('Sort Options', style: TextStyle(color: Colors.white)),
-              ],
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'refresh',
-            child: Row(
-              children: [
-                Icon(Icons.refresh_rounded, color: Colors.white70, size: 20),
-                SizedBox(width: 12),
-                Text('Refresh Content', style: TextStyle(color: Colors.white)),
-              ],
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'refresh_epg',
-            child: Row(
-              children: [
-                Icon(
-                  Icons.auto_awesome_rounded,
-                  color: Color(0xFFC12CFF),
-                  size: 20,
-                ),
-                SizedBox(width: 12),
-                Text(
-                  'Force EPG Refresh',
-                  style: TextStyle(color: Colors.white),
-                ),
+                Text('Sort Order', style: TextStyle(color: Colors.white)),
               ],
             ),
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/xtream_code_home_controller.dart';
+import '../../core/theme/theme_manager.dart';
 import '../../models/category_type.dart';
 import '../../models/category_view_model.dart';
 import '../../models/content_type.dart';
@@ -14,6 +15,7 @@ import '../../shared/widgets/watchio_header.dart';
 import '../../utils/navigate_by_content_type.dart';
 import '../../utils/responsive_helper.dart';
 import '../search_screen.dart';
+import '../shared/content_sort_dialog.dart';
 
 class XtreamMoviesScreen extends StatefulWidget {
   const XtreamMoviesScreen({super.key});
@@ -30,6 +32,7 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
   int _currentOffset = 0;
   static const int _pageSize = 60;
   final Map<String, int> _categoryCounts = {};
+  String _sortOrder = 'recent';
 
   final ScrollController _scrollController = ScrollController();
 
@@ -44,13 +47,28 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
         listen: false,
       );
       if (controller.movieCategories.isNotEmpty) {
+        final categories = controller.movieCategories;
+        CategoryViewModel? initialCategory;
+        for (final category in categories) {
+          final name = category.category.categoryName.toUpperCase();
+          if (name.contains('JUST RELEASED') && name.contains('HOLLYWOOD')) {
+            initialCategory = category;
+            break;
+          }
+        }
+        initialCategory ??= categories.cast<CategoryViewModel?>().firstWhere(
+          (category) => category!.category.categoryName.toUpperCase().contains(
+            'JUST RELEASED',
+          ),
+          orElse: () => categories.first,
+        );
         // Load counts in bulk
         final counts = await controller.getAllCategoryCounts(CategoryType.vod);
         if (mounted) {
           setState(() {
             _categoryCounts.addAll(counts);
-            _onCategorySelected(controller.movieCategories.first);
           });
+          await _onCategorySelected(initialCategory!);
         }
       }
     });
@@ -103,6 +121,7 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
       if (mounted) {
         setState(() {
           _currentItems.addAll(newItems);
+          _sortLoadedItems();
           _currentOffset += newItems.length;
           _isMoreLoading = false;
           if (newItems.length < _pageSize) {
@@ -115,9 +134,43 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
     }
   }
 
+  void _sortLoadedItems() {
+    int itemNumber(ContentItem item) => int.tryParse(item.id) ?? 0;
+    switch (_sortOrder) {
+      case 'az':
+        _currentItems.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
+        break;
+      case 'za':
+        _currentItems.sort(
+          (a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()),
+        );
+        break;
+      default:
+        _currentItems.sort((a, b) => itemNumber(b).compareTo(itemNumber(a)));
+    }
+  }
+
+  Future<void> _showSortDialog() async {
+    final selected = await showContentSortDialog(context, _sortOrder, 'Movies');
+    if (selected == null || !mounted) return;
+    setState(() {
+      _sortOrder = selected;
+      _sortLoadedItems();
+    });
+  }
+
+  void _showSetupPlaceholder() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Movie library setup is coming soon.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final config = context.watch<ConfigService>().config;
+    final themeManager = context.watch<ThemeManager>();
     final homeBg = config.backgrounds.home;
 
     return Consumer<XtreamCodeHomeController>(
@@ -137,7 +190,7 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF050812),
               image: DecorationImage(
-                image: (homeBg.isNotEmpty)
+                image: (themeManager.showBackgroundImage && homeBg.isNotEmpty)
                     ? NetworkImage(homeBg)
                     : const AssetImage('assets/images/background.png')
                           as ImageProvider,
@@ -169,6 +222,8 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
                       ),
                     ),
                     onSettings: () => controller.onNavigationTap(5),
+                    onSetup: _showSetupPlaceholder,
+                    onSort: _showSortDialog,
                     onRefresh: () => controller.refreshAllData(context),
                   ),
                   Expanded(
@@ -181,7 +236,7 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
                           child: GlassPanel(
                             opacity: 0.1,
                             blur: 20,
-                            gradient: contentPanelGradient,
+                            gradient: contentPanelGradientOf(context),
                             child: ListView.separated(
                               padding: const EdgeInsets.all(8),
                               itemCount: controller.movieCategories.length,
@@ -243,13 +298,7 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
                                 Expanded(
                                   child: LayoutBuilder(
                                     builder: (context, constraints) {
-                                      final double availableWidth =
-                                          constraints.maxWidth;
-                                      int crossAxisCount = isDesktop
-                                          ? 5
-                                          : (availableWidth / 180)
-                                                .floor()
-                                                .clamp(2, 10);
+                                      const int crossAxisCount = 5;
 
                                       return GridView.builder(
                                         controller: _scrollController,
