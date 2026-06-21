@@ -92,7 +92,7 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
                 child: SizedBox(
-                  height: 60,
+                  height: 110,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -109,7 +109,7 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
                             const SizedBox(width: 16),
                             Image.asset(
                               'assets/images/App_Logo.png',
-                              height: 52, // Larger logo
+                              height: 110,
                               fit: BoxFit.contain,
                             ),
                           ],
