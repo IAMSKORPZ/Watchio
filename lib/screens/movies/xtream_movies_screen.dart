@@ -30,16 +30,19 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
   int _currentOffset = 0;
   static const int _pageSize = 60;
   final Map<String, int> _categoryCounts = {};
-  
+
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final controller = Provider.of<XtreamCodeHomeController>(context, listen: false);
+      final controller = Provider.of<XtreamCodeHomeController>(
+        context,
+        listen: false,
+      );
       if (controller.movieCategories.isNotEmpty) {
         // Load counts in bulk
         final counts = await controller.getAllCategoryCounts(CategoryType.vod);
@@ -61,7 +64,8 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
   }
 
   void _scrollListener() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 400) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 400) {
       if (!_isMoreLoading && _hasMore) {
         _loadMoreItems();
       }
@@ -82,11 +86,14 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
 
   Future<void> _loadMoreItems() async {
     if (_selectedCategory == null) return;
-    
+
     setState(() => _isMoreLoading = true);
-    
+
     try {
-      final controller = Provider.of<XtreamCodeHomeController>(context, listen: false);
+      final controller = Provider.of<XtreamCodeHomeController>(
+        context,
+        listen: false,
+      );
       final newItems = await controller.getCategoryItems(
         _selectedCategory!.category,
         top: _pageSize,
@@ -133,7 +140,7 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
                 image: (homeBg.isNotEmpty)
                     ? NetworkImage(homeBg)
                     : const AssetImage('assets/images/background.png')
-                        as ImageProvider,
+                          as ImageProvider,
                 fit: BoxFit.cover,
               ),
             ),
@@ -155,10 +162,12 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
                     isCompact: true,
                     onBack: () => controller.onNavigationTap(0),
                     onSearch: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => SearchScreen(
-                                contentType: ContentType.vod))),
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            SearchScreen(contentType: ContentType.vod),
+                      ),
+                    ),
                     onSettings: () => controller.onNavigationTap(5),
                     onRefresh: () => controller.refreshAllData(context),
                   ),
@@ -172,6 +181,7 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
                           child: GlassPanel(
                             opacity: 0.1,
                             blur: 20,
+                            gradient: contentPanelGradient,
                             child: ListView.separated(
                               padding: const EdgeInsets.all(8),
                               itemCount: controller.movieCategories.length,
@@ -182,14 +192,17 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
                                     controller.movieCategories[index];
                                 final isSelected =
                                     _selectedCategory?.category.categoryId ==
-                                        category.category.categoryId;
+                                    category.category.categoryId;
                                 return SidebarItem(
                                   icon: _getCategoryIcon(
-                                      category.category.categoryId),
+                                    category.category.categoryId,
+                                  ),
                                   label: category.category.categoryName,
                                   selected: isSelected,
-                                  count: _categoryCounts[
-                                      category.category.categoryId],
+                                  count:
+                                      _categoryCounts[category
+                                          .category
+                                          .categoryId],
                                   onTap: () {
                                     if (!isSelected) {
                                       _onCategorySelected(category);
@@ -211,7 +224,9 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
                               children: [
                                 Padding(
                                   padding: const EdgeInsets.only(
-                                      left: 8.0, bottom: 12),
+                                    left: 8.0,
+                                    bottom: 12,
+                                  ),
                                   child: Text(
                                     _selectedCategory?.category.categoryName ??
                                         '',
@@ -233,20 +248,22 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
                                       int crossAxisCount = isDesktop
                                           ? 5
                                           : (availableWidth / 180)
-                                              .floor()
-                                              .clamp(2, 10);
+                                                .floor()
+                                                .clamp(2, 10);
 
                                       return GridView.builder(
                                         controller: _scrollController,
                                         gridDelegate:
                                             SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: crossAxisCount,
-                                          childAspectRatio:
-                                              2 / 3, // 2:3 movie poster ratio
-                                          crossAxisSpacing: 16,
-                                          mainAxisSpacing: 20,
-                                        ),
-                                        itemCount: _currentItems.length +
+                                              crossAxisCount: crossAxisCount,
+                                              childAspectRatio:
+                                                  2 /
+                                                  3, // 2:3 movie poster ratio
+                                              crossAxisSpacing: 16,
+                                              mainAxisSpacing: 20,
+                                            ),
+                                        itemCount:
+                                            _currentItems.length +
                                             (_isMoreLoading ? 1 : 0),
                                         itemBuilder: (context, index) {
                                           if (index < _currentItems.length) {
@@ -257,14 +274,16 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
                                               rating: item.vodStream?.rating,
                                               onTap: () =>
                                                   navigateByContentType(
-                                                      context, item),
+                                                    context,
+                                                    item,
+                                                  ),
                                             );
                                           } else {
                                             return const Center(
-                                                child:
-                                                    CircularProgressIndicator(
-                                                        color: Color(
-                                                            0xFFC12CFF)));
+                                              child: CircularProgressIndicator(
+                                                color: Color(0xFFC12CFF),
+                                              ),
+                                            );
                                           }
                                         },
                                       );
@@ -288,9 +307,12 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
   }
 
   IconData _getCategoryIcon(String categoryId) {
-    if (categoryId == IptvRepository.virtualAll) return Icons.all_inclusive_rounded;
-    if (categoryId == IptvRepository.virtualFavorites) return Icons.favorite_rounded;
-    if (categoryId == IptvRepository.virtualHistory) return Icons.history_rounded;
+    if (categoryId == IptvRepository.virtualAll)
+      return Icons.all_inclusive_rounded;
+    if (categoryId == IptvRepository.virtualFavorites)
+      return Icons.favorite_rounded;
+    if (categoryId == IptvRepository.virtualHistory)
+      return Icons.history_rounded;
     return Icons.movie_outlined;
   }
 }
