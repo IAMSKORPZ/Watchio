@@ -152,7 +152,9 @@ class _ProviderTile extends StatelessWidget {
       case 'edit':
         final changed = await Navigator.push<bool>(
           context,
-          MaterialPageRoute(builder: (_) => ProviderFormScreen(provider: provider)),
+          MaterialPageRoute(
+            builder: (_) => ProviderFormScreen(provider: provider),
+          ),
         );
         if (changed == true && context.mounted) {
           await controller.loadProviders();

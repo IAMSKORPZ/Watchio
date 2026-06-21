@@ -34,7 +34,10 @@ class WatchioSettingsScreen extends StatelessWidget {
           crossAxisCount: 3,
           mainAxisSpacing: 12,
           crossAxisSpacing: 20,
-          mainAxisExtent: ((constraints.maxHeight - 24) / 2) + 18,
+          mainAxisExtent: (((constraints.maxHeight - 24) / 2) + 18).clamp(
+            110.0,
+            165.0,
+          ),
           children: [
             SettingsTile(
               title: 'Provider Management',
