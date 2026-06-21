@@ -78,13 +78,23 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
       final controller = _homeController!;
       if (controller.liveCategories != null &&
           controller.liveCategories!.isNotEmpty) {
+        final categories = controller.liveCategories!;
+        final preferredCategory = categories
+            .cast<CategoryViewModel?>()
+            .firstWhere(
+              (category) => category!.category.categoryName
+                  .toUpperCase()
+                  .replaceAll(RegExp(r'[^A-Z0-9]+'), ' ')
+                  .contains('UK FREE TO AIR'),
+              orElse: () => categories.first,
+            )!;
         // Load all category counts in bulk
         final counts = await controller.getAllCategoryCounts(CategoryType.live);
         if (mounted) {
           setState(() {
             _categoryCounts.addAll(counts);
-            _onCategorySelected(controller.liveCategories!.first);
           });
+          await _onCategorySelected(preferredCategory);
         }
       }
     });
@@ -1116,7 +1126,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     bool isNow = false,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 1),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1139,28 +1149,19 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
               ),
             ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 1),
           Text(
             program.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: Colors.white,
-              fontSize: isNow ? 14 : 12,
+              fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
           ),
-          if (isNow &&
-              program.description != null &&
-              program.description!.isNotEmpty)
-            Text(
-              program.description!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white54, fontSize: 10),
-            ),
           if (isNow) ...[
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             _buildEpgProgressBar(program),
           ],
         ],
