@@ -19,6 +19,7 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
   String _subLang = 'en';
 
   final List<Map<String, String>> _languages = [
+    {'code': 'auto', 'name': 'Automatic'},
     {'code': 'en', 'name': 'English'},
     {'code': 'tr', 'name': 'Turkish'},
     {'code': 'es', 'name': 'Spanish'},
@@ -44,7 +45,11 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
     final ratio = await UserPreferences.getPlayerAspectRatio();
     final audio = await UserPreferences.getAudioTrack();
     final sub = await UserPreferences.getSubtitleTrack();
+    final languageCodes = _languages
+        .map((language) => language['code'])
+        .toSet();
 
+    if (!mounted) return;
     setState(() {
       _engine = PlayerEngine.values.firstWhere(
         (e) => e.name == engineStr,
@@ -52,8 +57,8 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
       );
       _hardwareDecoding = hardware;
       _aspectRatio = ratio;
-      _audioLang = audio;
-      _subLang = sub;
+      _audioLang = languageCodes.contains(audio) ? audio : 'auto';
+      _subLang = languageCodes.contains(sub) ? sub : 'auto';
     });
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../../models/api_response.dart';
 import '../../../services/app_state.dart';
 import '../../../shared/widgets/glass_panel.dart';
@@ -28,6 +29,17 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
     } catch (_) {
       // Playlist fallback remains visible when provider account API is offline.
     }
+  }
+
+  String _formatExpiration(String? value) {
+    if (value == null || value.isEmpty || value == '0') return 'Unlimited';
+    final timestamp = int.tryParse(value);
+    if (timestamp == null) return value;
+    final date = DateTime.fromMillisecondsSinceEpoch(
+      timestamp * 1000,
+      isUtc: true,
+    ).toLocal();
+    return DateFormat('dd MMM yyyy').format(date);
   }
 
   @override
@@ -61,7 +73,7 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                   const Divider(color: Colors.white10, height: 28),
                   _AccountDetailRow(
                     label: 'Expiration Date',
-                    value: userInfo?.expDate ?? 'Unlimited',
+                    value: _formatExpiration(userInfo?.expDate),
                   ),
                   const Divider(color: Colors.white10, height: 28),
                   _AccountDetailRow(
