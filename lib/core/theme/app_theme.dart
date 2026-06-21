@@ -124,6 +124,14 @@ class AppTheme {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
+          panelGradient: LinearGradient(
+            colors: [
+              Color.alphaBlend(primary.withValues(alpha: 0.28), surface),
+              Color.alphaBlend(secondary.withValues(alpha: 0.18), surface),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           glassColor: Colors.white.withValues(alpha: 0.1),
           glassBorder: Colors.white.withValues(alpha: 0.1),
         ),

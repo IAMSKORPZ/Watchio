@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/xtream_code_home_controller.dart';
+import '../../core/theme/theme_extensions.dart';
+import '../../core/theme/theme_manager.dart';
 import 'widgets/watchio_settings_scaffold.dart';
 import 'sections/provider_management_page.dart';
 import 'sections/account_info_page.dart';
@@ -116,7 +118,9 @@ class _SettingsTileState extends State<SettingsTile> {
 
   @override
   Widget build(BuildContext context) {
-    final accentColor = const Color(0xFFC12CFF);
+    final accentColor = Theme.of(context).colorScheme.primary;
+    final themeManager = context.watch<ThemeManager>();
+    final panelGradient = BingieThemeExtension.of(context).panelGradient;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -125,8 +129,10 @@ class _SettingsTileState extends State<SettingsTile> {
         return FocusableActionDetector(
           onFocusChange: (value) => setState(() => _isFocused = value),
           child: AnimatedScale(
-            scale: _isFocused ? 1.05 : 1.0,
-            duration: const Duration(milliseconds: 200),
+            scale: themeManager.animationsEnabled && _isFocused ? 1.05 : 1.0,
+            duration: Duration(
+              milliseconds: themeManager.animationsEnabled ? 200 : 0,
+            ),
             curve: Curves.easeOutCubic,
             child: InkWell(
               onTap: widget.onTap,
@@ -155,16 +161,7 @@ class _SettingsTileState extends State<SettingsTile> {
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                     child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            const Color(0xAA4A3D6A),
-                            const Color(0xAA30274F),
-                          ],
-                        ),
-                      ),
+                      decoration: BoxDecoration(gradient: panelGradient),
                       child: Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 8,

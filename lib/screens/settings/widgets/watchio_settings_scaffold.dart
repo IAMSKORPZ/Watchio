@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../../../services/config_service.dart';
+import '../../../core/theme/theme_manager.dart';
 
 class WatchioSettingsScaffold extends StatefulWidget {
   final String title;
@@ -51,6 +52,7 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
   @override
   Widget build(BuildContext context) {
     final config = context.watch<ConfigService>().config;
+    final themeManager = context.watch<ThemeManager>();
     final homeBg = config.backgrounds.home;
 
     return Scaffold(
@@ -63,7 +65,7 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
               decoration: BoxDecoration(
                 color: const Color(0xFF050812),
                 image: DecorationImage(
-                  image: (homeBg.isNotEmpty)
+                  image: (themeManager.showBackgroundImage && homeBg.isNotEmpty)
                       ? NetworkImage(homeBg)
                       : const AssetImage('assets/images/background.png')
                             as ImageProvider,

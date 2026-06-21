@@ -2,6 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../utils/responsive_helper.dart';
+import '../../../core/theme/theme_extensions.dart';
+import '../../../core/theme/theme_manager.dart';
+import 'package:provider/provider.dart';
 
 class HomeTile extends StatefulWidget {
   final String title;
@@ -30,12 +33,14 @@ class _HomeTileState extends State<HomeTile> {
 
   @override
   Widget build(BuildContext context) {
+    final manager = context.watch<ThemeManager>();
+    final panelGradient = BingieThemeExtension.of(context).panelGradient;
     return FocusableActionDetector(
       autofocus: widget.autofocus,
       onFocusChange: (value) => setState(() => _isFocused = value),
       child: AnimatedScale(
-        scale: _isFocused ? 1.05 : 1.0,
-        duration: const Duration(milliseconds: 200),
+        scale: manager.animationsEnabled && _isFocused ? 1.05 : 1.0,
+        duration: Duration(milliseconds: manager.animationsEnabled ? 200 : 0),
         curve: Curves.easeOutCubic,
         child: InkWell(
           onTap: widget.onTap,
@@ -45,17 +50,21 @@ class _HomeTileState extends State<HomeTile> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(30),
               border: Border.all(
-                color: _isFocused 
-                    ? widget.accentColor 
-                    : widget.accentColor.withValues(alpha: 0.4), // 2px consistent border (Requirement)
-                width: 2.0, 
+                color: _isFocused
+                    ? widget.accentColor
+                    : widget.accentColor.withValues(
+                        alpha: 0.4,
+                      ), // 2px consistent border (Requirement)
+                width: 2.0,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: widget.accentColor.withValues(alpha: _isFocused ? 0.4 : 0.08), // Reduced glow (Requirement)
+                  color: widget.accentColor.withValues(
+                    alpha: _isFocused ? 0.4 : 0.08,
+                  ), // Reduced glow (Requirement)
                   blurRadius: _isFocused ? 25 : 12,
                   spreadRadius: _isFocused ? 2 : 0,
-                )
+                ),
               ],
             ),
             child: ClipRRect(
@@ -66,25 +75,20 @@ class _HomeTileState extends State<HomeTile> {
                   width: double.infinity,
                   height: double.infinity,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        const Color(0xAA4A3D6A), // Brighter purple-grey glass top (Requirement)
-                        const Color(0xAA30274F), // Brighter purple-grey glass bottom (Requirement)
-                      ],
-                    ),
+                    gradient: panelGradient,
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final deviceType = ResponsiveHelper.getDeviceType(context);
+                      final deviceType = ResponsiveHelper.getDeviceType(
+                        context,
+                      );
                       final isDesktop = deviceType == DeviceType.desktop;
                       final isTablet = deviceType == DeviceType.tablet;
 
                       // Dynamically adjust sizes based on available height
                       final double h = constraints.maxHeight;
-                      
+
                       double iconSize = (h * 0.3).clamp(32.0, 64.0);
                       double titleSize = (h * 0.12).clamp(16.0, 24.0);
                       double subtitleSize = (h * 0.06).clamp(10.0, 12.0);
@@ -135,7 +139,8 @@ class _HomeTileState extends State<HomeTile> {
                             Text(
                               widget.subtitle,
                               textAlign: TextAlign.center,
-                              maxLines: 1, // Keep it to 1 line to ensure it fits
+                              maxLines:
+                                  1, // Keep it to 1 line to ensure it fits
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.outfit(
                                 color: Colors.white60,
@@ -146,7 +151,7 @@ class _HomeTileState extends State<HomeTile> {
                           ],
                         ),
                       );
-                    }
+                    },
                   ),
                 ),
               ),

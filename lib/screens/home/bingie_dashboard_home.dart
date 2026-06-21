@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../services/config_service.dart';
+import '../../core/theme/theme_manager.dart';
 import 'widgets/home_tile.dart';
 import 'widgets/home_header.dart';
 import 'widgets/home_footer.dart';
@@ -44,7 +45,8 @@ class BingieDashboardHome extends StatefulWidget {
   State<BingieDashboardHome> createState() => _BingieDashboardHomeState();
 }
 
-class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTickerProviderStateMixin {
+class _BingieDashboardHomeState extends State<BingieDashboardHome>
+    with SingleTickerProviderStateMixin {
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
@@ -74,6 +76,7 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
     final config = context.watch<ConfigService>().config;
+    final themeManager = context.watch<ThemeManager>();
     final homeBg = config.backgrounds.home;
     final screenSize = MediaQuery.of(context).size;
 
@@ -89,10 +92,10 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
               decoration: BoxDecoration(
                 color: const Color(0xFF050812),
                 image: DecorationImage(
-                  image: (homeBg.isNotEmpty)
+                  image: (themeManager.showBackgroundImage && homeBg.isNotEmpty)
                       ? NetworkImage(homeBg)
                       : const AssetImage('assets/images/background.png')
-                          as ImageProvider,
+                            as ImageProvider,
                   fit: BoxFit.cover,
                 ),
               ),
@@ -111,7 +114,7 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
               ),
             ),
           ),
-          
+
           // CONTENT LAYER (Centered & Constrained to 1600px)
           LayoutBuilder(
             builder: (context, constraints) {
@@ -121,10 +124,12 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
 
               final double width = constraints.maxWidth;
               final double height = constraints.maxHeight;
-              
+
               final double horizontalPadding = isDesktop ? 80 : width * 0.05;
               final double verticalPadding = isDesktop ? 40 : height * 0.04;
-              final double gap = isDesktop ? 80 : (isTablet ? 24 : width * 0.015);
+              final double gap = isDesktop
+                  ? 80
+                  : (isTablet ? 24 : width * 0.015);
 
               return Center(
                 child: ConstrainedBox(
@@ -144,11 +149,11 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                           onSports: widget.onSports,
                           onAnnouncements: widget.onAnnouncements,
                         ),
-                        
+
                         isDesktop
                             ? const SizedBox(height: 150)
                             : const Spacer(flex: 2),
-                        
+
                         // MAIN CONTENT - 3 CARDS
                         isDesktop
                             ? Row(
@@ -195,7 +200,8 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                             : Expanded(
                                 flex: 14,
                                 child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
                                     Expanded(
                                       child: HomeTile(
@@ -230,9 +236,9 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                                   ],
                                 ),
                               ),
-                        
+
                         SizedBox(height: isDesktop ? 48 : 8),
-                        
+
                         // SECONDARY ACTION ROW
                         isDesktop
                             ? Row(
@@ -305,9 +311,9 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome> with SingleTi
                                   ],
                                 ),
                               ),
-                        
+
                         const Spacer(flex: 2),
-                        
+
                         // BOTTOM STATUS BAR
                         HomeFooter(
                           username: widget.username,
