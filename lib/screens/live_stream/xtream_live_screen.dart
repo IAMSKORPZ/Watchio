@@ -995,7 +995,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
             opacity: 0.1,
             blur: 20,
             gradient: contentPanelGradientOf(context),
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(8),
             child: _buildEpgContent(),
           ),
         ),
@@ -1017,9 +1017,17 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 4),
             TextButton.icon(
               onPressed: _forceRefreshEpg,
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+              ),
               icon: const Icon(
                 Icons.refresh_rounded,
                 size: 18,

@@ -123,10 +123,8 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome>
               final isTablet = deviceType == DeviceType.tablet;
 
               final double width = constraints.maxWidth;
-              final double height = constraints.maxHeight;
-
               final double horizontalPadding = isDesktop ? 80 : width * 0.05;
-              final double verticalPadding = isDesktop ? 40 : height * 0.04;
+              final double verticalPadding = isDesktop ? 20 : 4;
               final double gap = isDesktop
                   ? 80
                   : (isTablet ? 24 : width * 0.015);
@@ -150,9 +148,7 @@ class _BingieDashboardHomeState extends State<BingieDashboardHome>
                           onAnnouncements: widget.onAnnouncements,
                         ),
 
-                        isDesktop
-                            ? const SizedBox(height: 150)
-                            : const Spacer(flex: 2),
+                        SizedBox(height: isDesktop ? 40 : 4),
 
                         // MAIN CONTENT - 3 CARDS
                         isDesktop
