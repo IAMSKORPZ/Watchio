@@ -31,6 +31,7 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
   int _currentOffset = 0;
   static const int _pageSize = 60;
   final Map<String, int> _categoryCounts = {};
+  String _sortOrder = 'recent';
 
   final ScrollController _scrollController = ScrollController();
 
@@ -106,6 +107,7 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
       if (mounted) {
         setState(() {
           _currentItems.addAll(newItems);
+          _sortLoadedItems();
           _currentOffset += newItems.length;
           _isMoreLoading = false;
           if (newItems.length < _pageSize) {
@@ -116,6 +118,35 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
     } catch (e) {
       if (mounted) setState(() => _isMoreLoading = false);
     }
+  }
+
+  void _sortLoadedItems() {
+    int itemNumber(ContentItem item) => int.tryParse(item.id) ?? 0;
+    switch (_sortOrder) {
+      case 'az':
+        _currentItems.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        break;
+      case 'za':
+        _currentItems.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+        break;
+      default:
+        _currentItems.sort((a, b) => itemNumber(b).compareTo(itemNumber(a)));
+    }
+  }
+
+  Future<void> _showSortDialog() async {
+    final selected = await _showContentSortDialog(context, _sortOrder, 'TV Shows');
+    if (selected == null || !mounted) return;
+    setState(() {
+      _sortOrder = selected;
+      _sortLoadedItems();
+    });
+  }
+
+  void _showSetupPlaceholder() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('TV show library setup is coming soon.')),
+    );
   }
 
   @override
@@ -173,6 +204,8 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
                       ),
                     ),
                     onSettings: () => controller.onNavigationTap(5),
+                    onSetup: _showSetupPlaceholder,
+                    onSort: _showSortDialog,
                     onRefresh: () => controller.refreshAllData(context),
                   ),
                   Expanded(
@@ -247,13 +280,7 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
                                 Expanded(
                                   child: LayoutBuilder(
                                     builder: (context, constraints) {
-                                      final double availableWidth =
-                                          constraints.maxWidth;
-                                      int crossAxisCount = isDesktop
-                                          ? 5
-                                          : (availableWidth / 180)
-                                                .floor()
-                                                .clamp(2, 10);
+                                      const int crossAxisCount = 5;
 
                                       return GridView.builder(
                                         controller: _scrollController,

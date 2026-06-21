@@ -43,11 +43,15 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+        final isLandscape =
+            MediaQuery.of(context).orientation == Orientation.landscape;
         final isLargeDesktop = constraints.maxWidth >= 1200;
-        
+
         // Only show global sidebar if on a very large screen and not on dashboard
-        final bool showSidebar = isLargeDesktop && widget.navItems != null && widget.currentIndex != 0;
+        final bool showSidebar =
+            isLargeDesktop &&
+            widget.navItems != null &&
+            widget.currentIndex != 0;
 
         return PopScope(
           canPop: widget.currentIndex == 0,
@@ -59,6 +63,7 @@ class _AppShellState extends State<AppShell> {
             }
           },
           child: Scaffold(
+            resizeToAvoidBottomInset: false,
             backgroundColor: const Color(0xFF050812),
             body: Row(
               children: [
@@ -85,9 +90,12 @@ class _AppShellState extends State<AppShell> {
                           const SizedBox(height: 30),
                           Expanded(
                             child: ListView.separated(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
                               itemCount: widget.navItems!.length,
-                              separatorBuilder: (_, _) => const SizedBox(height: 4),
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 4),
                               itemBuilder: (context, index) {
                                 final item = widget.navItems![index];
                                 return SidebarItem(
@@ -95,7 +103,8 @@ class _AppShellState extends State<AppShell> {
                                   label: item.label,
                                   selected: widget.currentIndex == index,
                                   isCollapsed: _isSidebarCollapsed,
-                                  onTap: () => widget.onIndexChanged?.call(index),
+                                  onTap: () =>
+                                      widget.onIndexChanged?.call(index),
                                 );
                               },
                             ),
@@ -107,14 +116,16 @@ class _AppShellState extends State<AppShell> {
                 Expanded(
                   child: Column(
                     children: [
-                      if (widget.currentIndex == 1) // Only show for History (Settings now has its own header)
+                      if (widget.currentIndex ==
+                          1) // Only show for History (Settings now has its own header)
                         SafeArea(
                           bottom: false,
                           child: UniversalTopBar(
                             title: widget.title,
                             onSearchTap: widget.onSearchTap,
                             onProfileTap: widget.onProfileTap,
-                            onRefreshTap: widget.onRefreshTap ?? widget.onRefresh,
+                            onRefreshTap:
+                                widget.onRefreshTap ?? widget.onRefresh,
                             onSettingsTap: widget.onSettingsTap,
                           ),
                         ),
@@ -133,7 +144,10 @@ class _AppShellState extends State<AppShell> {
             ),
             floatingActionButton: widget.floatingActionButton,
             // Hide bottom navigation bar completely in landscape or on specific pages (Home, Live, Movies, Series)
-            bottomNavigationBar: (!isLandscape && widget.navItems != null && (widget.currentIndex == 1 || widget.currentIndex == 5))
+            bottomNavigationBar:
+                (!isLandscape &&
+                    widget.navItems != null &&
+                    (widget.currentIndex == 1 || widget.currentIndex == 5))
                 ? BottomNavigationBar(
                     currentIndex: widget.currentIndex,
                     onTap: widget.onIndexChanged,
@@ -145,10 +159,12 @@ class _AppShellState extends State<AppShell> {
                     selectedItemColor: Theme.of(context).primaryColor,
                     unselectedItemColor: Colors.white.withValues(alpha: 0.5),
                     items: widget.navItems!
-                        .map((item) => BottomNavigationBarItem(
-                              icon: Icon(item.icon),
-                              label: item.label,
-                            ))
+                        .map(
+                          (item) => BottomNavigationBarItem(
+                            icon: Icon(item.icon),
+                            label: item.label,
+                          ),
+                        )
                         .toList(),
                   )
                 : null,
