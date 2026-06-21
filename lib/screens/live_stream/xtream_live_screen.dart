@@ -1089,18 +1089,79 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     final currentProgram = _epgPrograms[currentProgramIndex];
     final nextPrograms = _epgPrograms.skip(currentProgramIndex + 1).toList();
 
-    return SingleChildScrollView(
+    return Column(
+      children: [
+        Expanded(
+          child: _buildCompactEpgSection(
+            'NOW PLAYING',
+            currentProgram,
+            isNow: true,
+          ),
+        ),
+        if (nextPrograms.isNotEmpty) ...[
+          const Divider(color: Colors.white10, height: 1),
+          Expanded(child: _buildCompactEpgSection('UP NEXT', nextPrograms[0])),
+        ],
+        if (nextPrograms.length > 1) ...[
+          const Divider(color: Colors.white10, height: 1),
+          Expanded(child: _buildCompactEpgSection('LATER', nextPrograms[1])),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildCompactEpgSection(
+    String header,
+    EpgProgramWindow program, {
+    bool isNow = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildEpgSection('NOW PLAYING', currentProgram, isNow: true),
-          if (nextPrograms.isNotEmpty) ...[
-            const Divider(color: Colors.white10, height: 32),
-            _buildEpgSection('UP NEXT', nextPrograms[0]),
-          ],
-          if (nextPrograms.length > 1) ...[
-            const Divider(color: Colors.white10, height: 32),
-            _buildEpgSection('LATER', nextPrograms[1]),
+          Row(
+            children: [
+              Text(
+                header,
+                style: const TextStyle(
+                  color: Color(0xFF00B7FF),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${DateFormat('HH:mm').format(program.start)} - ${DateFormat('HH:mm').format(program.end)}',
+                style: const TextStyle(color: Colors.white38, fontSize: 9),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            program.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: isNow ? 14 : 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (isNow &&
+              program.description != null &&
+              program.description!.isNotEmpty)
+            Text(
+              program.description!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white54, fontSize: 10),
+            ),
+          if (isNow) ...[
+            const SizedBox(height: 3),
+            _buildEpgProgressBar(program),
           ],
         ],
       ),
