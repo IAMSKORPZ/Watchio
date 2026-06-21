@@ -86,10 +86,11 @@ class _ParentalControlsPageState extends State<ParentalControlsPage> {
     if (mounted) {
       setState(() => _pinEnabled = true);
       await _setBool('parental_pin_enabled', true);
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Parental PIN updated.')));
+      }
     }
   }
 
@@ -103,12 +104,14 @@ class _ParentalControlsPageState extends State<ParentalControlsPage> {
         padding: const EdgeInsets.fromLTRB(40, 8, 40, 8),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
+            constraints: const BoxConstraints(maxWidth: 680),
             child: GlassPanel(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
                 children: [
                   SwitchListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -3),
                     title: const Text('Enable PIN'),
                     subtitle: const Text(
                       'Require PIN to access locked content',
@@ -122,6 +125,8 @@ class _ParentalControlsPageState extends State<ParentalControlsPage> {
                   ),
                   const Divider(color: Colors.white10),
                   ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -3),
                     title: const Text('Change PIN'),
                     subtitle: const Text(
                       'Set a new 4-digit parental control PIN',
@@ -131,6 +136,8 @@ class _ParentalControlsPageState extends State<ParentalControlsPage> {
                   ),
                   const Divider(color: Colors.white10),
                   ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -3),
                     title: const Text('Lock Categories'),
                     subtitle: const Text(
                       'Choose which categories require a PIN',
@@ -147,6 +154,8 @@ class _ParentalControlsPageState extends State<ParentalControlsPage> {
                   ),
                   const Divider(color: Colors.white10),
                   SwitchListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -3),
                     title: const Text('Lock Settings'),
                     subtitle: const Text(
                       'Prevent unauthorized settings changes',

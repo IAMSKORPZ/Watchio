@@ -21,7 +21,7 @@ class AppearancePage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(40, 8, 40, 8),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
+            constraints: const BoxConstraints(maxWidth: 680),
             child: GlassPanel(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
@@ -100,11 +100,11 @@ class AppearancePage extends StatelessWidget {
   static final _titleStyle = GoogleFonts.outfit(
     color: Colors.white,
     fontWeight: FontWeight.bold,
-    fontSize: 16,
+    fontSize: 13,
   );
   static final _subtitleStyle = GoogleFonts.outfit(
     color: Colors.white38,
-    fontSize: 12,
+    fontSize: 10,
   );
 }
 
@@ -132,10 +132,10 @@ class _ChoiceTile<T> extends StatelessWidget {
         ListTile(
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
-            vertical: 2,
+            vertical: 0,
           ),
           dense: true,
-          visualDensity: VisualDensity.compact,
+          visualDensity: const VisualDensity(vertical: -3),
           title: Text(title, style: AppearancePage._titleStyle),
           subtitle: Text(subtitle, style: AppearancePage._subtitleStyle),
           trailing: DropdownButton<T>(

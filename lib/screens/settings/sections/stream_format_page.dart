@@ -22,8 +22,9 @@ class _StreamFormatPageState extends State<StreamFormatPage> {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    if (mounted)
+    if (mounted) {
       setState(() => _format = prefs.getString('stream_format') ?? 'auto');
+    }
   }
 
   Future<void> _select(String value) async {
@@ -41,7 +42,7 @@ class _StreamFormatPageState extends State<StreamFormatPage> {
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
+            constraints: const BoxConstraints(maxWidth: 680),
             child: GlassPanel(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Column(
@@ -103,19 +104,19 @@ class _FormatSelectionTile extends StatelessWidget {
         ListTile(
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
-            vertical: 4,
+            vertical: 0,
           ),
           title: Text(
             title,
             style: GoogleFonts.outfit(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 15,
+              fontSize: 13,
             ),
           ),
           subtitle: Text(
             subtitle,
-            style: GoogleFonts.outfit(color: Colors.white38, fontSize: 11),
+            style: GoogleFonts.outfit(color: Colors.white38, fontSize: 10),
           ),
           trailing: isSelected
               ? Container(
