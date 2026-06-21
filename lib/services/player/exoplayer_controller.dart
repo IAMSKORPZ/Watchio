@@ -17,7 +17,16 @@ class ExoPlayerController extends AppPlayerController {
   double? _aspectRatio;
   int _retryCount = 0;
   static const int _maxRetries = 3;
+  
+  bool _disposed = false;
+  int _requestId = 0;
+  Timer? _retryTimer;
 
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
   @override
   bool get isInitialized => _isInitialized;
   @override
@@ -37,61 +46,102 @@ class ExoPlayerController extends AppPlayerController {
 
   @override
   Future<void> initialize() async {
+    if (_disposed) return;
+    debugPrint('ExoPlayer: Player Created');
     _isInitialized = true;
     notifyListeners();
   }
 
   @override
   Future<void> setDataSource(PlaybackItem item) async {
+    if (_disposed) return;
+    _requestId++;
+    debugPrint('ExoPlayer: Player Opened -> ${item.title} (Req: $_requestId)');
     _error = null;
     _currentItem = item;
     _retryCount = 0;
-    await _setupController(item);
+    _retryTimer?.cancel();
+    await _setupController(item, _requestId);
   }
 
-  Future<void> _setupController(PlaybackItem item) async {
-    if (_controller != null) {
-      await _controller!.dispose();
-      _controller = null;
+  Future<void> _setupController(PlaybackItem item, int requestId) async {
+    if (_disposed || requestId != _requestId) {
+      debugPrint('ExoPlayer: Ignoring setup for stale request or disposed controller');
+      return;
     }
+
+    if (_controller != null) {
+      debugPrint('ExoPlayer: Player Closed (Disposing old controller)');
+      _controller!.removeListener(_updateState);
+      final oldController = _controller;
+      _controller = null;
+      await oldController!.dispose();
+    }
+
+    if (_disposed || requestId != _requestId) return;
 
     final uri = Uri.tryParse(item.url);
     if (uri == null || !uri.hasScheme || !uri.scheme.startsWith('http')) {
+      debugPrint('ExoPlayer: Playback Error -> Invalid stream URL: ${item.url}');
       _error = 'Invalid stream URL';
       notifyListeners();
       return;
     }
 
-    _controller = VideoPlayerController.networkUrl(
+    debugPrint('ExoPlayer: Initializing Source -> ${item.url}');
+    final newController = VideoPlayerController.networkUrl(
       uri,
       httpHeaders: item.headers,
     );
 
+    _controller = newController;
     _controller!.addListener(_updateState);
 
     try {
       await _controller!.initialize().timeout(
         const Duration(seconds: 15),
         onTimeout: () {
+          debugPrint('ExoPlayer: TimeoutException -> Connection timed out after 15s');
           throw TimeoutException('Connection timed out');
         },
       );
       
+      if (_disposed || requestId != _requestId) {
+        debugPrint('ExoPlayer: Ignoring successful init - request changed or disposed');
+        return;
+      }
+
+      debugPrint('ExoPlayer: Playback Started');
       _duration = _controller!.value.duration;
       
       if (item.startPosition > Duration.zero) {
         await _controller!.seekTo(item.startPosition);
       }
       
-      await _controller!.play();
+      if (!_disposed && requestId == _requestId) {
+        await _controller!.play();
+      }
     } catch (e) {
+      if (_disposed || requestId != _requestId) {
+        debugPrint('ExoPlayer: Ignoring error from old request or disposed controller: $e');
+        return;
+      }
+
       debugPrint('ExoPlayer Error: $e');
       if (_retryCount < _maxRetries) {
         _retryCount++;
         debugPrint('ExoPlayer: Retrying... ($_retryCount/$_maxRetries)');
-        await Future.delayed(const Duration(seconds: 2));
-        await _setupController(item);
+        _retryTimer?.cancel();
+        _retryTimer = Timer(const Duration(seconds: 2), () {
+          if (!_disposed && requestId == _requestId) {
+            _setupController(item, requestId);
+          } else {
+            debugPrint('ExoPlayer: Retry cancelled - stale request or disposed');
+          }
+        });
       } else {
+        debugPrint('Playback failed after max retries');
+        debugPrint('Retry stopped - max retries reached');
         _error = 'Playback Error: $e';
         notifyListeners();
       }
@@ -99,13 +149,17 @@ class ExoPlayerController extends AppPlayerController {
   }
 
   void _updateState() {
-    if (_controller == null) return;
+    if (_disposed || _controller == null) return;
     
     final value = _controller!.value;
     
     if (value.hasError) {
       debugPrint('ExoPlayer Controller Error: ${value.errorDescription}');
       _error = value.errorDescription;
+    }
+
+    if (value.isBuffering != _isBuffering) {
+      debugPrint('ExoPlayer: Buffer State -> ${value.isBuffering ? "Buffering" : "Ready"}');
     }
 
     _isPlaying = value.isPlaying;
@@ -116,19 +170,48 @@ class ExoPlayerController extends AppPlayerController {
   }
 
   @override
-  Future<void> play() async => await _controller?.play();
+  Future<void> play() async {
+    if (_disposed) return;
+    await _controller?.play();
+  }
 
   @override
-  Future<void> pause() async => await _controller?.pause();
+  Future<void> stop() async {
+    if (_disposed) return;
+    _requestId++; // Invalidate any running async operations
+    _retryTimer?.cancel();
+    _error = null;
+    _currentItem = null;
+    if (_controller != null) {
+      _controller!.removeListener(_updateState);
+      final oldController = _controller;
+      _controller = null;
+      await oldController!.dispose();
+    }
+    notifyListeners();
+  }
 
   @override
-  Future<void> seek(Duration position) async => await _controller?.seekTo(position);
+  Future<void> pause() async {
+    if (_disposed) return;
+    await _controller?.pause();
+  }
 
   @override
-  Future<void> setVolume(double volume) async => await _controller?.setVolume(volume / 100.0);
+  Future<void> seek(Duration position) async {
+    if (_disposed) return;
+    await _controller?.seekTo(position);
+  }
+
+  @override
+  Future<void> setVolume(double volume) async {
+    if (_disposed) return;
+    await _controller?.setVolume(volume / 100.0);
+  }
 
   @override
   Future<void> setAspectRatio(double? ratio) async {
+    if (_disposed) return;
     _aspectRatio = ratio;
     notifyListeners();
   }
@@ -146,13 +229,27 @@ class ExoPlayerController extends AppPlayerController {
   Future<void> setSubtitleTrack(int index) async {}
 
   @override
-  Widget buildPlayerView(BuildContext context) {
+  Widget buildPlayerView(BuildContext context, {BoxFit? fit}) {
     if (_controller == null || !_controller!.value.isInitialized) {
       return const SizedBox.shrink();
     }
     
     Widget player = VideoPlayer(_controller!);
     
+    if (fit != null) {
+      return SizedBox.expand(
+        child: FittedBox(
+          fit: fit,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(
+            width: _controller!.value.size.width,
+            height: _controller!.value.size.height,
+            child: player,
+          ),
+        ),
+      );
+    }
+
     if (_aspectRatio != null) {
       player = AspectRatio(
         aspectRatio: _aspectRatio!,
@@ -170,8 +267,14 @@ class ExoPlayerController extends AppPlayerController {
 
   @override
   void dispose() {
+    if (_disposed) return;
+    debugPrint('ExoPlayer: Player Disposing (Req: $_requestId)');
+    _disposed = true;
+    _requestId++; // Invalidate any running async operations
+    _retryTimer?.cancel();
     _controller?.removeListener(_updateState);
     _controller?.dispose();
+    _controller = null;
     super.dispose();
   }
 }

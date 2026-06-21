@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:another_iptv_player/models/import_progress_model.dart';
 import 'package:another_iptv_player/services/epg_storage_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class EpgImportService {
@@ -23,10 +24,26 @@ class EpgImportService {
     ImportProgressCallback? onProgress,
     ImportCancellationToken? cancellationToken,
   }) async {
+    final maskedUrl = url.replaceFirst(RegExp(r'password=[^&]+'), 'password=***').replaceFirst(RegExp(r'username=[^&]+'), 'username=***');
+    debugPrint('EPG XMLTV download started: $maskedUrl');
+    
     final response = await http.Client().send(http.Request('GET', Uri.parse(url)));
     if (response.statusCode >= 400) {
       throw Exception('EPG import failed: HTTP ${response.statusCode}');
     }
+
+    final contentLength = response.contentLength;
+    debugPrint('EPG XMLTV response status: ${response.statusCode}');
+    debugPrint('EPG XMLTV response content length: $contentLength');
+
+    // For debugging small responses
+    if (contentLength != null && contentLength < 10000) {
+       // It's a small response, let's see what it contains
+       // Note: reading from stream here will consume it, so we need to be careful.
+       // Instead, let's just log the first chunk in _importLines.
+    }
+
+    // We use a stream for memory efficiency
     return _importLines(
       playlistId: playlistId,
       lines: response.stream.transform(utf8.decoder).transform(const LineSplitter()),
@@ -59,16 +76,25 @@ class EpgImportService {
     ImportCancellationToken? cancellationToken,
   }) async {
     await storage.ensureSchema();
+    await storage.clearEpgData(playlistId);
+
     final startedAt = DateTime.now();
     final programs = <_ProgramRow>[];
-    var processed = 0;
+    int channelsFound = 0;
+    int programsFound = 0;
+    int programsSkipped = 0;
+
     String? channelId;
     final buffer = StringBuffer();
+    bool isFirstChunk = true;
 
     Future<void> flushPrograms() async {
       if (programs.isEmpty) return;
+      final batchToInsert = List<_ProgramRow>.from(programs);
+      programs.clear();
+
       await storage.database.batch((batch) {
-        for (final program in programs) {
+        for (final program in batchToInsert) {
           batch.customStatement(
             '''
 INSERT OR REPLACE INTO epg_programs(
@@ -88,53 +114,72 @@ INSERT OR REPLACE INTO epg_programs(
           );
         }
       });
-      programs.clear();
+      debugPrint('EPG: committed batch of ${batchToInsert.length} programmes');
     }
 
     await for (final rawLine in lines) {
       cancellationToken?.throwIfCancelled();
-      processed++;
       final line = rawLine.trim();
+      if (line.isEmpty) continue;
 
-      if (line.startsWith('<channel ')) {
+      if (isFirstChunk) {
+        final preview = line.length > 500 ? line.substring(0, 500) : line;
+        debugPrint('EPG XMLTV response start: $preview');
+        isFirstChunk = false;
+      }
+
+      if (line.contains('<channel ')) {
         channelId = _attr(line, 'id');
         buffer.clear();
         buffer.write(line);
       } else if (channelId != null) {
         buffer.write(line);
-        if (line.endsWith('</channel>')) {
+        if (line.contains('</channel>')) {
           final xml = buffer.toString();
+          final displayName = _tag(xml, 'display-name') ?? channelId;
           await _upsertChannel(
             playlistId,
             channelId,
-            _tag(xml, 'display-name') ?? channelId,
+            displayName,
             _attr(xml, 'src'),
           );
+          channelsFound++;
           channelId = null;
           buffer.clear();
         }
-      } else if (line.startsWith('<programme ')) {
+      } else if (line.contains('<programme ')) {
         buffer.clear();
         buffer.write(line);
-        if (line.endsWith('</programme>')) {
+        if (line.contains('</programme>')) {
           final row = _parseProgram(buffer.toString());
-          if (row != null) programs.add(row);
+          if (row != null) {
+            programs.add(row);
+            programsFound++;
+          } else {
+            programsSkipped++;
+          }
+          buffer.clear();
         }
       } else if (buffer.isNotEmpty) {
         buffer.write(line);
-        if (line.endsWith('</programme>')) {
+        if (line.contains('</programme>')) {
           final row = _parseProgram(buffer.toString());
-          if (row != null) programs.add(row);
+          if (row != null) {
+            programs.add(row);
+            programsFound++;
+          } else {
+            programsSkipped++;
+          }
           buffer.clear();
         }
       }
 
-      if (programs.length >= batchSize) await flushPrograms();
-      if (processed % batchSize == 0) {
+      if (programs.length >= batchSize) {
+        await flushPrograms();
         onProgress?.call(
           ImportProgressModel(
-            currentItem: 'epg',
-            processedItems: processed,
+            currentItem: '$channelsFound channels, $programsFound programmes',
+            processedItems: programsFound,
             startedAt: startedAt,
           ),
         );
@@ -142,9 +187,11 @@ INSERT OR REPLACE INTO epg_programs(
     }
 
     await flushPrograms();
+    debugPrint('EPG full import complete. Channels: $channelsFound, Programmes: $programsFound, Skipped: $programsSkipped');
+
     final done = ImportProgressModel(
-      currentItem: 'epg complete',
-      processedItems: processed,
+      currentItem: '$channelsFound channels, $programsFound programmes',
+      processedItems: programsFound,
       startedAt: startedAt,
     );
     onProgress?.call(done);

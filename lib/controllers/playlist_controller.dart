@@ -67,6 +67,17 @@ class PlaylistController extends ChangeNotifier {
               builder: (context) => M3UHomeScreen(playlist: playlist),
             ),
           );
+          break;
+        case PlaylistType.stalker:
+          // Stalker home screen might need to be created or mapped to Xtream for now
+          // If Stalker is not fully implemented, we might need a placeholder or reuse Xtream if compatible
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => XtreamCodeHomeScreen(playlist: playlist),
+            ),
+          );
+          break;
       }
     }
   }

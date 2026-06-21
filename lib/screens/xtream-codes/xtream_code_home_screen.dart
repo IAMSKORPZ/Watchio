@@ -12,7 +12,6 @@ import '../../shared/widgets/app_shell.dart';
 import '../home/bingie_dashboard_home.dart';
 import '../watch_history_screen.dart';
 import '../announcements/announcements_screen.dart';
-import 'xtream_code_playlist_settings_screen.dart';
 import '../../l10n/localization_extension.dart';
 import '../search_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -21,6 +20,7 @@ import '../movies/xtream_movies_screen.dart';
 import '../series/xtream_series_screen.dart';
 import '../live_stream/xtream_live_screen.dart';
 import '../sports/sports_hub_screen.dart';
+import '../settings/watchio_settings_screen.dart';
 
 class XtreamCodeHomeScreen extends StatefulWidget {
   final Playlist playlist;
@@ -156,10 +156,10 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
                 version: _version,
               ),
               WatchHistoryScreen(playlistId: widget.playlist.id),
-              XtreamLiveScreen(),
+              XtreamLiveScreen(playlist: widget.playlist),
               XtreamMoviesScreen(),
               XtreamSeriesScreen(),
-              XtreamCodePlaylistSettingsScreen(playlist: widget.playlist),
+              const WatchioSettingsScreen(),
             ],
           );
         },

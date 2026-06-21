@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -9,7 +8,10 @@ class WatchioHeader extends StatefulWidget {
   final VoidCallback? onMenu;
   final VoidCallback? onSort;
   final VoidCallback? onRefresh;
+  final VoidCallback? onRefreshEpg;
   final VoidCallback? onSettings;
+  final bool isCompact;
+  final double? customLogoHeight;
 
   const WatchioHeader({
     super.key,
@@ -18,7 +20,10 @@ class WatchioHeader extends StatefulWidget {
     this.onMenu,
     this.onSort,
     this.onRefresh,
+    this.onRefreshEpg,
     this.onSettings,
+    this.isCompact = false,
+    this.customLogoHeight,
   });
 
   @override
@@ -45,8 +50,12 @@ class _WatchioHeaderState extends State<WatchioHeader> {
 
   @override
   Widget build(BuildContext context) {
+    final double verticalPadding = widget.isCompact ? 8 : 16;
+    final double logoHeight =
+        widget.customLogoHeight ?? (widget.isCompact ? 46 : 68);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      padding: EdgeInsets.fromLTRB(24, verticalPadding, 24, verticalPadding / 2),
       child: Row(
         children: [
           // LEFT: Back + Logo
@@ -59,45 +68,43 @@ class _WatchioHeaderState extends State<WatchioHeader> {
               const SizedBox(width: 16),
               Image.asset(
                 'assets/images/App_Logo.png',
-                height: 68,
+                height: logoHeight,
                 fit: BoxFit.contain,
               ),
             ],
           ),
-          
+
           const Spacer(),
-          
+
           // CENTER: Time & Date
           Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 DateFormat('hh:mm a').format(_now),
-                style: const TextStyle(
-                  color: Colors.white, 
-                  fontSize: 20, 
-                  fontWeight: FontWeight.w900
-                ),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: widget.isCompact ? 16 : 20,
+                    fontWeight: FontWeight.w900),
               ),
-              Text(
-                DateFormat('MMM d, yyyy').format(_now),
-                style: const TextStyle(
-                  color: Color(0xFFC12CFF), 
-                  fontSize: 12, 
-                  fontWeight: FontWeight.bold
+              if (!widget.isCompact)
+                Text(
+                  DateFormat('MMM d, yyyy').format(_now),
+                  style: const TextStyle(
+                      color: Color(0xFFC12CFF),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold),
                 ),
-              ),
             ],
           ),
-          
+
           const Spacer(),
-          
+
           // RIGHT: Search + More
           Row(
             children: [
               _HeaderIconButton(
-                icon: Icons.search_rounded, 
-                onTap: widget.onSearch
-              ),
+                  icon: Icons.search_rounded, onTap: widget.onSearch),
               const SizedBox(width: 12),
               _buildMenu(context),
             ],
@@ -122,23 +129,59 @@ class _WatchioHeaderState extends State<WatchioHeader> {
         ),
         onSelected: (value) {
           switch (value) {
-            case 'sort': widget.onSort?.call(); break;
-            case 'refresh': widget.onRefresh?.call(); break;
-            case 'settings': (widget.onSettings ?? widget.onMenu)?.call(); break;
+            case 'sort':
+              widget.onSort?.call();
+              break;
+            case 'refresh':
+              widget.onRefresh?.call();
+              break;
+            case 'refresh_epg':
+              if (Navigator.of(context).canPop()) {
+                // Not the best way but if we are in live screen it works
+              }
+              // We'll pass this via a new callback
+              if (widget.onRefreshEpg != null) {
+                widget.onRefreshEpg!();
+              }
+              break;
+            case 'settings':
+              (widget.onSettings ?? widget.onMenu)?.call();
+              break;
           }
         },
         itemBuilder: (context) => [
           const PopupMenuItem(
             value: 'sort',
-            child: Row(children: [Icon(Icons.sort_rounded, color: Colors.white70, size: 20), SizedBox(width: 12), Text('Sort Options', style: TextStyle(color: Colors.white))]),
+            child: Row(children: [
+              Icon(Icons.sort_rounded, color: Colors.white70, size: 20),
+              SizedBox(width: 12),
+              Text('Sort Options', style: TextStyle(color: Colors.white))
+            ]),
           ),
           const PopupMenuItem(
             value: 'refresh',
-            child: Row(children: [Icon(Icons.refresh_rounded, color: Colors.white70, size: 20), SizedBox(width: 12), Text('Refresh Content', style: TextStyle(color: Colors.white))]),
+            child: Row(children: [
+              Icon(Icons.refresh_rounded, color: Colors.white70, size: 20),
+              SizedBox(width: 12),
+              Text('Refresh Content', style: TextStyle(color: Colors.white))
+            ]),
+          ),
+          const PopupMenuItem(
+            value: 'refresh_epg',
+            child: Row(children: [
+              Icon(Icons.auto_awesome_rounded,
+                  color: Color(0xFFC12CFF), size: 20),
+              SizedBox(width: 12),
+              Text('Force EPG Refresh', style: TextStyle(color: Colors.white))
+            ]),
           ),
           const PopupMenuItem(
             value: 'settings',
-            child: Row(children: [Icon(Icons.settings_rounded, color: Colors.white70, size: 20), SizedBox(width: 12), Text('Settings', style: TextStyle(color: Colors.white))]),
+            child: Row(children: [
+              Icon(Icons.settings_rounded, color: Colors.white70, size: 20),
+              SizedBox(width: 12),
+              Text('Settings', style: TextStyle(color: Colors.white))
+            ]),
           ),
         ],
       ),

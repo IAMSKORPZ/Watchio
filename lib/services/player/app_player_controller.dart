@@ -15,6 +15,7 @@ abstract class AppPlayerController extends ChangeNotifier {
   Future<void> initialize();
   Future<void> play();
   Future<void> pause();
+  Future<void> stop();
   Future<void> seek(Duration position);
   Future<void> setDataSource(PlaybackItem item);
   Future<void> setVolume(double volume);
@@ -26,7 +27,7 @@ abstract class AppPlayerController extends ChangeNotifier {
   Future<List<String>> getSubtitleTracks();
   Future<void> setSubtitleTrack(int index);
 
-  Widget buildPlayerView(BuildContext context);
+  Widget buildPlayerView(BuildContext context, {BoxFit? fit});
 
   @override
   void dispose();

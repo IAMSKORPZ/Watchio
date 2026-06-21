@@ -93,7 +93,9 @@ class IptvProvider {
       name: name,
       type: type == IptvProviderType.xtreamCodes
           ? PlaylistType.xtream
-          : PlaylistType.m3u,
+          : (type == IptvProviderType.stalker
+              ? PlaylistType.stalker
+              : PlaylistType.m3u),
       url: type == IptvProviderType.xtreamCodes
           ? serverUrl
           : (type == IptvProviderType.stalker
