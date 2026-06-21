@@ -45,6 +45,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   int _currentOffset = 0;
   static const int _pageSize = 60;
   final Map<String, int> _categoryCounts = {};
+  String _categoryQuery = '';
 
   final ScrollController _categoryScrollController = ScrollController();
   final ScrollController _channelScrollController = ScrollController();
@@ -747,44 +748,65 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   }
 
   Widget _buildCategoryPanel(XtreamCodeHomeController controller) {
-    final categories = controller.liveCategories ?? [];
+    final allCategories = controller.liveCategories ?? [];
+    final query = _categoryQuery.trim().toLowerCase();
+    final categories = query.isEmpty
+        ? allCategories
+        : allCategories
+              .where(
+                (category) => category.category.categoryName
+                    .toLowerCase()
+                    .contains(query),
+              )
+              .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Category Search
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-          child: TextField(
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-            decoration: InputDecoration(
-              hintText: 'SEARCH CATEGORIES',
-              hintStyle: const TextStyle(color: Colors.white24, fontSize: 11),
-              prefixIcon: const Icon(
-                Icons.search,
-                color: Colors.white24,
-                size: 18,
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+          child: SizedBox(
+            height: 42,
+            child: TextField(
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Search in categories',
+                hintStyle: const TextStyle(color: Colors.white38, fontSize: 11),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: Colors.white54,
+                  size: 17,
+                ),
+                prefixIconConstraints: const BoxConstraints(minWidth: 38),
+                filled: true,
+                fillColor: Colors.black.withValues(alpha: 0.18),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
               ),
-              filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.05),
-              contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
+              onChanged: (value) => setState(() => _categoryQuery = value),
             ),
-            onChanged: (v) {
-              // Implementation for filtering categories locally could go here
-            },
           ),
         ),
         const Divider(color: Colors.white10, height: 1),
         Expanded(
           child: ListView.separated(
             controller: _categoryScrollController,
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
             itemCount: categories.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 4),
+            separatorBuilder: (_, _) => const Divider(
+              color: Colors.white10,
+              height: 1,
+              indent: 8,
+              endIndent: 8,
+            ),
             itemBuilder: (context, index) {
               final cat = categories[index];
               final isSelected =
@@ -910,14 +932,14 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                                   children: [
                                     Image.asset(
                                       'assets/images/App_Logo.png',
-                                      width: 170,
+                                      width: 155,
                                       fit: BoxFit.contain,
                                     ),
                                     const Text(
                                       'Click a channel to start preview',
                                       style: TextStyle(
                                         color: Colors.white70,
-                                        fontSize: 11,
+                                        fontSize: 10,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -1563,33 +1585,32 @@ class _CategoryItemState extends State<_CategoryItem> {
   @override
   Widget build(BuildContext context) {
     final active = _isFocused || widget.isSelected;
+    final accent = Theme.of(context).colorScheme.primary;
 
     return FocusableActionDetector(
       onFocusChange: (v) => setState(() => _isFocused = v),
       child: AnimatedScale(
-        scale: _isFocused ? 1.05 : 1.0,
+        scale: _isFocused ? 1.02 : 1.0,
         duration: const Duration(milliseconds: 200),
         child: InkWell(
           onTap: widget.onTap,
           borderRadius: BorderRadius.circular(12),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             decoration: BoxDecoration(
-              color: active
-                  ? const Color(0xAA4A3D6A) // Glass background when active
-                  : Colors.white.withValues(alpha: 0.05),
+              color: active ? null : Colors.transparent,
+              gradient: active ? contentPanelGradientOf(context) : null,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: active ? const Color(0xFFC12CFF) : Colors.white10,
-                width: active ? 2 : 1,
+                color: active ? accent : Colors.transparent,
+                width: active ? 1.5 : 1,
               ),
               boxShadow: active
                   ? [
                       BoxShadow(
-                        color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
-                        blurRadius: 12,
-                        spreadRadius: 1,
+                        color: accent.withValues(alpha: 0.35),
+                        blurRadius: 10,
                       ),
                     ]
                   : [],
@@ -1598,17 +1619,17 @@ class _CategoryItemState extends State<_CategoryItem> {
               children: [
                 Icon(
                   widget.icon,
-                  color: active ? Colors.white : Colors.white70,
-                  size: 20,
+                  color: active ? accent : Colors.white70,
+                  size: 18,
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     widget.label,
                     style: TextStyle(
                       color: active ? Colors.white : Colors.white70,
                       fontWeight: active ? FontWeight.w900 : FontWeight.w600,
-                      fontSize: 13,
+                      fontSize: 12,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1620,7 +1641,7 @@ class _CategoryItemState extends State<_CategoryItem> {
                     color: active
                         ? Colors.white.withValues(alpha: 0.7)
                         : Colors.white24,
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
