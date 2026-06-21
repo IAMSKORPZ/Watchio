@@ -156,7 +156,7 @@ class _PlayerWidgetState extends State<PlayerWidget>
     } catch (e) {
       // Silently handle database errors to prevent crashes
       // The next save attempt will retry
-      print('Error saving watch history: $e');
+      debugPrint('Error saving watch history: $e');
     }
   }
 
@@ -292,6 +292,7 @@ class _PlayerWidgetState extends State<PlayerWidget>
               connectivity == ConnectivityResult.ethernet,
         );
         _isFirstCheck = false;
+        if (!mounted) return;
       }
 
       if (hasConnection) {
@@ -299,6 +300,7 @@ class _PlayerWidgetState extends State<PlayerWidget>
             contentItem.contentType == ContentType.liveStream &&
             contentItem.url.isNotEmpty) {
           try {
+            if (!mounted) return;
             ScaffoldMessenger.of(context).clearSnackBars();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -310,12 +312,13 @@ class _PlayerWidgetState extends State<PlayerWidget>
             // TODO: Implement watch history duration for vod and series
             await _player.open(Media(contentItem.url));
           } catch (e) {
-            print('Error opening media: $e');
+            debugPrint('Error opening media: $e');
           }
         }
         _wasDisconnected = false;
       } else {
         _wasDisconnected = true;
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -393,7 +396,7 @@ class _PlayerWidgetState extends State<PlayerWidget>
     });
 
     _player.stream.error.listen((error) async {
-      print('PLAYER ERROR -> $error');
+      debugPrint('PLAYER ERROR -> $error');
       if (error.contains('Failed to open')) {
         _errorHandler.handleError(
           error,
@@ -403,6 +406,7 @@ class _PlayerWidgetState extends State<PlayerWidget>
             }
           },
           (errorMessage) {
+            if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(errorMessage),

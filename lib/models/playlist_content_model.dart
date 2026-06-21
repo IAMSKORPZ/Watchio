@@ -48,6 +48,11 @@ class ContentItem {
     if (isXtreamCode) {
       return buildMediaUrl(this);
     }
+    if (isStalker) {
+      // Assuming buildMediaUrl can handle stalker or needs a separate builder
+      // For now, if buildMediaUrl doesn't support it, we might need a separate call.
+      return buildMediaUrl(this);
+    }
     return m3uItem?.url ?? id;
   }
 

@@ -107,7 +107,7 @@ class _AppShellState extends State<AppShell> {
                 Expanded(
                   child: Column(
                     children: [
-                      if (widget.currentIndex == 1 || widget.currentIndex == 5) // Only show for History and Settings
+                      if (widget.currentIndex == 1) // Only show for History (Settings now has its own header)
                         SafeArea(
                           bottom: false,
                           child: UniversalTopBar(

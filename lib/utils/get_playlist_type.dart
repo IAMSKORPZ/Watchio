@@ -14,3 +14,8 @@ bool get isM3u {
   if (AppState.currentPlaylist == null) return false;
   return getPlaylistType() == PlaylistType.m3u;
 }
+
+bool get isStalker {
+  if (AppState.currentPlaylist == null) return false;
+  return getPlaylistType() == PlaylistType.stalker;
+}

@@ -76,14 +76,13 @@ class _PlaylistInfoWidgetState extends State<PlaylistInfoWidget> {
                     await Clipboard.setData(
                       ClipboardData(text: widget.playlist.password!),
                     );
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(context.loc.copied_to_clipboard),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    }
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(context.loc.copied_to_clipboard),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
                   },
                 ),
               ],

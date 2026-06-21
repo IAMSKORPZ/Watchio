@@ -476,6 +476,8 @@ class _M3uSeriesScreenState extends State<M3uSeriesScreen> {
 
           var m3uItem = await _repository.getM3uItemByUrl(url: episode.url);
 
+          if (!mounted) return;
+
           Navigator.push(
             context,
             MaterialPageRoute(

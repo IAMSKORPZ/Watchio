@@ -10,25 +10,30 @@ import '../../models/content_type.dart';
 import '../../models/playback_item.dart';
 import '../../models/player_engine.dart';
 import '../../models/playlist_content_model.dart';
+import '../../models/playlist_model.dart';
 import '../../repositories/iptv_repository.dart';
 import '../../repositories/user_preferences.dart';
+import '../../services/app_state.dart';
 import '../../services/config_service.dart';
 import '../../services/epg_storage_service.dart';
 import '../../services/player/app_player_controller.dart';
 import '../../services/player/player_factory.dart';
+import '../../services/playback_url_resolver.dart';
 import '../../shared/widgets/glass_panel.dart';
 import '../../shared/widgets/watchio_header.dart';
 import '../player/unified_player_screen.dart';
 import '../search_screen.dart';
+import '../../services/epg_import_service.dart';
 
 class XtreamLiveScreen extends StatefulWidget {
-  const XtreamLiveScreen({super.key});
+  final Playlist? playlist;
+  const XtreamLiveScreen({super.key, this.playlist});
 
   @override
   State<XtreamLiveScreen> createState() => _XtreamLiveScreenState();
 }
 
-class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
+class _XtreamLiveScreenState extends State<XtreamLiveScreen> with WidgetsBindingObserver {
   CategoryViewModel? _selectedCategory;
   ContentItem? _focusedChannel;
   final List<ContentItem> _currentItems = [];
@@ -40,7 +45,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
 
   final ScrollController _categoryScrollController = ScrollController();
   final ScrollController _channelScrollController = ScrollController();
-  
+
   List<EpgProgramWindow> _epgPrograms = [];
   final _epgService = EpgStorageService();
 
@@ -48,19 +53,27 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
   Timer? _previewDebounce;
   bool _previewFocused = false;
   XtreamCodeHomeController? _homeController;
+  int _previewLoadRequestId = 0;
+  bool _isReconnecting = false;
+  Timer? _epgUpdateTimer;
+  int _epgRequestId = 0;
 
   @override
   void initState() {
     super.initState();
-    _initPreviewController();
+    WidgetsBinding.instance.addObserver(this);
+    // BUG FIX: Removed _initPreviewController() and _startEpgTimer() from initState
+    // Player and EPG should only be initialized when entering the Live TV tab
     _channelScrollController.addListener(_scrollListener);
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      _homeController = Provider.of<XtreamCodeHomeController>(context, listen: false);
+      _homeController =
+          Provider.of<XtreamCodeHomeController>(context, listen: false);
       _homeController?.addListener(_handleTabChange);
 
       final controller = _homeController!;
-      if (controller.liveCategories != null && controller.liveCategories!.isNotEmpty) {
+      if (controller.liveCategories != null &&
+          controller.liveCategories!.isNotEmpty) {
         // Load all category counts in bulk
         final counts = await controller.getAllCategoryCounts(CategoryType.live);
         if (mounted) {
@@ -73,38 +86,94 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
     });
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    debugPrint('XtreamLiveScreen: App lifecycle state changed -> $state');
+    if (state == AppLifecycleState.paused || 
+        state == AppLifecycleState.inactive || 
+        state == AppLifecycleState.detached) {
+      debugPrint('XtreamLiveScreen: Playback Stopped (App Background)');
+      _previewDebounce?.cancel();
+      _previewController?.pause();
+    } else if (state == AppLifecycleState.resumed) {
+      if (_homeController?.currentIndex == 2) {
+        debugPrint('XtreamLiveScreen: App resumed on Live TV, resuming preview');
+        _previewController?.play();
+      }
+    }
+  }
+
   Future<void> _initPreviewController() async {
     if (_previewController != null) return;
 
+    debugPrint('XtreamLiveScreen: Player Created (Preview)');
     final engineStr = await UserPreferences.getPlayerEngine();
-    final engine = PlayerEngine.values.firstWhere(
-      (e) => e.name == engineStr, 
-      orElse: () => PlayerEngine.auto
-    );
+    final engine = PlayerEngine.values.firstWhere((e) => e.name == engineStr,
+        orElse: () => PlayerEngine.auto);
     _previewController = PlayerFactory.create(engine);
     await _previewController!.initialize();
     _previewController!.addListener(_onPreviewStateChanged);
   }
 
   void _onPreviewStateChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    
+    if (_previewController?.error != null) {
+      debugPrint('XtreamLiveScreen: Playback Error -> ${_previewController?.error}');
+    }
+
+    // Check if the stream ended unexpectedly (common with Live TV drops)
+    if (_previewController?.currentItem != null && 
+        !_previewController!.isPlaying && 
+        !_previewController!.isBuffering &&
+        !_isReconnecting &&
+        _previewController!.error == null) {
+        
+        // Potential unexpected stop
+        debugPrint('XtreamLiveScreen: Playback Stopped (Unexpected) - Reason: EOF or Server Disconnect');
+        _handleReconnect();
+    }
+    
+    setState(() {});
+  }
+
+  Future<void> _handleReconnect() async {
+    if (_focusedChannel == null || _isReconnecting) return;
+    
+    _isReconnecting = true;
+    debugPrint('XtreamLiveScreen: Attempting one-time reconnection in 1s...');
+    await Future.delayed(const Duration(seconds: 1));
+    
+    if (mounted && _focusedChannel != null) {
+      debugPrint('XtreamLiveScreen: Retrying playback for ${_focusedChannel!.name}');
+      _onChannelFocused(_focusedChannel!, immediate: true);
+    }
+    
+    await Future.delayed(const Duration(seconds: 2));
+    _isReconnecting = false;
   }
 
   void _handleTabChange() {
     if (_homeController == null) return;
-    
+
     // Live TV is index 2
     if (_homeController!.currentIndex != 2) {
+      _epgUpdateTimer?.cancel();
+      debugPrint('EPG timer cancelled');
       if (_previewController != null) {
-        debugPrint('XtreamLiveScreen: Tab changed, disposing preview player');
+        debugPrint('XtreamLiveScreen: Playback Stopped (Tab Changed)');
+        debugPrint('XtreamLiveScreen: Player Disposed (Tab Changed)');
         _previewDebounce?.cancel();
         _previewController?.removeListener(_onPreviewStateChanged);
+        _previewController?.pause();
         _previewController?.dispose();
         _previewController = null;
       }
     } else {
+      _startEpgTimer();
       if (_previewController == null) {
-        debugPrint('XtreamLiveScreen: Returned to Live TV tab, re-initializing preview player');
+        debugPrint(
+            'XtreamLiveScreen: Returned to Live TV tab, re-initializing player');
         _restorePreview();
       }
     }
@@ -112,17 +181,23 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
 
   Future<void> _restorePreview() async {
     await _initPreviewController();
-    if (_focusedChannel != null && mounted && _previewController != null) {
-      _previewController!.setDataSource(PlaybackItem.fromContentItem(_focusedChannel!));
-    }
+    // BUG FIX: Removed automatic playback on tab restore to ensure 
+    // stream only starts when user explicitly selects/focuses a channel
   }
 
   @override
   void dispose() {
+    debugPrint('XtreamLiveScreen: Playback Stopped (Exiting Screen)');
+    debugPrint('XtreamLiveScreen: Player Disposed');
+    _epgUpdateTimer?.cancel();
+    debugPrint('EPG timer cancelled');
+    WidgetsBinding.instance.removeObserver(this);
     _homeController?.removeListener(_handleTabChange);
     _previewDebounce?.cancel();
     _previewController?.removeListener(_onPreviewStateChanged);
+    _previewController?.pause();
     _previewController?.dispose();
+    _previewController = null;
     _channelScrollController.removeListener(_scrollListener);
     _categoryScrollController.dispose();
     _channelScrollController.dispose();
@@ -130,7 +205,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
   }
 
   void _scrollListener() {
-    if (_channelScrollController.position.pixels >= _channelScrollController.position.maxScrollExtent - 400) {
+    if (_channelScrollController.position.pixels >=
+        _channelScrollController.position.maxScrollExtent - 400) {
       if (!_isMoreLoading && _hasMore) {
         _loadMoreItems();
       }
@@ -138,6 +214,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
   }
 
   Future<void> _onCategorySelected(CategoryViewModel category) async {
+    if (_selectedCategory?.category.categoryId == category.category.categoryId) return;
+
     setState(() {
       _selectedCategory = category;
       _currentItems.clear();
@@ -151,6 +229,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
     await _loadMoreItems();
 
     if (_currentItems.isNotEmpty && mounted) {
+      // BUG FIX: Only set focused channel state, do not trigger playback automatically
       setState(() {
         _focusedChannel = _currentItems.first;
       });
@@ -160,11 +239,12 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
 
   Future<void> _loadMoreItems() async {
     if (_selectedCategory == null) return;
-    
+
     setState(() => _isMoreLoading = true);
-    
+
     try {
-      final controller = Provider.of<XtreamCodeHomeController>(context, listen: false);
+      final controller =
+          Provider.of<XtreamCodeHomeController>(context, listen: false);
       final newItems = await controller.getCategoryItems(
         _selectedCategory!.category,
         top: _pageSize,
@@ -186,33 +266,148 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
     }
   }
 
+  void _startEpgTimer() {
+    _epgUpdateTimer?.cancel();
+    _epgUpdateTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
+      if (_focusedChannel != null) {
+        _fetchEpg(_focusedChannel!);
+      }
+    });
+  }
+
   Future<void> _fetchEpg(ContentItem channel) async {
-    if (channel.liveStream == null) return;
+    final requestId = ++_epgRequestId;
+    final now = DateTime.now();
+    debugPrint('--- EPG AUDIT START ---');
+    debugPrint('Channel Name: ${channel.name}');
+    debugPrint('Stream ID: ${channel.id}');
+    debugPrint('tvg_id: ${channel.m3uItem?.tvgId}');
+    debugPrint('epg_channel_id: ${channel.liveStream?.epgChannelId}');
+    debugPrint('Category ID: ${channel.liveStream?.categoryId}');
+    final normalized = _epgService.normalizeName(channel.name);
+    debugPrint('Normalized Name: $normalized');
+
+    final liveStream = channel.liveStream;
+    final m3uItem = channel.m3uItem;
     
-    final playlistId = channel.liveStream!.playlistId;
-    final epgId = channel.liveStream!.epgChannelId;
-    
-    if (playlistId == null || epgId.isEmpty) {
-      setState(() => _epgPrograms = []);
+    String? playlistId = liveStream?.playlistId ?? m3uItem?.playlistId;
+    if (playlistId == null) {
+       final currentPlaylist = widget.playlist ?? AppState.currentPlaylist;
+       playlistId = currentPlaylist?.id;
+    }
+
+    if (playlistId == null) {
+      debugPrint('EPG Audit: No playlist ID found');
+      if (mounted && requestId == _epgRequestId) {
+        setState(() => _epgPrograms = []);
+      }
       return;
     }
 
+    final channelCount = await _epgService.getChannelCount(playlistId);
+    final programCount = await _epgService.getProgramCount(playlistId);
+    debugPrint('Total EPG Channels in DB: $channelCount');
+    debugPrint('Total EPG Programmes in DB: $programCount');
+
+    // Identifiers to try in order: tvg-id, epg_channel_id, stream_id, name
+    final searchStrategies = [
+      {'label': 'tvg_id', 'id': m3uItem?.tvgId},
+      {'label': 'epg_channel_id', 'id': liveStream?.epgChannelId},
+      {'label': 'stream_id', 'id': liveStream?.streamId},
+      {'label': 'm3u_id', 'id': m3uItem?.id},
+    ];
+
     try {
-      final programs = await _epgService.getProgramsForWindow(
-        playlistId: playlistId,
-        epgChannelId: epgId,
-        start: DateTime.now(),
-        end: DateTime.now().add(const Duration(hours: 12)),
-        limit: 3,
-      );
-      if (mounted) setState(() => _epgPrograms = programs);
+      List<EpgProgramWindow> programs = [];
+      String? matchedId;
+      String? matchedStrategy;
+
+      for (final strategy in searchStrategies) {
+        final id = strategy['id'];
+        if (id == null || id.isEmpty) continue;
+        
+        programs = await _epgService.getProgramsForWindow(
+          playlistId: playlistId,
+          epgChannelId: id,
+          start: now.subtract(const Duration(minutes: 5)),
+          end: now.add(const Duration(hours: 12)),
+          limit: 3,
+        );
+        
+        if (programs.isNotEmpty) {
+          matchedId = id;
+          matchedStrategy = strategy['label'];
+          debugPrint('EPG Match Found using $matchedStrategy: $matchedId');
+          break;
+        }
+      }
+
+      // Fallback: Name matching if still empty
+      if (programs.isEmpty) {
+        debugPrint('EPG: Trying name-based matching fallback...');
+        programs = await _epgService.getProgramsByChannelName(
+          playlistId: playlistId,
+          displayName: channel.name,
+          start: now.subtract(const Duration(minutes: 5)),
+          end: now.add(const Duration(hours: 12)),
+          limit: 3,
+        );
+        if (programs.isNotEmpty) {
+           debugPrint('EPG Match Found using Normalized Name');
+           matchedStrategy = 'normalized_name';
+        }
+      }
+
+      debugPrint('EPG Matching Status: ${programs.isNotEmpty ? "SUCCESS" : "FAILED"}');
+      debugPrint('Lookup Timestamp (Local): $now');
+      debugPrint('Lookup Timestamp (UTC): ${now.toUtc()}');
+
+      if (programs.isEmpty) {
+        debugPrint('EPG audit: No programmes found for this channel');
+      } else {
+        debugPrint('Number of programmes found: ${programs.length}');
+        final current = programs.firstWhere(
+          (p) => (p.start.isBefore(now) || p.start.isAtSameMomentAs(now)) && p.end.isAfter(now),
+          orElse: () => programs.first,
+        );
+        
+        bool isAiringNow = (current.start.isBefore(now) || current.start.isAtSameMomentAs(now)) && current.end.isAfter(now);
+        
+        debugPrint('Current Programme: ${current.title} (${current.start} - ${current.end})');
+        if (programs.length > 1) {
+          debugPrint('Next Programme: ${programs[1].title}');
+        }
+        
+        if (!isAiringNow) {
+           debugPrint('EPG channel matched but no current programme at this time (Current time: $now)');
+        }
+      }
+      debugPrint('--- EPG AUDIT END ---');
+
+      if (mounted && requestId == _epgRequestId) {
+        setState(() => _epgPrograms = programs);
+      }
     } catch (e) {
-      if (mounted) setState(() => _epgPrograms = []);
+      debugPrint('EPG Error: $e');
+      if (mounted && requestId == _epgRequestId) {
+        setState(() => _epgPrograms = []);
+      }
     }
   }
 
-  void _onChannelFocused(ContentItem channel) {
-    if (_focusedChannel?.id == channel.id) return;
+  void _onChannelFocused(ContentItem channel, {bool immediate = false}) {
+    // BUG #1 FIX: More robust check to avoid multiple playback requests
+    if (_focusedChannel?.id == channel.id && !immediate) {
+      // Still update EPG just in case, but don't restart playback
+      _fetchEpg(channel);
+      return;
+    }
+    
+    debugPrint('XtreamLiveScreen: Channel Selected -> ${channel.name}');
+    
+    // BUG FIX: Clear error state and cancel old requests immediately
+    _previewController?.stop();
+
     setState(() {
       _focusedChannel = channel;
     });
@@ -220,18 +415,78 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
 
     // Debounce preview playback to prevent rapid stream switching while scrolling
     _previewDebounce?.cancel();
-    _previewDebounce = Timer(const Duration(milliseconds: 300), () {
-      if (mounted && _previewController != null) {
-        _previewController!.setDataSource(PlaybackItem.fromContentItem(channel));
+
+    final requestId = ++_previewLoadRequestId;
+
+    Future<void> startPlayback() async {
+      if (!mounted || requestId != _previewLoadRequestId) return;
+      
+      // BUG FIX: Strictly suppress playback if not on the Live TV tab
+      if (_homeController?.currentIndex != 2) {
+        debugPrint('XtreamLiveScreen: Suppressing playback, tab is not active');
+        return;
       }
-    });
+
+      // BUG #1 & #5 FIX: Check if we are already playing this exact source
+      final currentSourceId = _previewController?.currentItem?.id;
+      if (currentSourceId == channel.id) {
+         debugPrint('XtreamLiveScreen: Skipping Playback Requested, source already loaded.');
+         return;
+      }
+
+      if (_previewController == null) {
+        debugPrint('XtreamLiveScreen: Player Created');
+        await _initPreviewController();
+      }
+      
+      if (!mounted || requestId != _previewLoadRequestId) return;
+
+      final playlist = widget.playlist ?? AppState.currentPlaylist;
+      if (playlist == null) {
+        debugPrint('XtreamLiveScreen: CRITICAL - No playlist context available');
+        return;
+      }
+
+      debugPrint('XtreamLiveScreen: Playback Requested -> ${channel.name} (Req: $requestId)');
+      final resolvedUrl = await PlaybackUrlResolver.resolveUrl(
+        item: channel,
+        playlist: playlist,
+      );
+
+      if (!mounted || requestId != _previewLoadRequestId) return;
+
+      if (resolvedUrl == null || resolvedUrl.isEmpty) {
+        debugPrint('XtreamLiveScreen: Playback Error -> Failed to resolve URL for ${channel.name}');
+        return;
+      }
+
+      debugPrint('XtreamLiveScreen: Player Opened -> ${channel.name}');
+      final playbackItem = PlaybackItem.fromContentItem(
+        channel,
+      ).copyWith(url: resolvedUrl);
+
+      await _previewController!.setDataSource(playbackItem);
+      debugPrint('XtreamLiveScreen: Playback Started -> ${channel.name}');
+    }
+
+    if (immediate) {
+      startPlayback();
+    } else {
+      // Increased debounce to 500ms for stability on remotes
+      _previewDebounce =
+          Timer(const Duration(milliseconds: 500), startPlayback);
+    }
   }
 
   void _enterFullscreen() {
     if (_focusedChannel == null || _previewController == null) return;
-    
-    // Remove listener before passing to fullscreen to avoid double state updates
-    _previewController!.removeListener(_onPreviewStateChanged);
+
+    debugPrint('XtreamLiveScreen: Pausing preview for fullscreen');
+
+    _previewDebounce?.cancel();
+    // Stop monitoring preview state while in fullscreen
+    _previewController?.removeListener(_onPreviewStateChanged);
+    _previewController?.pause();
 
     Navigator.push(
       context,
@@ -239,26 +494,85 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
         builder: (context) => UnifiedPlayerScreen(
           contentItem: _focusedChannel!,
           queue: _currentItems,
-          externalController: _previewController,
+          // Use a separate controller for fullscreen as per Requirement #10
         ),
       ),
     ).then((_) {
-      // Re-attach listener when returning from fullscreen
+      debugPrint(
+          'XtreamLiveScreen: Returned from fullscreen, resuming preview and EPG');
       if (mounted) {
-        _previewController!.addListener(_onPreviewStateChanged);
-        
-        // Sync focused channel if it changed in fullscreen
-        final currentPlayItem = _previewController!.currentItem;
-        if (currentPlayItem != null && currentPlayItem.originalItem != null) {
-          setState(() {
-            _focusedChannel = currentPlayItem.originalItem;
-          });
+        if (_focusedChannel != null) {
           _fetchEpg(_focusedChannel!);
         }
-
-        setState(() {});
+        if (_previewController != null) {
+          _previewController!.addListener(_onPreviewStateChanged);
+          _previewController!.play();
+        } else {
+          _restorePreview();
+        }
       }
     });
+  }
+
+  Future<void> _forceRefreshEpg() async {
+    final playlist = widget.playlist ?? AppState.currentPlaylist;
+    if (playlist == null) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Starting EPG Refresh...'),
+        backgroundColor: Color(0xFFC12CFF),
+      ),
+    );
+
+    try {
+      String? xmltvUrl;
+      if (playlist.type == PlaylistType.xtream) {
+        // Construct Xtream XMLTV URL
+        String baseUrl = playlist.url ?? '';
+        if (baseUrl.contains('/player_api.php')) {
+          baseUrl = baseUrl.split('/player_api.php')[0];
+        }
+        xmltvUrl =
+            '$baseUrl/xmltv.php?username=${playlist.username}&password=${playlist.password}';
+      }
+
+      if (xmltvUrl == null) {
+        throw Exception('EPG URL not available for this playlist type');
+      }
+
+      final importService = EpgImportService(storage: _epgService);
+      final result = await importService.importUrl(
+        playlistId: playlist.id,
+        url: xmltvUrl,
+      );
+
+      debugPrint(
+          'EPG Refresh Complete: ${result.currentItem}');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('EPG Refresh Complete: ${result.currentItem}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        if (_focusedChannel != null) {
+          _fetchEpg(_focusedChannel!);
+        }
+      }
+    } catch (e) {
+      debugPrint('EPG Refresh Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('EPG Refresh Failed: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -268,9 +582,9 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
 
     return Consumer<XtreamCodeHomeController>(
       builder: (context, controller, child) {
-        return Scaffold(
-          backgroundColor: const Color(0xFF050812),
-          body: Container(
+        return Container(
+          color: const Color(0xFF050812),
+          child: Container(
             width: double.infinity,
             height: double.infinity,
             decoration: BoxDecoration(
@@ -278,7 +592,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
               image: DecorationImage(
                 image: (homeBg.isNotEmpty)
                     ? NetworkImage(homeBg)
-                    : const AssetImage('assets/images/background.png') as ImageProvider,
+                    : const AssetImage('assets/images/background.png')
+                        as ImageProvider,
                 fit: BoxFit.cover,
               ),
             ),
@@ -298,35 +613,50 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
                 children: [
                   // HEADER
                   WatchioHeader(
+                    isCompact: true,
+                    customLogoHeight: 62, // BUG #7 FIX: Increased logo size by ~35%
                     onBack: () => controller.onNavigationTap(0),
-                    onSearch: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SearchScreen(contentType: ContentType.liveStream))),
+                    onSearch: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => SearchScreen(
+                                contentType: ContentType.liveStream))),
                     onSettings: () => controller.onNavigationTap(5),
                     onRefresh: () => controller.refreshAllData(context),
+                    onRefreshEpg: _forceRefreshEpg,
                   ),
-                  
+
                   // MAIN CONTENT (3 Columns)
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       child: Row(
                         children: [
                           // LEFT PANEL (22%) - Categories
                           Expanded(
                             flex: 22,
-                            child: _buildCategoryPanel(controller),
+                            child: GlassPanel(
+                              opacity: 0.1,
+                              blur: 20,
+                              child: _buildCategoryPanel(controller),
+                            ),
                           ),
                           const SizedBox(width: 16),
-                          
-                          // CENTER PANEL (28%) - Channels
+
+                          // CENTER PANEL (33%) - Channels
                           Expanded(
-                            flex: 28,
-                            child: _buildChannelPanel(),
+                            flex: 33,
+                            child: GlassPanel(
+                              opacity: 0.1,
+                              blur: 20,
+                              child: _buildChannelPanel(),
+                            ),
                           ),
                           const SizedBox(width: 16),
-                          
-                          // RIGHT PANEL (50%) - Preview & EPG
+
+                          // RIGHT PANEL (45%) - Preview & EPG
                           Expanded(
-                            flex: 50,
+                            flex: 45,
                             child: _buildPreviewPanel(),
                           ),
                         ],
@@ -344,19 +674,45 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
 
   Widget _buildCategoryPanel(XtreamCodeHomeController controller) {
     final categories = controller.liveCategories ?? [];
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Category Search
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+          child: TextField(
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+            decoration: InputDecoration(
+              hintText: 'SEARCH CATEGORIES',
+              hintStyle: const TextStyle(color: Colors.white24, fontSize: 11),
+              prefixIcon:
+                  const Icon(Icons.search, color: Colors.white24, size: 18),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.05),
+              contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: (v) {
+              // Implementation for filtering categories locally could go here
+            },
+          ),
+        ),
+        const Divider(color: Colors.white10, height: 1),
         Expanded(
           child: ListView.separated(
             controller: _categoryScrollController,
+            padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: categories.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 8),
+            separatorBuilder: (_, _) => const SizedBox(height: 4),
             itemBuilder: (context, index) {
               final cat = categories[index];
-              final isSelected = _selectedCategory?.category.categoryId == cat.category.categoryId;
-              
+              final isSelected = _selectedCategory?.category.categoryId ==
+                  cat.category.categoryId;
+
               return _CategoryItem(
                 icon: _getCategoryIcon(cat.category.categoryId),
                 label: cat.category.categoryName.toUpperCase(),
@@ -382,31 +738,28 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
         Expanded(
           child: ListView.separated(
             controller: _channelScrollController,
+            padding: const EdgeInsets.all(8),
             itemCount: _currentItems.length + (_isMoreLoading ? 1 : 0),
-            separatorBuilder: (_, _) => const SizedBox(height: 8),
+            separatorBuilder: (_, _) =>
+                const SizedBox(height: 4), // Reduced from 6
             itemBuilder: (context, index) {
               if (index < _currentItems.length) {
                 final channel = _currentItems[index];
                 final isFocused = _focusedChannel?.id == channel.id;
-                
+
                 return _ChannelItem(
                   channel: channel,
                   index: index + 1,
                   isFocused: isFocused,
                   onFocus: () => _onChannelFocused(channel),
-                  onTap: () {
-                    if (isFocused) {
-                      _enterFullscreen();
-                    } else {
-                      _onChannelFocused(channel);
-                    }
-                  },
+                  onTap: () => _onChannelFocused(channel, immediate: true),
                 );
               } else {
                 return const Center(
                   child: Padding(
                     padding: EdgeInsets.all(8.0),
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Color(0xFFC12CFF)),
                   ),
                 );
               }
@@ -428,7 +781,9 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
           child: Focus(
             onFocusChange: (v) => setState(() => _previewFocused = v),
             onKeyEvent: (node, event) {
-              if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter)) {
+              if (event is KeyDownEvent &&
+                  (event.logicalKey == LogicalKeyboardKey.select ||
+                      event.logicalKey == LogicalKeyboardKey.enter)) {
                 _enterFullscreen();
                 return KeyEventResult.handled;
               }
@@ -443,15 +798,16 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: _previewFocused ? const Color(0xFFC12CFF) : const Color(0xFFC12CFF).withValues(alpha: 0.3), 
-                    width: _previewFocused ? 4 : 2
-                  ),
+                      color: _previewFocused
+                          ? const Color(0xFFC12CFF)
+                          : const Color(0xFFC12CFF).withValues(alpha: 0.3),
+                      width: _previewFocused ? 4 : 2),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFC12CFF).withValues(alpha: _previewFocused ? 0.3 : 0.1), 
-                      blurRadius: _previewFocused ? 30 : 20, 
-                      spreadRadius: 5
-                    ),
+                        color: const Color(0xFFC12CFF)
+                            .withValues(alpha: _previewFocused ? 0.3 : 0.1),
+                        blurRadius: _previewFocused ? 30 : 20,
+                        spreadRadius: 5),
                   ],
                 ),
                 child: ClipRRect(
@@ -461,17 +817,73 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
                     children: [
                       // Video Preview
                       if (_previewController != null)
-                        _previewController!.buildPlayerView(context)
+                        _previewController!
+                            .buildPlayerView(context, fit: BoxFit.cover)
                       else if (_focusedChannel!.imagePath.isNotEmpty)
                         Image.network(
                           _focusedChannel!.imagePath,
                           fit: BoxFit.cover,
-                          errorBuilder: (ctx, err, st) => const Center(child: Icon(Icons.live_tv, size: 80, color: Colors.white10)),
+                          errorBuilder: (ctx, err, st) => const Center(
+                              child: Icon(Icons.live_tv,
+                                  size: 80, color: Colors.white10)),
                         ),
-                      
+
                       // Loading indicator for preview
                       if (_previewController?.isBuffering ?? false)
-                         const Center(child: CircularProgressIndicator(color: Color(0xFFC12CFF))),
+                        const Center(
+                            child: CircularProgressIndicator(
+                                color: Color(0xFFC12CFF))),
+
+                      // Error message for preview
+                      if (_previewController?.error != null)
+                        Container(
+                          color: Colors.black.withValues(alpha: 0.9),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.error_outline_rounded,
+                                  color: Colors.redAccent, size: 48),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'Stream unavailable',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'This channel is offline or not responding.',
+                                style: TextStyle(
+                                    color: Colors.white70, fontSize: 12),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 20),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  if (_focusedChannel != null) {
+                                    debugPrint('Manual retry requested');
+                                    _onChannelFocused(_focusedChannel!,
+                                        immediate: true);
+                                  }
+                                },
+                                icon: const Icon(Icons.refresh_rounded,
+                                    size: 18),
+                                label: const Text('Retry'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFC12CFF),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 24, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
 
                       // Glass Overlay
                       Positioned.fill(
@@ -480,16 +892,22 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, Colors.black.withValues(alpha: 0.6)],
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.6)
+                              ],
                             ),
                           ),
                         ),
                       ),
-                      
+
                       // Fullscreen Icon Hint
                       Positioned(
-                        top: 16, right: 16,
-                        child: Icon(Icons.fullscreen_rounded, color: Colors.white.withValues(alpha: 0.5), size: 28),
+                        top: 16,
+                        right: 16,
+                        child: Icon(Icons.fullscreen_rounded,
+                            color: Colors.white.withValues(alpha: 0.5),
+                            size: 28),
                       ),
                     ],
                   ),
@@ -498,61 +916,153 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
             ),
           ),
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // EPG TIMELINE SECTION
         Expanded(
           flex: 4,
           child: GlassPanel(
+            opacity: 0.1,
+            blur: 20,
             padding: const EdgeInsets.all(20),
-            child: _epgPrograms.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No EPG Information Available',
-                      style: TextStyle(color: Colors.white38, fontSize: 14, fontWeight: FontWeight.w600),
-                    ),
-                  )
-                : SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildEpgItem('NOW PLAYING', _epgPrograms[0], isNow: true),
-                        const Divider(color: Colors.white10, height: 24),
-                        _buildEpgItem('UP NEXT', _epgPrograms.length > 1 ? _epgPrograms[1] : null),
-                        const Divider(color: Colors.white10, height: 24),
-                        _buildEpgItem('LATER', _epgPrograms.length > 2 ? _epgPrograms[2] : null),
-                      ],
-                    ),
-                  ),
+            child: _buildEpgContent(),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildEpgItem(String header, EpgProgramWindow? program, {bool isNow = false}) {
+  Widget _buildEpgContent() {
+    if (_epgPrograms.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'No EPG Information Available',
+              style: TextStyle(
+                  color: Colors.white38,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: _forceRefreshEpg,
+              icon: const Icon(Icons.refresh_rounded,
+                  size: 18, color: Color(0xFFC12CFF)),
+              label: const Text('Refresh EPG',
+                  style: TextStyle(color: Colors.white70, fontSize: 12)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final now = DateTime.now();
+    // Try to find the program that is currently airing
+    final currentProgramIndex = _epgPrograms.indexWhere(
+      (p) => (p.start.isBefore(now) || p.start.isAtSameMomentAs(now)) && p.end.isAfter(now),
+    );
+
+    if (currentProgramIndex == -1) {
+      // If we have programs but none are "now", check if the first one is in the future
+      if (_epgPrograms.first.start.isAfter(now)) {
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'No current programme available',
+                style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600),
+              ),
+              const Divider(color: Colors.white10, height: 32),
+              _buildEpgSection('UP NEXT', _epgPrograms.first),
+            ],
+          ),
+        );
+      } else {
+        // Programmes exist but they might all be in the past or data is stale
+        return const Center(
+          child: Text(
+            'No current programme available',
+            style: TextStyle(
+                color: Colors.white38,
+                fontSize: 14,
+                fontWeight: FontWeight.w600),
+          ),
+        );
+      }
+    }
+
+    final currentProgram = _epgPrograms[currentProgramIndex];
+    final nextPrograms = _epgPrograms.skip(currentProgramIndex + 1).toList();
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildEpgSection('NOW PLAYING', currentProgram, isNow: true),
+          if (nextPrograms.isNotEmpty) ...[
+            const Divider(color: Colors.white10, height: 32),
+            _buildEpgSection('UP NEXT', nextPrograms[0]),
+          ],
+          if (nextPrograms.length > 1) ...[
+            const Divider(color: Colors.white10, height: 32),
+            _buildEpgSection('LATER', nextPrograms[1]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEpgSection(String header, EpgProgramWindow program,
+      {bool isNow = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(header, style: const TextStyle(color: Color(0xFF00B7FF), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-        const SizedBox(height: 4),
+        Row(
+          children: [
+            Text(header,
+                style: const TextStyle(
+                    color: Color(0xFF00B7FF),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2)),
+            const Spacer(),
+            Text(
+              '${DateFormat('HH:mm').format(program.start)} - ${DateFormat('HH:mm').format(program.end)}',
+              style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         Text(
-          program?.title ?? 'No EPG Information Available',
-          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          program.title,
+          style: const TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        if (program != null) ...[
-          const SizedBox(height: 2),
+        if (program.description != null && program.description!.isNotEmpty) ...[
+          const SizedBox(height: 6),
           Text(
-            '${DateFormat('HH:mm').format(program.start)} - ${DateFormat('HH:mm').format(program.end)}',
-            style: const TextStyle(color: Colors.white54, fontSize: 12),
+            program.description!,
+            style:
+                const TextStyle(color: Colors.white60, fontSize: 13, height: 1.4),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-          if (isNow) ...[
-            const SizedBox(height: 8),
-            _buildEpgProgressBar(program),
-          ],
+        ],
+        if (isNow) ...[
+          const SizedBox(height: 12),
+          _buildEpgProgressBar(program),
         ],
       ],
     );
@@ -567,13 +1077,15 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
     return Container(
       height: 4,
       width: double.infinity,
-      decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(2)),
+      decoration: BoxDecoration(
+          color: Colors.white10, borderRadius: BorderRadius.circular(2)),
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
         widthFactor: progress,
         child: Container(
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)]),
+            gradient: const LinearGradient(
+                colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)]),
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -583,7 +1095,9 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen> {
 
   IconData _getCategoryIcon(String categoryId) {
     if (categoryId == IptvRepository.virtualAll) return Icons.list_rounded;
-    if (categoryId == IptvRepository.virtualFavorites) return Icons.favorite_rounded;
+    if (categoryId == IptvRepository.virtualFavorites) {
+      return Icons.favorite_rounded;
+    }
     if (categoryId == IptvRepository.virtualHistory) return Icons.history_rounded;
     return Icons.live_tv_rounded;
   }
@@ -614,7 +1128,7 @@ class _CategoryItemState extends State<_CategoryItem> {
   @override
   Widget build(BuildContext context) {
     final active = _isFocused || widget.isSelected;
-    
+
     return FocusableActionDetector(
       onFocusChange: (v) => setState(() => _isFocused = v),
       child: AnimatedScale(
@@ -627,23 +1141,27 @@ class _CategoryItemState extends State<_CategoryItem> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: active ? const Color(0xFFC12CFF).withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+              color: active
+                  ? const Color(0xAA4A3D6A) // Glass background when active
+                  : Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: active ? const Color(0xFFC12CFF) : Colors.white10,
                 width: active ? 2 : 1,
               ),
-              boxShadow: _isFocused ? [
-                BoxShadow(color: const Color(0xFFC12CFF).withValues(alpha: 0.3), blurRadius: 10)
-              ] : [],
+              boxShadow: active
+                  ? [
+                      BoxShadow(
+                          color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
+                          blurRadius: 12,
+                          spreadRadius: 1)
+                    ]
+                  : [],
             ),
             child: Row(
               children: [
-                Icon(
-                  widget.icon, 
-                  color: active ? Colors.white : Colors.white70, 
-                  size: 20
-                ),
+                Icon(widget.icon,
+                    color: active ? Colors.white : Colors.white70, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -660,9 +1178,11 @@ class _CategoryItemState extends State<_CategoryItem> {
                 Text(
                   '${widget.count}',
                   style: TextStyle(
-                    color: active ? Colors.white.withValues(alpha: 0.5) : Colors.white24,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                    color: active
+                        ? Colors.white.withValues(alpha: 0.7)
+                        : Colors.white24,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -695,11 +1215,49 @@ class _ChannelItem extends StatefulWidget {
 
 class _ChannelItemState extends State<_ChannelItem> {
   bool _uiFocused = false;
+  EpgProgramWindow? _currentProgram;
+  final _epgService = EpgStorageService();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCurrentProgram();
+  }
+
+  @override
+  void didUpdateWidget(_ChannelItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.channel.id != oldWidget.channel.id) {
+      _fetchCurrentProgram();
+    }
+  }
+
+  Future<void> _fetchCurrentProgram() async {
+    if (widget.channel.liveStream == null) return;
+
+    final playlistId = widget.channel.liveStream!.playlistId;
+    final epgId = widget.channel.liveStream!.epgChannelId;
+
+    if (playlistId == null || epgId.isEmpty) return;
+
+    try {
+      final programs = await _epgService.getProgramsForWindow(
+        playlistId: playlistId,
+        epgChannelId: epgId,
+        start: DateTime.now(),
+        end: DateTime.now().add(const Duration(minutes: 5)),
+        limit: 1,
+      );
+      if (mounted && programs.isNotEmpty) {
+        setState(() => _currentProgram = programs.first);
+      }
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
     final active = _uiFocused || widget.isFocused;
-    
+
     return FocusableActionDetector(
       onFocusChange: (v) {
         setState(() => _uiFocused = v);
@@ -713,63 +1271,116 @@ class _ChannelItemState extends State<_ChannelItem> {
           borderRadius: BorderRadius.circular(12),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Reduced vertical padding
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 4), // Reduced from 6 (-33%)
             decoration: BoxDecoration(
-              color: active ? Colors.white.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.03),
+              color: active
+                  ? const Color(0xAA4A3D6A)
+                  : Colors.white.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: active ? const Color(0xFFC12CFF) : Colors.white10,
                 width: active ? 2 : 1,
               ),
+              boxShadow: active
+                  ? [
+                      BoxShadow(
+                          color: const Color(0xFFC12CFF).withValues(alpha: 0.3),
+                          blurRadius: 10)
+                    ]
+                  : [],
             ),
             child: Row(
               children: [
-                Text(
-                  '${widget.index}',
-                  style: const TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold),
+                SizedBox(
+                  width: 35,
+                  child: Text(
+                    widget.channel.liveStream?.streamId ?? '${widget.index}',
+                    style: const TextStyle(
+                        color: Colors.white24,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Container(
-                  width: 34, // Reduced from 40
-                  height: 34, // Reduced from 40
+                  width: 40, // Reduced from 44
+                  height: 28, // Reduced from 32
                   decoration: BoxDecoration(
                     color: Colors.black26,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: widget.channel.imagePath.isNotEmpty
                       ? ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(4),
                           child: Image.network(
                             widget.channel.imagePath,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, _, _) => const Icon(Icons.live_tv, size: 18, color: Colors.white24),
+                            errorBuilder: (_, _, _) => const Icon(Icons.live_tv,
+                                size: 16, color: Colors.white24),
                           ),
                         )
-                      : const Icon(Icons.live_tv, size: 18, color: Colors.white24),
+                      : const Icon(Icons.live_tv,
+                          size: 16, color: Colors.white24),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         widget.channel.name,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 1), // Reduced from 2
-                      const Text(
-                        'No EPG info',
-                        style: TextStyle(color: Colors.white38, fontSize: 11),
+                      Text(
+                        _currentProgram?.title ?? 'No Programme Info',
+                        style: TextStyle(
+                            color: active ? Colors.white70 : Colors.white38,
+                            fontSize: 10), // Reduced from 11
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (_currentProgram != null) ...[
+                        const SizedBox(height: 3), // Reduced from 4
+                        _buildProgressBar(_currentProgram!),
+                      ],
                     ],
                   ),
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressBar(EpgProgramWindow program) {
+    final now = DateTime.now();
+    final total = program.end.difference(program.start).inSeconds;
+    final elapsed = now.difference(program.start).inSeconds;
+    final progress = (elapsed / total).clamp(0.0, 1.0);
+
+    return Container(
+      height: 2,
+      width: double.infinity,
+      decoration: BoxDecoration(
+          color: Colors.white10, borderRadius: BorderRadius.circular(1)),
+      child: FractionallySizedBox(
+        alignment: Alignment.centerLeft,
+        widthFactor: progress,
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFC12CFF),
+            borderRadius: BorderRadius.circular(1),
           ),
         ),
       ),

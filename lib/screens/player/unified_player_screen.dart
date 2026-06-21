@@ -14,6 +14,7 @@ import '../../services/watch_history_service.dart';
 import '../../models/watch_history.dart';
 import '../../services/app_state.dart';
 import '../../services/epg_storage_service.dart';
+import '../../services/playback_url_resolver.dart';
 import '../../shared/widgets/glass_panel.dart';
 import '../../shared/widgets/app_card.dart';
 
@@ -125,26 +126,43 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
 
     final playItem = _currentPlaybackItem.copyWith(startPosition: startPos);
 
+    // Resolve URL asynchronously if needed (for secure credentials)
+    String? resolvedUrl;
+    if (AppState.currentPlaylist != null) {
+      resolvedUrl = await PlaybackUrlResolver.resolveUrl(
+        item: widget.contentItem,
+        playlist: AppState.currentPlaylist!,
+      );
+    }
+
+    if (resolvedUrl == null || resolvedUrl.isEmpty) {
+      debugPrint('UnifiedPlayer: CRITICAL - URL resolution failed');
+      // The player will show error based on the original (broken) URL or we can set an error manually
+    }
+
+    final playItemWithUrl = playItem.copyWith(url: resolvedUrl ?? playItem.url);
+
     debugPrint('--- WATCHIO PLAYBACK PIPELINE AUDIT ---');
     debugPrint('Provider: ${AppState.currentPlaylist!.name}');
     debugPrint('Provider Type: ${AppState.currentPlaylist!.type}');
-    debugPrint('Content Name: ${playItem.title}');
-    debugPrint('Content Type: ${playItem.contentType}');
-    debugPrint('Stream ID: ${playItem.id}');
+    debugPrint('Content Name: ${playItemWithUrl.title}');
+    debugPrint('Content Type: ${playItemWithUrl.contentType}');
+    debugPrint('Stream ID: ${playItemWithUrl.id}');
     debugPrint(
-        'Episode ID: ${playItem.originalItem?.season != null ? playItem.id : "N/A"}');
-    debugPrint('Generated URL: ${playItem.url}');
-    debugPrint('User-Agent: ${playItem.headers['User-Agent']}');
-    debugPrint('Referer: ${playItem.headers['Referer']}');
+        'Episode ID: ${playItemWithUrl.originalItem?.season != null ? playItemWithUrl.id : "N/A"}');
+    debugPrint('Generated URL: ${playItemWithUrl.url}');
+    debugPrint('User-Agent: ${playItemWithUrl.headers['User-Agent']}');
+    debugPrint('Referer: ${playItemWithUrl.headers['Referer']}');
     debugPrint('Playback Engine: ${engine.name}');
     debugPrint('--------------------------------------');
 
-    if (playItem.url.isEmpty ||
-        (!playItem.url.startsWith('http') && playItem.url == playItem.id)) {
+    if (playItemWithUrl.url.isEmpty ||
+        (!playItemWithUrl.url.startsWith('http') &&
+            playItemWithUrl.url == playItemWithUrl.id)) {
       debugPrint('UnifiedPlayer: CRITICAL - Invalid URL generated');
     }
 
-    await _playerController.setDataSource(playItem);
+    await _playerController.setDataSource(playItemWithUrl);
     _playerController.addListener(_onPlayerStateChanged);
 
     if (_currentPlaybackItem.isLive) {
@@ -305,17 +323,28 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     _playItem(widget.queue![nextIdx]);
   }
 
-  void _playItem(ContentItem item) {
-    setState(() {
-      _currentPlaybackItem = PlaybackItem.fromContentItem(item);
-      _checkFavorite();
-      _epgPrograms = [];
-    });
-    _playerController.setDataSource(_currentPlaybackItem);
-    if (_currentPlaybackItem.isLive) {
-      _fetchEpg();
+  void _playItem(ContentItem item) async {
+    final playlist = AppState.currentPlaylist;
+    if (playlist == null) return;
+
+    final resolvedUrl = await PlaybackUrlResolver.resolveUrl(
+      item: item,
+      playlist: playlist,
+    );
+
+    if (mounted) {
+      setState(() {
+        _currentPlaybackItem =
+            PlaybackItem.fromContentItem(item).copyWith(url: resolvedUrl);
+        _checkFavorite();
+        _epgPrograms = [];
+      });
+      _playerController.setDataSource(_currentPlaybackItem);
+      if (_currentPlaybackItem.isLive) {
+        _fetchEpg();
+      }
+      _startControlsTimer();
     }
-    _startControlsTimer();
   }
 
   void _seekRelative(int seconds) {

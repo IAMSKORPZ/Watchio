@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' hide Category;
 import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
@@ -80,7 +81,7 @@ class MyAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         _player?.pause();
       });
     } catch (e) {
-      print('Audio session configuration error: $e');
+      debugPrint('Audio session configuration error: $e');
     }
   }
 

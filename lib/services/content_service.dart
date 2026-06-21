@@ -40,6 +40,8 @@ class ContentService {
               page: page,
               pageSize: pageSize,
             ),
+          PlaylistType.stalker =>
+            <ContentItem>[], // TODO: Implement Stalker content fetching
         };
         return PagedResult(
           items: items,
