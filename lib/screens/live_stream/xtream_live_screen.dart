@@ -1102,6 +1102,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     return Column(
       children: [
         Expanded(
+          flex: 4,
           child: _buildCompactEpgSection(
             'NOW PLAYING',
             currentProgram,
@@ -1110,11 +1111,17 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
         ),
         if (nextPrograms.isNotEmpty) ...[
           const Divider(color: Colors.white10, height: 1),
-          Expanded(child: _buildCompactEpgSection('UP NEXT', nextPrograms[0])),
+          Expanded(
+            flex: 3,
+            child: _buildCompactEpgSection('UP NEXT', nextPrograms[0]),
+          ),
         ],
         if (nextPrograms.length > 1) ...[
           const Divider(color: Colors.white10, height: 1),
-          Expanded(child: _buildCompactEpgSection('LATER', nextPrograms[1])),
+          Expanded(
+            flex: 3,
+            child: _buildCompactEpgSection('LATER', nextPrograms[1]),
+          ),
         ],
       ],
     );
