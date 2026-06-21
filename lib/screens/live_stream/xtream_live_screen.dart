@@ -24,6 +24,7 @@ import '../../shared/widgets/glass_panel.dart';
 import '../../shared/widgets/watchio_header.dart';
 import '../player/unified_player_screen.dart';
 import '../search_screen.dart';
+import '../settings/sections/account_info_page.dart';
 import '../../services/epg_import_service.dart';
 
 class XtreamLiveScreen extends StatefulWidget {
@@ -673,6 +674,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                   // HEADER
                   WatchioHeader(
                     isCompact: true,
+                    customLogoHeight: 90,
+                    sectionTitle: 'Live TV',
                     onBack: () => controller.onNavigationTap(0),
                     onSearch: () => Navigator.push(
                       context,
@@ -682,6 +685,12 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                       ),
                     ),
                     onSettings: () => controller.onNavigationTap(5),
+                    onProfile: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AccountInfoPage(),
+                      ),
+                    ),
                     onRefresh: () => controller.refreshAllData(context),
                     onRefreshEpg: _forceRefreshEpg,
                   ),
@@ -694,7 +703,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                         children: [
                           // LEFT PANEL (22%) - Categories
                           Expanded(
-                            flex: 22,
+                            flex: 24,
                             child: GlassPanel(
                               opacity: 0.1,
                               blur: 20,
@@ -706,7 +715,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
 
                           // CENTER PANEL (33%) - Channels
                           Expanded(
-                            flex: 33,
+                            flex: 28,
                             child: GlassPanel(
                               opacity: 0.1,
                               blur: 20,
@@ -717,7 +726,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                           const SizedBox(width: 16),
 
                           // RIGHT PANEL (45%) - Preview & EPG
-                          Expanded(flex: 45, child: _buildPreviewPanel()),
+                          Expanded(flex: 48, child: _buildPreviewPanel()),
                         ],
                       ),
                     ),
@@ -842,7 +851,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
       children: [
         // PREVIEW AREA
         Expanded(
-          flex: 6,
+          flex: 5,
           child: Row(
             children: [
               Expanded(
@@ -895,14 +904,14 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                                   children: [
                                     Image.asset(
                                       'assets/images/App_Logo.png',
-                                      width: 240,
+                                      width: 170,
                                       fit: BoxFit.contain,
                                     ),
                                     const Text(
                                       'Click a channel to start preview',
                                       style: TextStyle(
                                         color: Colors.white70,
-                                        fontSize: 14,
+                                        fontSize: 11,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -1048,7 +1057,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
 
         // EPG TIMELINE SECTION
         Expanded(
-          flex: 4,
+          flex: 5,
           child: GlassPanel(
             opacity: 0.1,
             blur: 20,
@@ -1075,7 +1084,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     return GlassPanel(
       blur: 20,
       gradient: contentPanelGradientOf(context),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -1094,7 +1103,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             _focusedChannel?.name ?? 'Select a channel',
             maxLines: 2,
@@ -1102,11 +1111,11 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 3),
           Text(
             currentProgram?.title ?? 'No programme information',
             maxLines: 2,
@@ -1114,18 +1123,64 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
             textAlign: TextAlign.center,
             style: TextStyle(
               color: accent,
-              fontSize: 12,
+              fontSize: 10,
               fontWeight: FontWeight.w600,
             ),
           ),
           if (currentProgram != null) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 3),
             Text(
               '${DateFormat('hh:mm a').format(currentProgram.start)} - ${DateFormat('hh:mm a').format(currentProgram.end)}',
-              style: const TextStyle(color: Colors.white54, fontSize: 11),
+              style: const TextStyle(color: Colors.white54, fontSize: 9),
             ),
           ],
+          const SizedBox(height: 4),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 6,
+            runSpacing: 4,
+            children: [
+              _buildInfoTag(
+                _selectedCategory?.category.categoryName.replaceAll(
+                      RegExp(r'^UK\s*\|\s*'),
+                      '',
+                    ) ??
+                    'LIVE',
+                accent,
+              ),
+              _buildInfoTag(
+                (_focusedChannel?.name.toUpperCase().contains('4K') ?? false)
+                    ? '4K'
+                    : (_focusedChannel?.name.toUpperCase().contains('HD') ??
+                          false)
+                    ? 'HD'
+                    : 'LIVE',
+                const Color(0xFF06B6D4),
+              ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInfoTag(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.7)),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
@@ -1213,83 +1268,125 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
       }
     }
 
-    final currentProgram = _epgPrograms[currentProgramIndex];
-    final nextPrograms = _epgPrograms.skip(currentProgramIndex + 1).toList();
-
+    final timeline = _epgPrograms.skip(currentProgramIndex).take(3).toList();
     return Column(
-      children: [
-        Expanded(
-          flex: 4,
-          child: _buildCompactEpgSection(
-            'NOW PLAYING',
-            currentProgram,
-            isNow: true,
+      children: List.generate(
+        timeline.length,
+        (index) => Expanded(
+          child: _buildTimelineItem(
+            index == 0
+                ? 'NOW PLAYING'
+                : index == 1
+                ? 'UP NEXT'
+                : 'LATER',
+            timeline[index],
+            index: index,
+            isNow: index == 0,
+            isLast: index == timeline.length - 1,
           ),
         ),
-        if (nextPrograms.isNotEmpty) ...[
-          const Divider(color: Colors.white10, height: 1),
-          Expanded(
-            flex: 3,
-            child: _buildCompactEpgSection('UP NEXT', nextPrograms[0]),
-          ),
-        ],
-        if (nextPrograms.length > 1) ...[
-          const Divider(color: Colors.white10, height: 1),
-          Expanded(
-            flex: 3,
-            child: _buildCompactEpgSection('LATER', nextPrograms[1]),
-          ),
-        ],
-      ],
+      ),
     );
   }
 
-  Widget _buildCompactEpgSection(
-    String header,
+  Widget _buildTimelineItem(
+    String label,
     EpgProgramWindow program, {
-    bool isNow = false,
+    required int index,
+    required bool isNow,
+    required bool isLast,
   }) {
-    return Padding(
-      padding: EdgeInsets.zero,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final accent = Theme.of(context).colorScheme.primary;
+    final runtime = program.end.difference(program.start).inMinutes;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: 28,
+          child: Stack(
+            alignment: Alignment.topCenter,
             children: [
-              Text(
-                header,
-                style: const TextStyle(
-                  color: Color(0xFF00B7FF),
-                  fontSize: 9,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1,
+              if (!isLast)
+                Positioned(
+                  top: 18,
+                  bottom: 0,
+                  child: Container(
+                    width: 2,
+                    color: accent.withValues(alpha: 0.35),
+                  ),
                 ),
-              ),
-              const Spacer(),
-              Text(
-                '${DateFormat('HH:mm').format(program.start)} - ${DateFormat('HH:mm').format(program.end)}',
-                style: const TextStyle(color: Colors.white38, fontSize: 9),
+              Container(
+                width: 20,
+                height: 20,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF101426),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: accent),
+                ),
+                child: Text(
+                  isNow ? '▶' : '${index + 1}',
+                  style: const TextStyle(color: Colors.white, fontSize: 8),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 1),
-          Text(
-            program.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(6, 0, 8, 3),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: accent,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${DateFormat('HH:mm').format(program.start)} - ${DateFormat('HH:mm').format(program.end)}  •  $runtime min',
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 8,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  program.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  program.description?.isNotEmpty == true
+                      ? program.description!
+                      : 'No programme description available',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white54, fontSize: 9),
+                ),
+                if (isNow) ...[
+                  const SizedBox(height: 2),
+                  _buildEpgProgressBar(program),
+                ],
+              ],
             ),
           ),
-          if (isNow) ...[
-            const SizedBox(height: 2),
-            _buildEpgProgressBar(program),
-          ],
-        ],
-      ),
+        ),
+      ],
     );
   }
 
