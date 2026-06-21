@@ -216,7 +216,11 @@ class _AppInitializerScreenState extends State<AppInitializerScreen> with Single
         case PlaylistType.xtream:
           return XtreamCodeDataLoaderScreen(playlist: _lastPlaylist!);
         case PlaylistType.m3u:
-          return M3uDataLoaderScreen(playlist: _lastPlaylist!, m3uItems: const []);
+          return M3uDataLoaderScreen(
+              playlist: _lastPlaylist!, m3uItems: const []);
+        case PlaylistType.stalker:
+          // Fallback to Xtream loader if Stalker specific loader doesn't exist
+          return XtreamCodeDataLoaderScreen(playlist: _lastPlaylist!);
       }
     }
   }

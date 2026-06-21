@@ -92,7 +92,7 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
               title: const Text('Enable Hardware Decoding', style: TextStyle(color: Colors.white)),
               subtitle: const Text('Uses GPU for video decoding if supported', style: TextStyle(color: Colors.white54)),
               value: _hardwareDecoding,
-              activeColor: const Color(0xFFC12CFF),
+              activeThumbColor: const Color(0xFFC12CFF),
               onChanged: (v) {
                 setState(() => _hardwareDecoding = v);
                 UserPreferences.setHardwareDecoding(v);

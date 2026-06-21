@@ -8,6 +8,11 @@ class PlaylistService {
       playlist.id,
       playlist.password,
     );
+    await SecureStorageService.instance.saveProviderSecret(
+      playlist.id,
+      'username',
+      playlist.username,
+    );
     await DatabaseService.savePlaylist(_withoutSecret(playlist));
   }
 
@@ -24,6 +29,11 @@ class PlaylistService {
     await SecureStorageService.instance.saveProviderPassword(
       playlist.id,
       playlist.password,
+    );
+    await SecureStorageService.instance.saveProviderSecret(
+      playlist.id,
+      'username',
+      playlist.username,
     );
     await DatabaseService.updatePlaylist(_withoutSecret(playlist));
   }
@@ -56,12 +66,15 @@ class PlaylistService {
   static Future<Playlist> _hydrate(Playlist playlist) async {
     final password =
         await SecureStorageService.instance.readProviderPassword(playlist.id);
+    final username = await SecureStorageService.instance
+        .readProviderSecret(playlist.id, 'username');
+
     return Playlist(
       id: playlist.id,
       name: playlist.name,
       type: playlist.type,
       url: playlist.url,
-      username: playlist.username,
+      username: username ?? playlist.username,
       password: password ?? playlist.password,
       createdAt: playlist.createdAt,
     );

@@ -20,6 +20,10 @@ class MediaKitPlayerController extends AppPlayerController {
   PlaybackItem? _currentItem;
   double? _aspectRatio;
 
+  bool _disposed = false;
+  int _requestId = 0;
+  Timer? _retryTimer;
+
   StreamSubscription? _posSub;
   StreamSubscription? _durSub;
   StreamSubscription? _playSub;
@@ -47,7 +51,15 @@ class MediaKitPlayerController extends AppPlayerController {
   double? get aspectRatio => _aspectRatio;
 
   @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
+  @override
   Future<void> initialize() async {
+    if (_disposed) return;
+    debugPrint('MediaKit: Player Created');
     final hardwareDecoding = await UserPreferences.getHardwareDecoding();
     _player = Player();
     
@@ -65,26 +77,32 @@ class MediaKitPlayerController extends AppPlayerController {
     _videoController = VideoController(_player);
     
     _posSub = _player.stream.position.listen((p) {
+      if (_disposed) return;
       _position = p;
       notifyListeners();
     });
     
     _durSub = _player.stream.duration.listen((d) {
+      if (_disposed) return;
       _duration = d;
       notifyListeners();
     });
     
     _playSub = _player.stream.playing.listen((p) {
+      if (_disposed) return;
       _isPlaying = p;
+      if (p) debugPrint('MediaKit: Playback Started');
       notifyListeners();
     });
     
     _buffSub = _player.stream.buffering.listen((b) {
+      if (_disposed) return;
       _isBuffering = b;
       notifyListeners();
     });
 
     _errSub = _player.stream.error.listen((e) {
+      if (_disposed) return;
       debugPrint('MediaKit Stream Error: $e');
       _error = e;
       notifyListeners();
@@ -96,29 +114,51 @@ class MediaKitPlayerController extends AppPlayerController {
 
   @override
   Future<void> setDataSource(PlaybackItem item) async {
+    if (_disposed) return;
+    _requestId++;
+    debugPrint('MediaKit: Player Opened -> ${item.title} (Req: $_requestId)');
     _error = null;
     _currentItem = item;
     _retryCount = 0;
-    await _openMedia(item);
+    _retryTimer?.cancel();
+    await _openMedia(item, _requestId);
   }
 
-  Future<void> _openMedia(PlaybackItem item) async {
+  Future<void> _openMedia(PlaybackItem item, int requestId) async {
+    if (_disposed || requestId != _requestId) return;
+
     try {
       await _player.open(
         Media(item.url, httpHeaders: item.headers), 
         play: true
       ).timeout(const Duration(seconds: 15));
       
+      if (_disposed || requestId != _requestId) return;
+
       if (item.startPosition > Duration.zero) {
         await _player.seek(item.startPosition);
       }
     } catch (e) {
+      if (_disposed || requestId != _requestId) {
+        debugPrint('MediaKit: Ignoring error from stale request or disposed controller');
+        return;
+      }
+
       debugPrint('MediaKit Error: $e');
       if (_retryCount < _maxRetries) {
         _retryCount++;
-        await Future.delayed(const Duration(seconds: 2));
-        await _openMedia(item);
+        debugPrint('MediaKit: Retrying... ($_retryCount/$_maxRetries)');
+        _retryTimer?.cancel();
+        _retryTimer = Timer(const Duration(seconds: 2), () {
+          if (!_disposed && requestId == _requestId) {
+            _openMedia(item, requestId);
+          } else {
+            debugPrint('MediaKit: Retry cancelled - stale request or disposed');
+          }
+        });
       } else {
+        debugPrint('Playback failed after max retries');
+        debugPrint('Retry stopped - max retries reached');
         _error = 'Playback Error: $e';
         notifyListeners();
       }
@@ -126,19 +166,43 @@ class MediaKitPlayerController extends AppPlayerController {
   }
 
   @override
-  Future<void> play() async => await _player.play();
+  Future<void> play() async {
+    if (_disposed) return;
+    await _player.play();
+  }
 
   @override
-  Future<void> pause() async => await _player.pause();
+  Future<void> stop() async {
+    if (_disposed) return;
+    _requestId++;
+    _retryTimer?.cancel();
+    _error = null;
+    _currentItem = null;
+    await _player.stop();
+    notifyListeners();
+  }
 
   @override
-  Future<void> seek(Duration position) async => await _player.seek(position);
+  Future<void> pause() async {
+    if (_disposed) return;
+    await _player.pause();
+  }
 
   @override
-  Future<void> setVolume(double volume) async => await _player.setVolume(volume);
+  Future<void> seek(Duration position) async {
+    if (_disposed) return;
+    await _player.seek(position);
+  }
+
+  @override
+  Future<void> setVolume(double volume) async {
+    if (_disposed) return;
+    await _player.setVolume(volume);
+  }
 
   @override
   Future<void> setAspectRatio(double? ratio) async {
+    if (_disposed) return;
     _aspectRatio = ratio;
     // For media_kit, we can also set the property on mpv
     if (!kIsWeb) {
@@ -160,35 +224,45 @@ class MediaKitPlayerController extends AppPlayerController {
 
   @override
   Future<List<String>> getAudioTracks() async {
+    if (_disposed) return [];
     return _player.state.tracks.audio.map((t) => t.title ?? t.language ?? 'Audio track').toList();
   }
 
   @override
   Future<void> setAudioTrack(int index) async {
+    if (_disposed) return;
     await _player.setAudioTrack(_player.state.tracks.audio[index]);
   }
 
   @override
   Future<List<String>> getSubtitleTracks() async {
+    if (_disposed) return [];
     return _player.state.tracks.subtitle.map((t) => t.title ?? t.language ?? 'Subtitle').toList();
   }
 
   @override
   Future<void> setSubtitleTrack(int index) async {
+    if (_disposed) return;
     await _player.setSubtitleTrack(_player.state.tracks.subtitle[index]);
   }
 
   @override
-  Widget buildPlayerView(BuildContext context) {
+  Widget buildPlayerView(BuildContext context, {BoxFit? fit}) {
+    if (_disposed) return const SizedBox.shrink();
     return Video(
       controller: _videoController,
-      fill: _aspectRatio != null ? Colors.black : Colors.transparent,
-      fit: _aspectRatio != null ? BoxFit.fill : BoxFit.contain,
+      fill: _aspectRatio != null || fit != null ? Colors.black : Colors.transparent,
+      fit: fit ?? (_aspectRatio != null ? BoxFit.fill : BoxFit.contain),
     );
   }
 
   @override
   void dispose() {
+    if (_disposed) return;
+    debugPrint('MediaKit: Player Disposing (Req: $_requestId)');
+    _disposed = true;
+    _requestId++;
+    _retryTimer?.cancel();
     _posSub?.cancel();
     _durSub?.cancel();
     _playSub?.cancel();

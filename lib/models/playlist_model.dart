@@ -32,11 +32,12 @@ class Playlist {
   }
 
   factory Playlist.fromJson(Map<String, dynamic> json) {
+    final typeStr = safeString(json['type']);
     return Playlist(
       id: safeString(json['id']),
       name: safeString(json['name']),
       type: PlaylistType.values.firstWhere(
-        (e) => e.toString() == json['type'],
+        (e) => e.name == typeStr || e.toString() == typeStr,
         orElse: () => PlaylistType.m3u,
       ),
       url: safeString(json['url']),
@@ -46,6 +47,23 @@ class Playlist {
           DateTime.tryParse(safeString(json['createdAt'])) ?? DateTime.now(),
     );
   }
+
+  Playlist copyWith({
+    String? name,
+    String? url,
+    String? username,
+    String? password,
+  }) {
+    return Playlist(
+      id: id,
+      name: name ?? this.name,
+      type: type,
+      url: url ?? this.url,
+      username: username ?? this.username,
+      password: password ?? this.password,
+      createdAt: createdAt,
+    );
+  }
 }
 
-enum PlaylistType { xtream, m3u }
+enum PlaylistType { xtream, m3u, stalker }

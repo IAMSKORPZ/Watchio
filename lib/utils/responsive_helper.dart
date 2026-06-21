@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+enum DeviceType { mobile, tablet, desktop }
+
 class ResponsiveHelper {
   static double getCardWidth(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -44,5 +46,12 @@ class ResponsiveHelper {
   static bool isDesktopOrTV(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     return screenWidth >= 900;
+  }
+
+  static DeviceType getDeviceType(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+    if (width >= 1400) return DeviceType.desktop;
+    if (width >= 900) return DeviceType.tablet;
+    return DeviceType.mobile;
   }
 }

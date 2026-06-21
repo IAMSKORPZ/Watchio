@@ -139,7 +139,7 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
             trailing: const Icon(Icons.chevron_right),
             onTap: () async {
               await UserPreferences.removeLastPlaylist();
-              if (mounted) {
+              if (context.mounted) {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -278,7 +278,7 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
                       ),
                     );
 
-                    if (result == true) {
+                    if (result == true && context.mounted) {
                       if (isXtreamCode) {
                         Navigator.pushReplacement(
                           context,
@@ -499,7 +499,7 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
       newM3uItems = await compute(M3uParser.parseM3uUrl, params);
     } else {
       await _pickFile();
-      if (_selectedFilePath == null) return;
+      if (_selectedFilePath == null || !mounted) return;
 
       showLoadingDialog(context, context.loc.loading_m3u);
       final params = {
@@ -545,6 +545,7 @@ class _GeneralSettingsWidgetState extends State<GeneralSettingsWidget> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.loc.file_selection_error)),
       );

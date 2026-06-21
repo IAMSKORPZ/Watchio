@@ -61,7 +61,7 @@ class FootballDataService {
       try {
         debugPrint('Sports Hub API Request: $uri');
         final response = await http.get(uri, headers: headers);
-        debugPrint('Sports Hub API Response Status [${code}]: ${response.statusCode}');
+        debugPrint('Sports Hub API Response Status [$code]: ${response.statusCode}');
 
         if (response.statusCode == 200) {
           final Map<String, dynamic> data = json.decode(response.body);

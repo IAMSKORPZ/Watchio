@@ -1,6 +1,7 @@
 import 'package:another_iptv_player/database/database.dart';
 import 'package:another_iptv_player/services/service_locator.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 
 class EpgStorageService {
   final AppDatabase database;
@@ -8,6 +9,7 @@ class EpgStorageService {
   EpgStorageService({AppDatabase? database}) : database = database ?? getIt<AppDatabase>();
 
   Future<void> ensureSchema() async {
+    debugPrint('EPG Storage: Using milliseconds for timestamps');
     await database.customStatement('''
 CREATE TABLE IF NOT EXISTS epg_channels(
   playlist_id TEXT NOT NULL,
@@ -64,17 +66,111 @@ LIMIT ?
         Variable.withInt(limit),
       ],
     ).get();
+
+    debugPrint('EPG Storage: Found ${rows.length} programs for $epgChannelId using milliseconds');
+
     return rows
         .map(
           (row) => EpgProgramWindow(
             programId: row.read<String>('program_id'),
             title: row.read<String>('title'),
             description: row.readNullable<String>('description'),
-            start: DateTime.fromMillisecondsSinceEpoch(row.read<int>('start_time')),
-            end: DateTime.fromMillisecondsSinceEpoch(row.read<int>('end_time')),
+            start: DateTime.fromMillisecondsSinceEpoch(row.read<int>('start_time'), isUtc: true).toLocal(),
+            end: DateTime.fromMillisecondsSinceEpoch(row.read<int>('end_time'), isUtc: true).toLocal(),
           ),
         )
         .toList();
+  }
+
+  Future<List<EpgProgramWindow>> getProgramsByChannelName({
+    required String playlistId,
+    required String displayName,
+    required DateTime start,
+    required DateTime end,
+    int limit = 200,
+  }) async {
+    await ensureSchema();
+    
+    final normalized = normalizeName(displayName);
+    debugPrint('EPG Storage: Searching by normalized name: "$normalized" (Original: "$displayName")');
+
+    // Try exact match on display_name first
+    var channelRows = await database.customSelect(
+      'SELECT epg_channel_id FROM epg_channels WHERE playlist_id = ? AND display_name = ? LIMIT 1',
+      variables: [Variable.withString(playlistId), Variable.withString(displayName)],
+    ).get();
+
+    // If no exact match, try normalized matching (this is tricky in SQL without a normalized column)
+    // For now, let's fetch all channel names for this playlist and match in memory if needed,
+    // or just try common variations.
+    if (channelRows.isEmpty) {
+      // Very simple: try a LIKE search with normalized name
+      channelRows = await database.customSelect(
+        'SELECT epg_channel_id FROM epg_channels WHERE playlist_id = ? AND LOWER(display_name) LIKE ? LIMIT 1',
+        variables: [Variable.withString(playlistId), Variable.withString('%$normalized%')],
+      ).get();
+    }
+
+    if (channelRows.isEmpty) return [];
+
+    final epgChannelId = channelRows.first.read<String>('epg_channel_id');
+    return getProgramsForWindow(
+      playlistId: playlistId,
+      epgChannelId: epgChannelId,
+      start: start,
+      end: end,
+      limit: limit,
+    );
+  }
+
+  String normalizeName(String name) {
+    String normalized = name.toUpperCase();
+    
+    // Remove specific prefixes and tags
+    final toRemove = [
+      'UK |', 'US |', 'CA |', 'FR |', 'DE |', 'ES |', 'IT |', 'TR |', 'AR |',
+      'FHD', 'UHD', 'HD', 'SD', 'VM', 'VIP', '4K', 'BACKUP', 'RAW'
+    ];
+
+    for (var tag in toRemove) {
+      normalized = normalized.replaceAll(tag, '');
+    }
+
+    // Remove punctuation
+    normalized = normalized.replaceAll(RegExp(r'[^\w\s]'), '');
+    
+    // Remove double spaces
+    normalized = normalized.replaceAll(RegExp(r'\s+'), ' ');
+    
+    return normalized.trim().toLowerCase();
+  }
+
+  Future<int> getChannelCount(String playlistId) async {
+    final row = await database.customSelect(
+      'SELECT COUNT(*) as cnt FROM epg_channels WHERE playlist_id = ?',
+      variables: [Variable.withString(playlistId)],
+    ).getSingle();
+    return row.read<int>('cnt');
+  }
+
+  Future<int> getProgramCount(String playlistId) async {
+    final row = await database.customSelect(
+      'SELECT COUNT(*) as cnt FROM epg_programs WHERE playlist_id = ?',
+      variables: [Variable.withString(playlistId)],
+    ).getSingle();
+    return row.read<int>('cnt');
+  }
+
+  Future<void> clearEpgData(String playlistId) async {
+    await database.customStatement(
+      'DELETE FROM epg_channels WHERE playlist_id = ?',
+      [playlistId],
+    );
+    await database.customStatement(
+      'DELETE FROM epg_programs WHERE playlist_id = ?',
+      [playlistId],
+    );
+    debugPrint('EPG Storage: Cleared EPG data for playlist $playlistId');
   }
 }
 

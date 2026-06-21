@@ -44,6 +44,7 @@ class _M3UHomeScreenState extends State<M3UHomeScreen> {
 
   void _initializeController() {
     AppState.m3uRepository = M3uRepository();
+    AppState.currentPlaylist = widget.playlist;
     _controller = M3UHomeController();
   }
 

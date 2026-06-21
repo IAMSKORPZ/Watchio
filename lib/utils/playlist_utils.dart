@@ -6,6 +6,7 @@ class PlaylistUtils {
     return switch (type) {
       PlaylistType.xtream => Colors.blue,
       PlaylistType.m3u => Colors.green,
+      PlaylistType.stalker => Colors.purple,
     };
   }
 
@@ -13,6 +14,7 @@ class PlaylistUtils {
     return switch (type) {
       PlaylistType.xtream => Icons.stream,
       PlaylistType.m3u => Icons.playlist_play,
+      PlaylistType.stalker => Icons.hub_outlined,
     };
   }
 

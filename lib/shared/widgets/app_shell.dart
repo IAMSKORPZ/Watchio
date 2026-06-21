@@ -60,16 +60,8 @@ class _AppShellState extends State<AppShell> {
           },
           child: Scaffold(
             backgroundColor: const Color(0xFF050812),
-            body: Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/background.png'),
-                  fit: BoxFit.cover,
-                  opacity: 0.3,
-                ),
-              ),
-              child: Row(
-                children: [
+            body: Row(
+              children: [
                 if (showSidebar)
                   MouseRegion(
                     onEnter: (_) => setState(() => _isSidebarCollapsed = false),
@@ -115,7 +107,7 @@ class _AppShellState extends State<AppShell> {
                 Expanded(
                   child: Column(
                     children: [
-                      if (widget.currentIndex == 1 || widget.currentIndex == 5) // Only show for History and Settings
+                      if (widget.currentIndex == 1) // Only show for History (Settings now has its own header)
                         SafeArea(
                           bottom: false,
                           child: UniversalTopBar(

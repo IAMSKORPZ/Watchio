@@ -122,13 +122,14 @@ class _VideoChannelSelectorWidgetState
     if (currentContent?.contentType == ContentType.liveStream) {
       if (PlaylistContentState.liveCategories.isEmpty) {
         await PlaylistContentState.loadLiveStreams();
+        if (!mounted) return;
       }
       
       String? currentCategoryId;
       if (currentContent?.liveStream != null) {
-        currentCategoryId = currentContent!.liveStream!.categoryId;
+        currentCategoryId = currentContent?.liveStream?.categoryId;
       } else if (currentContent?.m3uItem != null) {
-        currentCategoryId = currentContent!.m3uItem!.categoryId;
+        currentCategoryId = currentContent?.m3uItem?.categoryId;
       }
       
       if (currentCategoryId != null && 
@@ -167,6 +168,7 @@ class _VideoChannelSelectorWidgetState
 
     final overlayContext = _globalContext ?? context;
 
+    if (!overlayContext.mounted) return;
     OverlayState? overlay;
     try {
       overlay = Overlay.of(overlayContext, rootOverlay: true);
@@ -179,6 +181,7 @@ class _VideoChannelSelectorWidgetState
       return;
     }
 
+    if (!overlayContext.mounted) return;
     final screenWidth = MediaQuery.of(overlayContext).size.width;
     final panelWidth = (screenWidth / 3).clamp(200.0, 400.0);
 
