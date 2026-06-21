@@ -86,16 +86,17 @@ class _EpgSettingsPageState extends State<EpgSettingsPage> {
         padding: const EdgeInsets.fromLTRB(40, 8, 40, 8),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
+            constraints: const BoxConstraints(maxWidth: 680),
             child: GlassPanel(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
                 children: [
                   ListTile(
                     dense: true,
+                    visualDensity: const VisualDensity(vertical: -3),
                     leading: _working
                         ? SizedBox.square(
-                            dimension: 28,
+                            dimension: 22,
                             child: CircularProgressIndicator(
                               color: accent,
                               strokeWidth: 3,
@@ -104,7 +105,7 @@ class _EpgSettingsPageState extends State<EpgSettingsPage> {
                         : Icon(
                             Icons.travel_explore_rounded,
                             color: accent,
-                            size: 30,
+                            size: 24,
                           ),
                     title: Text('Scan & Update EPG', style: _titleStyle),
                     subtitle: Text(_status, style: _subtitleStyle),
@@ -118,6 +119,7 @@ class _EpgSettingsPageState extends State<EpgSettingsPage> {
                   const Divider(color: Colors.white10),
                   SwitchListTile(
                     dense: true,
+                    visualDensity: const VisualDensity(vertical: -3),
                     title: Text('Auto Refresh EPG', style: _titleStyle),
                     subtitle: Text(
                       'Automatically update guide in background',
@@ -130,6 +132,7 @@ class _EpgSettingsPageState extends State<EpgSettingsPage> {
                   const Divider(color: Colors.white10),
                   ListTile(
                     dense: true,
+                    visualDensity: const VisualDensity(vertical: -3),
                     title: Text('Source Priority', style: _titleStyle),
                     subtitle: Text(
                       'Provider → playlist XMLTV → built-in regional guides',
@@ -146,6 +149,7 @@ class _EpgSettingsPageState extends State<EpgSettingsPage> {
                   const Divider(color: Colors.white10),
                   ListTile(
                     dense: true,
+                    visualDensity: const VisualDensity(vertical: -3),
                     title: Text('Refresh Interval', style: _titleStyle),
                     subtitle: Text(
                       'How often automatic updates run',
@@ -184,10 +188,10 @@ class _EpgSettingsPageState extends State<EpgSettingsPage> {
   static final _titleStyle = GoogleFonts.outfit(
     color: Colors.white,
     fontWeight: FontWeight.bold,
-    fontSize: 16,
+    fontSize: 13,
   );
   static final _subtitleStyle = GoogleFonts.outfit(
     color: Colors.white38,
-    fontSize: 12,
+    fontSize: 10,
   );
 }

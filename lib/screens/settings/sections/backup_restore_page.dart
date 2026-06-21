@@ -39,7 +39,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
+            constraints: const BoxConstraints(maxWidth: 680),
             child: GlassPanel(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Column(
@@ -111,10 +111,10 @@ class _SettingsActionTile extends StatelessWidget {
         ListTile(
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
-            vertical: 4,
+            vertical: 0,
           ),
           leading: Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: const Color(0xFF00B7FF).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
@@ -122,19 +122,19 @@ class _SettingsActionTile extends StatelessWidget {
                 color: const Color(0xFF00B7FF).withValues(alpha: 0.3),
               ),
             ),
-            child: Icon(icon, color: const Color(0xFF00B7FF), size: 24),
+            child: Icon(icon, color: const Color(0xFF00B7FF), size: 20),
           ),
           title: Text(
             title,
             style: GoogleFonts.outfit(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 15,
+              fontSize: 13,
             ),
           ),
           subtitle: Text(
             subtitle,
-            style: GoogleFonts.outfit(color: Colors.white38, fontSize: 11),
+            style: GoogleFonts.outfit(color: Colors.white38, fontSize: 10),
           ),
           trailing: const Icon(
             Icons.arrow_forward_ios,
