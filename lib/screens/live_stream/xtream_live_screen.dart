@@ -650,8 +650,6 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                   // HEADER
                   WatchioHeader(
                     isCompact: true,
-                    customLogoHeight:
-                        62, // BUG #7 FIX: Increased logo size by ~35%
                     onBack: () => controller.onNavigationTap(0),
                     onSearch: () => Navigator.push(
                       context,

@@ -51,11 +51,15 @@ class _WatchioHeaderState extends State<WatchioHeader> {
   @override
   Widget build(BuildContext context) {
     final double verticalPadding = widget.isCompact ? 8 : 16;
-    final double logoHeight =
-        widget.customLogoHeight ?? (widget.isCompact ? 46 : 68);
+    final double logoHeight = widget.customLogoHeight ?? 110;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(24, verticalPadding, 24, verticalPadding / 2),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        verticalPadding,
+        24,
+        verticalPadding / 2,
+      ),
       child: Row(
         children: [
           // LEFT: Back + Logo
@@ -83,17 +87,19 @@ class _WatchioHeaderState extends State<WatchioHeader> {
               Text(
                 DateFormat('hh:mm a').format(_now),
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: widget.isCompact ? 16 : 20,
-                    fontWeight: FontWeight.w900),
+                  color: Colors.white,
+                  fontSize: widget.isCompact ? 16 : 20,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               if (!widget.isCompact)
                 Text(
                   DateFormat('MMM d, yyyy').format(_now),
                   style: const TextStyle(
-                      color: Color(0xFFC12CFF),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold),
+                    color: Color(0xFFC12CFF),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
             ],
           ),
@@ -104,7 +110,9 @@ class _WatchioHeaderState extends State<WatchioHeader> {
           Row(
             children: [
               _HeaderIconButton(
-                  icon: Icons.search_rounded, onTap: widget.onSearch),
+                icon: Icons.search_rounded,
+                onTap: widget.onSearch,
+              ),
               const SizedBox(width: 12),
               _buildMenu(context),
             ],
@@ -116,9 +124,9 @@ class _WatchioHeaderState extends State<WatchioHeader> {
 
   Widget _buildMenu(BuildContext context) {
     return Theme(
-      data: Theme.of(context).copyWith(
-        hoverColor: Colors.white.withValues(alpha: 0.1),
-      ),
+      data: Theme.of(
+        context,
+      ).copyWith(hoverColor: Colors.white.withValues(alpha: 0.1)),
       child: PopupMenuButton<String>(
         icon: const _HeaderIconContainer(icon: Icons.more_vert_rounded),
         offset: const Offset(0, 50),
@@ -152,36 +160,50 @@ class _WatchioHeaderState extends State<WatchioHeader> {
         itemBuilder: (context) => [
           const PopupMenuItem(
             value: 'sort',
-            child: Row(children: [
-              Icon(Icons.sort_rounded, color: Colors.white70, size: 20),
-              SizedBox(width: 12),
-              Text('Sort Options', style: TextStyle(color: Colors.white))
-            ]),
+            child: Row(
+              children: [
+                Icon(Icons.sort_rounded, color: Colors.white70, size: 20),
+                SizedBox(width: 12),
+                Text('Sort Options', style: TextStyle(color: Colors.white)),
+              ],
+            ),
           ),
           const PopupMenuItem(
             value: 'refresh',
-            child: Row(children: [
-              Icon(Icons.refresh_rounded, color: Colors.white70, size: 20),
-              SizedBox(width: 12),
-              Text('Refresh Content', style: TextStyle(color: Colors.white))
-            ]),
+            child: Row(
+              children: [
+                Icon(Icons.refresh_rounded, color: Colors.white70, size: 20),
+                SizedBox(width: 12),
+                Text('Refresh Content', style: TextStyle(color: Colors.white)),
+              ],
+            ),
           ),
           const PopupMenuItem(
             value: 'refresh_epg',
-            child: Row(children: [
-              Icon(Icons.auto_awesome_rounded,
-                  color: Color(0xFFC12CFF), size: 20),
-              SizedBox(width: 12),
-              Text('Force EPG Refresh', style: TextStyle(color: Colors.white))
-            ]),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Color(0xFFC12CFF),
+                  size: 20,
+                ),
+                SizedBox(width: 12),
+                Text(
+                  'Force EPG Refresh',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
           ),
           const PopupMenuItem(
             value: 'settings',
-            child: Row(children: [
-              Icon(Icons.settings_rounded, color: Colors.white70, size: 20),
-              SizedBox(width: 12),
-              Text('Settings', style: TextStyle(color: Colors.white))
-            ]),
+            child: Row(
+              children: [
+                Icon(Icons.settings_rounded, color: Colors.white70, size: 20),
+                SizedBox(width: 12),
+                Text('Settings', style: TextStyle(color: Colors.white)),
+              ],
+            ),
           ),
         ],
       ),
@@ -203,11 +225,7 @@ class _HeaderIconContainer extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white10),
       ),
-      child: Icon(
-        icon, 
-        color: Colors.white70,
-        size: 22
-      ),
+      child: Icon(icon, color: Colors.white70, size: 22),
     );
   }
 }
@@ -234,16 +252,18 @@ class _HeaderIconButtonState extends State<_HeaderIconButton> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: _isFocused ? Colors.white.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+            color: _isFocused
+                ? Colors.white.withValues(alpha: 0.2)
+                : Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: _isFocused ? const Color(0xFFC12CFF) : Colors.white10
+              color: _isFocused ? const Color(0xFFC12CFF) : Colors.white10,
             ),
           ),
           child: Icon(
-            widget.icon, 
-            color: _isFocused ? Colors.white : Colors.white70, 
-            size: 22
+            widget.icon,
+            color: _isFocused ? Colors.white : Colors.white70,
+            size: 22,
           ),
         ),
       ),
