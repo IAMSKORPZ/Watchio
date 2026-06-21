@@ -12,6 +12,8 @@ class WatchioHeader extends StatefulWidget {
   final VoidCallback? onSettings;
   final bool isCompact;
   final double? customLogoHeight;
+  final String? sectionTitle;
+  final VoidCallback? onProfile;
 
   const WatchioHeader({
     super.key,
@@ -24,6 +26,8 @@ class WatchioHeader extends StatefulWidget {
     this.onSettings,
     this.isCompact = false,
     this.customLogoHeight,
+    this.sectionTitle,
+    this.onProfile,
   });
 
   @override
@@ -82,6 +86,17 @@ class _WatchioHeaderState extends State<WatchioHeader> {
                   ),
                 ),
               ),
+              if (widget.sectionTitle != null) ...[
+                const SizedBox(width: 12),
+                Text(
+                  widget.sectionTitle!,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ],
           ),
 
@@ -99,15 +114,14 @@ class _WatchioHeaderState extends State<WatchioHeader> {
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              if (!widget.isCompact)
-                Text(
-                  DateFormat('MMM d, yyyy').format(_now),
-                  style: const TextStyle(
-                    color: Color(0xFFC12CFF),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+              Text(
+                DateFormat('MMM d, yyyy').format(_now),
+                style: const TextStyle(
+                  color: Color(0xFFC12CFF),
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
                 ),
+              ),
             ],
           ),
 
@@ -120,6 +134,13 @@ class _WatchioHeaderState extends State<WatchioHeader> {
                 icon: Icons.search_rounded,
                 onTap: widget.onSearch,
               ),
+              if (widget.onProfile != null) ...[
+                const SizedBox(width: 12),
+                _HeaderIconButton(
+                  icon: Icons.person_outline_rounded,
+                  onTap: widget.onProfile!,
+                ),
+              ],
               const SizedBox(width: 12),
               _buildMenu(context),
             ],
