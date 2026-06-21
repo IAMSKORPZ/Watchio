@@ -24,6 +24,7 @@ import '../series/xtream_series_screen.dart';
 import '../live_stream/xtream_live_screen.dart';
 import '../sports/sports_hub_screen.dart';
 import '../settings/watchio_settings_screen.dart';
+import '../trakt/trakt_screen.dart';
 
 class XtreamCodeHomeScreen extends StatefulWidget {
   final Playlist playlist;
@@ -171,6 +172,10 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
                 onSports: _showSportsHub,
                 onProfile: () => controller.onNavigationTap(5),
                 onAbout: _showAboutDialog,
+                onTrakt: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TraktScreen()),
+                ),
                 username: userInfo?.username ?? 'Guest',
                 expiryDate: userInfo?.expDate ?? 'N/A',
                 version: _version,
