@@ -12,7 +12,7 @@ class ProviderManagementPage extends StatelessWidget {
       title: 'PROVIDER MANAGEMENT',
       onBack: () => Navigator.pop(context),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(40),
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
@@ -48,11 +48,18 @@ class ProviderManagementPage extends StatelessWidget {
                       backgroundColor: const Color(0xFFC12CFF),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 20),
-                      textStyle: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.2),
+                      textStyle: GoogleFonts.outfit(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        letterSpacing: 1.2,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       elevation: 8,
-                      shadowColor: const Color(0xFFC12CFF).withValues(alpha: 0.5),
+                      shadowColor: const Color(
+                        0xFFC12CFF,
+                      ).withValues(alpha: 0.5),
                     ),
                   ),
                 ),
@@ -85,9 +92,15 @@ class _ProviderTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF00B7FF).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF00B7FF).withValues(alpha: 0.3)),
+            border: Border.all(
+              color: const Color(0xFF00B7FF).withValues(alpha: 0.3),
+            ),
           ),
-          child: const Icon(Icons.dns_rounded, color: Color(0xFF00B7FF), size: 28),
+          child: const Icon(
+            Icons.dns_rounded,
+            color: Color(0xFF00B7FF),
+            size: 28,
+          ),
         ),
         const SizedBox(width: 20),
         Expanded(
@@ -105,10 +118,7 @@ class _ProviderTile extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 url,
-                style: GoogleFonts.outfit(
-                  color: Colors.white38,
-                  fontSize: 14,
-                ),
+                style: GoogleFonts.outfit(color: Colors.white38, fontSize: 14),
               ),
             ],
           ),
@@ -119,7 +129,9 @@ class _ProviderTile extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.greenAccent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: Colors.greenAccent.withValues(alpha: 0.3),
+              ),
             ),
             child: Text(
               'ACTIVE',
@@ -137,7 +149,11 @@ class _ProviderTile extends StatelessWidget {
           onPressed: () {},
         ),
         IconButton(
-          icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 22),
+          icon: const Icon(
+            Icons.delete_outline_rounded,
+            color: Colors.redAccent,
+            size: 22,
+          ),
           onPressed: () {},
         ),
       ],

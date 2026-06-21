@@ -24,9 +24,15 @@ class RemoteConfigScreen extends StatelessWidget {
                   const Divider(height: 1),
                   _row('Last Sync Time', _format(controller.lastSyncTime)),
                   const Divider(height: 1),
-                  _row('Cache Status', controller.hasCache ? 'Available' : 'None'),
+                  _row(
+                    'Cache Status',
+                    controller.hasCache ? 'Available' : 'None',
+                  ),
                   const Divider(height: 1),
-                  _row('Mode', controller.usingCache ? 'Cached' : 'Fresh/default'),
+                  _row(
+                    'Mode',
+                    controller.usingCache ? 'Cached' : 'Fresh/default',
+                  ),
                 ],
               ),
             ),
@@ -69,7 +75,9 @@ class RemoteConfigScreen extends StatelessWidget {
                   ? null
                   : () => controller.load(forceRefresh: true),
               icon: const Icon(Icons.sync),
-              label: Text(controller.isLoading ? 'Refreshing...' : 'Refresh Config'),
+              label: Text(
+                controller.isLoading ? 'Refreshing...' : 'Refresh Config',
+              ),
             ),
             if (controller.error != null) ...[
               const SizedBox(height: 12),

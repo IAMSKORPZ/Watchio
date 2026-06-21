@@ -92,9 +92,9 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
             children: [
               // REFINED COMPACT HEADER - MATCHES APPROVED DESIGN
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
                 child: SizedBox(
-                  height: 70,
+                  height: 58,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -108,15 +108,15 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
                               icon: Icons.arrow_back_rounded,
                               onTap: widget.onBack,
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 10),
                             SizedBox(
-                              height: 60,
-                              width: 165,
+                              height: 52,
+                              width: 135,
                               child: OverflowBox(
-                                maxHeight: 110,
+                                maxHeight: 90,
                                 child: Image.asset(
                                   'assets/images/App_Logo.png',
-                                  height: 110,
+                                  height: 90,
                                   fit: BoxFit.contain,
                                 ),
                               ),
@@ -129,7 +129,7 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
                         widget.title.toUpperCase(),
                         style: GoogleFonts.outfit(
                           color: Colors.white,
-                          fontSize: 28,
+                          fontSize: 22,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 2.0,
                         ),
@@ -141,7 +141,7 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
                           '${DateFormat('hh:mm A').format(_now)} | ${DateFormat('MMM d, yyyy').format(_now)}',
                           style: GoogleFonts.outfit(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: 13,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -156,12 +156,12 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
 
               // MINIMAL FOOTER
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Text(
                   _version,
                   style: GoogleFonts.outfit(
                     color: Colors.white24,
-                    fontSize: 12,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
