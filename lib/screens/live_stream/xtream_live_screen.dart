@@ -54,6 +54,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   AppPlayerController? _previewController;
   Timer? _previewDebounce;
   bool _previewFocused = false;
+  bool _hasPreviewStarted = false;
   XtreamCodeHomeController? _homeController;
   int _previewLoadRequestId = 0;
   bool _isReconnecting = false;
@@ -448,6 +449,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
 
     setState(() {
       _focusedChannel = channel;
+      _hasPreviewStarted = true;
     });
     _fetchEpg(channel);
 
@@ -524,6 +526,15 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
         startPlayback,
       );
     }
+  }
+
+  void _onChannelHighlighted(ContentItem channel) {
+    if (_focusedChannel?.id == channel.id) return;
+    setState(() {
+      _focusedChannel = channel;
+      _epgPrograms = [];
+    });
+    _fetchEpg(channel);
   }
 
   void _enterFullscreen() {
@@ -803,7 +814,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                   channel: channel,
                   index: index + 1,
                   isFocused: isFocused,
-                  onFocus: () => _onChannelFocused(channel),
+                  onFocus: () => _onChannelHighlighted(channel),
                   onTap: () => _onChannelFocused(channel, immediate: true),
                 );
               } else {
@@ -832,167 +843,204 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
         // PREVIEW AREA
         Expanded(
           flex: 6,
-          child: Focus(
-            onFocusChange: (v) => setState(() => _previewFocused = v),
-            onKeyEvent: (node, event) {
-              if (event is KeyDownEvent &&
-                  (event.logicalKey == LogicalKeyboardKey.select ||
-                      event.logicalKey == LogicalKeyboardKey.enter)) {
-                _enterFullscreen();
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            child: GestureDetector(
-              onTap: _enterFullscreen,
-              onDoubleTap: _enterFullscreen,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: _previewFocused
-                        ? const Color(0xFFC12CFF)
-                        : const Color(0xFFC12CFF).withValues(alpha: 0.3),
-                    width: _previewFocused ? 4 : 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(
-                        0xFFC12CFF,
-                      ).withValues(alpha: _previewFocused ? 0.3 : 0.1),
-                      blurRadius: _previewFocused ? 30 : 20,
-                      spreadRadius: 5,
+          child: Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Focus(
+                  onFocusChange: (v) => setState(() => _previewFocused = v),
+                  onKeyEvent: (node, event) {
+                    if (event is KeyDownEvent &&
+                        (event.logicalKey == LogicalKeyboardKey.select ||
+                            event.logicalKey == LogicalKeyboardKey.enter)) {
+                      _enterFullscreen();
+                      return KeyEventResult.handled;
+                    }
+                    return KeyEventResult.ignored;
+                  },
+                  child: GestureDetector(
+                    onTap: _enterFullscreen,
+                    onDoubleTap: _enterFullscreen,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: _previewFocused
+                              ? const Color(0xFFC12CFF)
+                              : const Color(0xFFC12CFF).withValues(alpha: 0.3),
+                          width: _previewFocused ? 4 : 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFFC12CFF,
+                            ).withValues(alpha: _previewFocused ? 0.3 : 0.1),
+                            blurRadius: _previewFocused ? 30 : 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            // Video Preview
+                            if (!_hasPreviewStarted)
+                              Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Image.asset(
+                                      'assets/images/App_Logo.png',
+                                      width: 240,
+                                      fit: BoxFit.contain,
+                                    ),
+                                    const Text(
+                                      'Click a channel to start preview',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else if (_previewController != null)
+                              _previewController!.buildPlayerView(
+                                context,
+                                fit: BoxFit.cover,
+                              )
+                            else if (_focusedChannel!.imagePath.isNotEmpty)
+                              Image.network(
+                                _focusedChannel!.imagePath,
+                                fit: BoxFit.cover,
+                                errorBuilder: (ctx, err, st) => const Center(
+                                  child: Icon(
+                                    Icons.live_tv,
+                                    size: 80,
+                                    color: Colors.white10,
+                                  ),
+                                ),
+                              ),
+
+                            // Loading indicator for preview
+                            if (_previewController?.isBuffering ?? false)
+                              const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFFC12CFF),
+                                ),
+                              ),
+
+                            // Error message for preview
+                            if (_previewController?.error != null)
+                              Container(
+                                color: Colors.black.withValues(alpha: 0.9),
+                                padding: const EdgeInsets.all(8),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.error_outline_rounded,
+                                      color: Colors.redAccent,
+                                      size: 32,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      'Stream unavailable',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    const Text(
+                                      'This channel is offline or not responding.',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 11,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        if (_focusedChannel != null) {
+                                          debugPrint('Manual retry requested');
+                                          _onChannelFocused(
+                                            _focusedChannel!,
+                                            immediate: true,
+                                          );
+                                        }
+                                      },
+                                      icon: const Icon(
+                                        Icons.refresh_rounded,
+                                        size: 18,
+                                      ),
+                                      label: const Text('Retry'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFFC12CFF,
+                                        ),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 6,
+                                        ),
+                                        visualDensity: VisualDensity.compact,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                            // Glass Overlay
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      Colors.black.withValues(alpha: 0.6),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            // Fullscreen Icon Hint
+                            Positioned(
+                              top: 16,
+                              right: 16,
+                              child: Icon(
+                                Icons.fullscreen_rounded,
+                                color: Colors.white.withValues(alpha: 0.5),
+                                size: 28,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Video Preview
-                      if (_previewController != null)
-                        _previewController!.buildPlayerView(
-                          context,
-                          fit: BoxFit.cover,
-                        )
-                      else if (_focusedChannel!.imagePath.isNotEmpty)
-                        Image.network(
-                          _focusedChannel!.imagePath,
-                          fit: BoxFit.cover,
-                          errorBuilder: (ctx, err, st) => const Center(
-                            child: Icon(
-                              Icons.live_tv,
-                              size: 80,
-                              color: Colors.white10,
-                            ),
-                          ),
-                        ),
-
-                      // Loading indicator for preview
-                      if (_previewController?.isBuffering ?? false)
-                        const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFFC12CFF),
-                          ),
-                        ),
-
-                      // Error message for preview
-                      if (_previewController?.error != null)
-                        Container(
-                          color: Colors.black.withValues(alpha: 0.9),
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.error_outline_rounded,
-                                color: Colors.redAccent,
-                                size: 48,
-                              ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Stream unavailable',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'This channel is offline or not responding.',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 20),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  if (_focusedChannel != null) {
-                                    debugPrint('Manual retry requested');
-                                    _onChannelFocused(
-                                      _focusedChannel!,
-                                      immediate: true,
-                                    );
-                                  }
-                                },
-                                icon: const Icon(
-                                  Icons.refresh_rounded,
-                                  size: 18,
-                                ),
-                                label: const Text('Retry'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFC12CFF),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      // Glass Overlay
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withValues(alpha: 0.6),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Fullscreen Icon Hint
-                      Positioned(
-                        top: 16,
-                        right: 16,
-                        child: Icon(
-                          Icons.fullscreen_rounded,
-                          color: Colors.white.withValues(alpha: 0.5),
-                          size: 28,
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: _buildChannelInfoCard()),
+            ],
           ),
         ),
 
@@ -1010,6 +1058,75 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildChannelInfoCard() {
+    final accent = Theme.of(context).colorScheme.primary;
+    final now = DateTime.now();
+    EpgProgramWindow? currentProgram;
+    for (final program in _epgPrograms) {
+      if (!program.start.isAfter(now) && program.end.isAfter(now)) {
+        currentProgram = program;
+        break;
+      }
+    }
+
+    return GlassPanel(
+      blur: 20,
+      gradient: contentPanelGradientOf(context),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Text(
+              'LIVE TV',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _focusedChannel?.name ?? 'Select a channel',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            currentProgram?.title ?? 'No programme information',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: accent,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (currentProgram != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              '${DateFormat('hh:mm a').format(currentProgram.start)} - ${DateFormat('hh:mm a').format(currentProgram.end)}',
+              style: const TextStyle(color: Colors.white54, fontSize: 11),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -1133,7 +1250,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     bool isNow = false,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1),
+      padding: EdgeInsets.zero,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1163,7 +1280,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: Colors.white,
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -1245,7 +1362,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     final progress = (elapsed / total).clamp(0.0, 1.0);
 
     return Container(
-      height: 4,
+      height: 3,
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white10,
