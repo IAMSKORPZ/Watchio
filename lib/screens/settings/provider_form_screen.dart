@@ -79,10 +79,10 @@ class _ProviderFormScreenState extends State<ProviderFormScreen> {
     if (provider == null || provider.type != IptvProviderType.stalker) return;
     _macAddressController.text =
         await SecureStorageService.instance.readProviderSecret(
-              provider.id,
-              'stalker_mac',
-            ) ??
-            '';
+          provider.id,
+          'stalker_mac',
+        ) ??
+        '';
   }
 
   @override
@@ -165,9 +165,7 @@ class _ProviderFormScreenState extends State<ProviderFormScreen> {
         border: OutlineInputBorder(),
       ),
       items: IptvProviderType.values
-          .map(
-            (type) => DropdownMenuItem(value: type, child: Text(type.label)),
-          )
+          .map((type) => DropdownMenuItem(value: type, child: Text(type.label)))
           .toList(),
       onChanged: _isEdit
           ? null
@@ -295,7 +293,13 @@ class _ProviderFormScreenState extends State<ProviderFormScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     return AppCard(
       color: colorScheme.errorContainer,
-      child: Text(message, style: TextStyle(color: colorScheme.onErrorContainer)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Text(
+          message,
+          style: TextStyle(color: colorScheme.onErrorContainer),
+        ),
+      ),
     );
   }
 
@@ -311,7 +315,10 @@ class _ProviderFormScreenState extends State<ProviderFormScreen> {
     }
   }
 
-  Future<void> _save(BuildContext context, ProviderController controller) async {
+  Future<void> _save(
+    BuildContext context,
+    ProviderController controller,
+  ) async {
     if (!_formKey.currentState!.validate()) return;
 
     final now = DateTime.now();
@@ -343,8 +350,9 @@ class _ProviderFormScreenState extends State<ProviderFormScreen> {
       localFilePath: _localFilePathController.text.trim().isEmpty
           ? null
           : _localFilePathController.text.trim(),
-      epgUrl:
-          _epgUrlController.text.trim().isEmpty ? null : _epgUrlController.text.trim(),
+      epgUrl: _epgUrlController.text.trim().isEmpty
+          ? null
+          : _epgUrlController.text.trim(),
       providerConfig: {
         if (_portalUrlController.text.trim().isNotEmpty)
           'portalUrl': _portalUrlController.text.trim(),

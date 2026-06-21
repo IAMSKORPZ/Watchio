@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/xtream_code_home_controller.dart';
+import '../../core/theme/theme_manager.dart';
 import '../../models/category_type.dart';
 import '../../models/category_view_model.dart';
 import '../../models/content_type.dart';
@@ -43,6 +44,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   int _currentOffset = 0;
   static const int _pageSize = 60;
   final Map<String, int> _categoryCounts = {};
+  String _categoryQuery = '';
+  String _channelSortOrder = 'recent';
 
   final ScrollController _categoryScrollController = ScrollController();
   final ScrollController _channelScrollController = ScrollController();
@@ -53,6 +56,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   AppPlayerController? _previewController;
   Timer? _previewDebounce;
   bool _previewFocused = false;
+  bool _hasPreviewStarted = false;
   XtreamCodeHomeController? _homeController;
   int _previewLoadRequestId = 0;
   bool _isReconnecting = false;
@@ -77,13 +81,23 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
       final controller = _homeController!;
       if (controller.liveCategories != null &&
           controller.liveCategories!.isNotEmpty) {
+        final categories = controller.liveCategories!;
+        final preferredCategory = categories
+            .cast<CategoryViewModel?>()
+            .firstWhere(
+              (category) => category!.category.categoryName
+                  .toUpperCase()
+                  .replaceAll(RegExp(r'[^A-Z0-9]+'), ' ')
+                  .contains('UK FREE TO AIR'),
+              orElse: () => categories.first,
+            )!;
         // Load all category counts in bulk
         final counts = await controller.getAllCategoryCounts(CategoryType.live);
         if (mounted) {
           setState(() {
             _categoryCounts.addAll(counts);
-            _onCategorySelected(controller.liveCategories!.first);
           });
+          await _onCategorySelected(preferredCategory);
         }
       }
     });
@@ -172,6 +186,12 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     if (_homeController!.currentIndex != 2) {
       _epgUpdateTimer?.cancel();
       debugPrint('EPG timer cancelled');
+      if (mounted) {
+        setState(() {
+          _hasPreviewStarted = false;
+          _previewFocused = false;
+        });
+      }
       if (_previewController != null) {
         debugPrint('XtreamLiveScreen: Playback Stopped (Tab Changed)');
         debugPrint('XtreamLiveScreen: Player Disposed (Tab Changed)');
@@ -270,6 +290,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
       if (mounted) {
         setState(() {
           _currentItems.addAll(newItems);
+          _sortLoadedChannels();
           _currentOffset += newItems.length;
           _isMoreLoading = false;
           if (newItems.length < _pageSize) {
@@ -280,6 +301,120 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     } catch (e) {
       if (mounted) setState(() => _isMoreLoading = false);
     }
+  }
+
+  void _sortLoadedChannels() {
+    int channelNumber(ContentItem item) => int.tryParse(item.id) ?? 0;
+    switch (_channelSortOrder) {
+      case 'az':
+        _currentItems.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
+        break;
+      case 'za':
+        _currentItems.sort(
+          (a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()),
+        );
+        break;
+      case 'number':
+        _currentItems.sort(
+          (a, b) => channelNumber(a).compareTo(channelNumber(b)),
+        );
+        break;
+      default:
+        _currentItems.sort(
+          (a, b) => channelNumber(b).compareTo(channelNumber(a)),
+        );
+    }
+  }
+
+  Future<void> _showSortDialog() async {
+    var pending = _channelSortOrder;
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 16,
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+          backgroundColor: const Color(0xFF111525),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.6),
+            ),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.swap_vert_rounded, color: Color(0xFF06B6D4)),
+              SizedBox(width: 10),
+              Text(
+                'Sort According to',
+                style: TextStyle(color: Colors.white, fontSize: 20),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final option in const [
+                ('recent', 'Recently Added'),
+                ('az', 'A–Z'),
+                ('za', 'Z–A'),
+                ('number', 'Channel Number ASC'),
+              ])
+                ListTile(
+                  dense: true,
+                  visualDensity: const VisualDensity(vertical: -3),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  minTileHeight: 44,
+                  leading: Icon(
+                    pending == option.$1
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_off,
+                    color: pending == option.$1
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.white54,
+                  ),
+                  title: Text(
+                    option.$2,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  onTap: () => setDialogState(() => pending = option.$1),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('CLOSE'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, pending),
+              child: const Text('SAVE'),
+            ),
+          ],
+          actionsAlignment: MainAxisAlignment.end,
+        ),
+      ),
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _channelSortOrder = selected;
+      _sortLoadedChannels();
+    });
+  }
+
+  void _showSetupPlaceholder() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Live TV setup will be added next.')),
+    );
   }
 
   void _startEpgTimer() {
@@ -437,6 +572,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
 
     setState(() {
       _focusedChannel = channel;
+      _hasPreviewStarted = true;
     });
     _fetchEpg(channel);
 
@@ -513,6 +649,15 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
         startPlayback,
       );
     }
+  }
+
+  void _onChannelHighlighted(ContentItem channel) {
+    if (_focusedChannel?.id == channel.id) return;
+    setState(() {
+      _focusedChannel = channel;
+      _epgPrograms = [];
+    });
+    _fetchEpg(channel);
   }
 
   void _enterFullscreen() {
@@ -614,6 +759,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   @override
   Widget build(BuildContext context) {
     final config = context.watch<ConfigService>().config;
+    final themeManager = context.watch<ThemeManager>();
     final homeBg = config.backgrounds.home;
 
     return Consumer<XtreamCodeHomeController>(
@@ -626,7 +772,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
             decoration: BoxDecoration(
               color: const Color(0xFF050812),
               image: DecorationImage(
-                image: (homeBg.isNotEmpty)
+                image: (themeManager.showBackgroundImage && homeBg.isNotEmpty)
                     ? NetworkImage(homeBg)
                     : const AssetImage('assets/images/background.png')
                           as ImageProvider,
@@ -650,6 +796,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                   // HEADER
                   WatchioHeader(
                     isCompact: true,
+                    customLogoHeight: 90,
+                    sectionTitle: 'Live TV',
                     onBack: () => controller.onNavigationTap(0),
                     onSearch: () => Navigator.push(
                       context,
@@ -659,6 +807,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                       ),
                     ),
                     onSettings: () => controller.onNavigationTap(5),
+                    onSetup: _showSetupPlaceholder,
+                    onSort: _showSortDialog,
                     onRefresh: () => controller.refreshAllData(context),
                     onRefreshEpg: _forceRefreshEpg,
                   ),
@@ -671,11 +821,11 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                         children: [
                           // LEFT PANEL (22%) - Categories
                           Expanded(
-                            flex: 22,
+                            flex: 24,
                             child: GlassPanel(
                               opacity: 0.1,
                               blur: 20,
-                              gradient: contentPanelGradient,
+                              gradient: contentPanelGradientOf(context),
                               child: _buildCategoryPanel(controller),
                             ),
                           ),
@@ -683,18 +833,18 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
 
                           // CENTER PANEL (33%) - Channels
                           Expanded(
-                            flex: 33,
+                            flex: 28,
                             child: GlassPanel(
                               opacity: 0.1,
                               blur: 20,
-                              gradient: contentPanelGradient,
+                              gradient: contentPanelGradientOf(context),
                               child: _buildChannelPanel(),
                             ),
                           ),
                           const SizedBox(width: 16),
 
                           // RIGHT PANEL (45%) - Preview & EPG
-                          Expanded(flex: 45, child: _buildPreviewPanel()),
+                          Expanded(flex: 48, child: _buildPreviewPanel()),
                         ],
                       ),
                     ),
@@ -709,44 +859,65 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   }
 
   Widget _buildCategoryPanel(XtreamCodeHomeController controller) {
-    final categories = controller.liveCategories ?? [];
+    final allCategories = controller.liveCategories ?? [];
+    final query = _categoryQuery.trim().toLowerCase();
+    final categories = query.isEmpty
+        ? allCategories
+        : allCategories
+              .where(
+                (category) => category.category.categoryName
+                    .toLowerCase()
+                    .contains(query),
+              )
+              .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Category Search
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-          child: TextField(
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-            decoration: InputDecoration(
-              hintText: 'SEARCH CATEGORIES',
-              hintStyle: const TextStyle(color: Colors.white24, fontSize: 11),
-              prefixIcon: const Icon(
-                Icons.search,
-                color: Colors.white24,
-                size: 18,
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+          child: SizedBox(
+            height: 42,
+            child: TextField(
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Search in categories',
+                hintStyle: const TextStyle(color: Colors.white38, fontSize: 11),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: Colors.white54,
+                  size: 17,
+                ),
+                prefixIconConstraints: const BoxConstraints(minWidth: 38),
+                filled: true,
+                fillColor: Colors.black.withValues(alpha: 0.18),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
               ),
-              filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.05),
-              contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
+              onChanged: (value) => setState(() => _categoryQuery = value),
             ),
-            onChanged: (v) {
-              // Implementation for filtering categories locally could go here
-            },
           ),
         ),
         const Divider(color: Colors.white10, height: 1),
         Expanded(
           child: ListView.separated(
             controller: _categoryScrollController,
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
             itemCount: categories.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 4),
+            separatorBuilder: (_, _) => const Divider(
+              color: Colors.white10,
+              height: 1,
+              indent: 8,
+              endIndent: 8,
+            ),
             itemBuilder: (context, index) {
               final cat = categories[index];
               final isSelected =
@@ -791,7 +962,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                   channel: channel,
                   index: index + 1,
                   isFocused: isFocused,
-                  onFocus: () => _onChannelFocused(channel),
+                  onFocus: () => _onChannelHighlighted(channel),
                   onTap: () => _onChannelFocused(channel, immediate: true),
                 );
               } else {
@@ -819,168 +990,245 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
       children: [
         // PREVIEW AREA
         Expanded(
-          flex: 6,
-          child: Focus(
-            onFocusChange: (v) => setState(() => _previewFocused = v),
-            onKeyEvent: (node, event) {
-              if (event is KeyDownEvent &&
-                  (event.logicalKey == LogicalKeyboardKey.select ||
-                      event.logicalKey == LogicalKeyboardKey.enter)) {
-                _enterFullscreen();
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            child: GestureDetector(
-              onTap: _enterFullscreen,
-              onDoubleTap: _enterFullscreen,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: _previewFocused
-                        ? const Color(0xFFC12CFF)
-                        : const Color(0xFFC12CFF).withValues(alpha: 0.3),
-                    width: _previewFocused ? 4 : 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(
-                        0xFFC12CFF,
-                      ).withValues(alpha: _previewFocused ? 0.3 : 0.1),
-                      blurRadius: _previewFocused ? 30 : 20,
-                      spreadRadius: 5,
+          flex: 5,
+          child: Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Focus(
+                  onFocusChange: (v) => setState(() => _previewFocused = v),
+                  onKeyEvent: (node, event) {
+                    if (event is KeyDownEvent &&
+                        (event.logicalKey == LogicalKeyboardKey.select ||
+                            event.logicalKey == LogicalKeyboardKey.enter)) {
+                      _enterFullscreen();
+                      return KeyEventResult.handled;
+                    }
+                    return KeyEventResult.ignored;
+                  },
+                  child: GestureDetector(
+                    onTap: _enterFullscreen,
+                    onDoubleTap: _enterFullscreen,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: _previewFocused
+                              ? const Color(0xFFC12CFF)
+                              : const Color(0xFFC12CFF).withValues(alpha: 0.3),
+                          width: _previewFocused ? 4 : 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFFC12CFF,
+                            ).withValues(alpha: _previewFocused ? 0.3 : 0.1),
+                            blurRadius: _previewFocused ? 30 : 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            // Video Preview
+                            if (!_hasPreviewStarted)
+                              Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Image.asset(
+                                      'assets/images/App_Logo.png',
+                                      width: 155,
+                                      fit: BoxFit.contain,
+                                    ),
+                                    const Text(
+                                      'Click a channel to start preview',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else if (_previewController != null)
+                              _previewController!.buildPlayerView(
+                                context,
+                                fit: BoxFit.cover,
+                              )
+                            else if (_focusedChannel!.imagePath.isNotEmpty)
+                              Image.network(
+                                _focusedChannel!.imagePath,
+                                fit: BoxFit.cover,
+                                errorBuilder: (ctx, err, st) => const Center(
+                                  child: Icon(
+                                    Icons.live_tv,
+                                    size: 80,
+                                    color: Colors.white10,
+                                  ),
+                                ),
+                              ),
+
+                            // Loading indicator for preview
+                            if (_previewController?.isBuffering ?? false)
+                              const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFFC12CFF),
+                                ),
+                              ),
+
+                            if (_hasPreviewStarted &&
+                                (_previewController == null ||
+                                    (_previewController?.isBuffering ??
+                                        false)) &&
+                                _previewController?.error == null)
+                              Container(
+                                color: Colors.black.withValues(alpha: 0.72),
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Image.asset(
+                                        'assets/images/App_Logo.png',
+                                        width: 150,
+                                        fit: BoxFit.contain,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      const SizedBox.square(
+                                        dimension: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Color(0xFFA855F7),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        'Loading ${_focusedChannel?.name ?? 'channel'}…',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                            // Error message for preview
+                            if (_previewController?.error != null)
+                              Container(
+                                color: Colors.black.withValues(alpha: 0.9),
+                                padding: const EdgeInsets.all(8),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.error_outline_rounded,
+                                      color: Colors.redAccent,
+                                      size: 32,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      'Stream unavailable',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    const Text(
+                                      'This channel is offline or not responding.',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 11,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        if (_focusedChannel != null) {
+                                          debugPrint('Manual retry requested');
+                                          _onChannelFocused(
+                                            _focusedChannel!,
+                                            immediate: true,
+                                          );
+                                        }
+                                      },
+                                      icon: const Icon(
+                                        Icons.refresh_rounded,
+                                        size: 18,
+                                      ),
+                                      label: const Text('Retry'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFFC12CFF,
+                                        ),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 6,
+                                        ),
+                                        visualDensity: VisualDensity.compact,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                            // Glass Overlay
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      Colors.black.withValues(alpha: 0.6),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            // Fullscreen Icon Hint
+                            Positioned(
+                              top: 16,
+                              right: 16,
+                              child: Icon(
+                                Icons.fullscreen_rounded,
+                                color: Colors.white.withValues(alpha: 0.5),
+                                size: 28,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Video Preview
-                      if (_previewController != null)
-                        _previewController!.buildPlayerView(
-                          context,
-                          fit: BoxFit.cover,
-                        )
-                      else if (_focusedChannel!.imagePath.isNotEmpty)
-                        Image.network(
-                          _focusedChannel!.imagePath,
-                          fit: BoxFit.cover,
-                          errorBuilder: (ctx, err, st) => const Center(
-                            child: Icon(
-                              Icons.live_tv,
-                              size: 80,
-                              color: Colors.white10,
-                            ),
-                          ),
-                        ),
-
-                      // Loading indicator for preview
-                      if (_previewController?.isBuffering ?? false)
-                        const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFFC12CFF),
-                          ),
-                        ),
-
-                      // Error message for preview
-                      if (_previewController?.error != null)
-                        Container(
-                          color: Colors.black.withValues(alpha: 0.9),
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.error_outline_rounded,
-                                color: Colors.redAccent,
-                                size: 48,
-                              ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Stream unavailable',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'This channel is offline or not responding.',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 20),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  if (_focusedChannel != null) {
-                                    debugPrint('Manual retry requested');
-                                    _onChannelFocused(
-                                      _focusedChannel!,
-                                      immediate: true,
-                                    );
-                                  }
-                                },
-                                icon: const Icon(
-                                  Icons.refresh_rounded,
-                                  size: 18,
-                                ),
-                                label: const Text('Retry'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFC12CFF),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      // Glass Overlay
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withValues(alpha: 0.6),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Fullscreen Icon Hint
-                      Positioned(
-                        top: 16,
-                        right: 16,
-                        child: Icon(
-                          Icons.fullscreen_rounded,
-                          color: Colors.white.withValues(alpha: 0.5),
-                          size: 28,
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: _buildChannelInfoCard()),
+            ],
           ),
         ),
 
@@ -988,16 +1236,131 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
 
         // EPG TIMELINE SECTION
         Expanded(
-          flex: 4,
+          flex: 5,
           child: GlassPanel(
             opacity: 0.1,
             blur: 20,
-            gradient: contentPanelGradient,
-            padding: const EdgeInsets.all(20),
+            gradient: contentPanelGradientOf(context),
+            padding: const EdgeInsets.all(8),
             child: _buildEpgContent(),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildChannelInfoCard() {
+    final accent = Theme.of(context).colorScheme.primary;
+    final now = DateTime.now();
+    EpgProgramWindow? currentProgram;
+    for (final program in _epgPrograms) {
+      if (!program.start.isAfter(now) && program.end.isAfter(now)) {
+        currentProgram = program;
+        break;
+      }
+    }
+
+    return GlassPanel(
+      blur: 20,
+      gradient: contentPanelGradientOf(context),
+      padding: const EdgeInsets.all(8),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Text(
+              'LIVE TV',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _focusedChannel?.name ?? 'Select a channel',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            currentProgram?.title ?? 'No programme information',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: accent,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (currentProgram != null) ...[
+            const SizedBox(height: 3),
+            Text(
+              '${DateFormat('hh:mm a').format(currentProgram.start)} - ${DateFormat('hh:mm a').format(currentProgram.end)}',
+              style: const TextStyle(color: Colors.white54, fontSize: 9),
+            ),
+          ],
+          const SizedBox(height: 4),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 6,
+            runSpacing: 4,
+            children: [
+              _buildInfoTag(
+                _selectedCategory?.category.categoryName.replaceAll(
+                      RegExp(r'^UK\s*\|\s*'),
+                      '',
+                    ) ??
+                    'LIVE',
+                accent,
+              ),
+              _buildInfoTag(
+                (_focusedChannel?.name.toUpperCase().contains('4K') ?? false)
+                    ? '4K'
+                    : (_focusedChannel?.name.toUpperCase().contains('HD') ??
+                          false)
+                    ? 'HD'
+                    : 'LIVE',
+                const Color(0xFF06B6D4),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoTag(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.7)),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 
@@ -1015,9 +1378,17 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 4),
             TextButton.icon(
               onPressed: _forceRefreshEpg,
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+              ),
               icon: const Icon(
                 Icons.refresh_rounded,
                 size: 18,
@@ -1076,24 +1447,122 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
       }
     }
 
-    final currentProgram = _epgPrograms[currentProgramIndex];
-    final nextPrograms = _epgPrograms.skip(currentProgramIndex + 1).toList();
-
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildEpgSection('NOW PLAYING', currentProgram, isNow: true),
-          if (nextPrograms.isNotEmpty) ...[
-            const Divider(color: Colors.white10, height: 32),
-            _buildEpgSection('UP NEXT', nextPrograms[0]),
-          ],
-          if (nextPrograms.length > 1) ...[
-            const Divider(color: Colors.white10, height: 32),
-            _buildEpgSection('LATER', nextPrograms[1]),
-          ],
-        ],
+    final timeline = _epgPrograms.skip(currentProgramIndex).take(2).toList();
+    return Column(
+      children: List.generate(
+        timeline.length,
+        (index) => Expanded(
+          flex: index == 0 ? 4 : 3,
+          child: _buildTimelineItem(
+            index == 0 ? 'NOW PLAYING' : 'UP NEXT',
+            timeline[index],
+            index: index,
+            isNow: index == 0,
+            isLast: index == timeline.length - 1,
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _buildTimelineItem(
+    String label,
+    EpgProgramWindow program, {
+    required int index,
+    required bool isNow,
+    required bool isLast,
+  }) {
+    final accent = Theme.of(context).colorScheme.primary;
+    final runtime = program.end.difference(program.start).inMinutes;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: 28,
+          child: Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              if (!isLast)
+                Positioned(
+                  top: 18,
+                  bottom: 0,
+                  child: Container(
+                    width: 2,
+                    color: accent.withValues(alpha: 0.35),
+                  ),
+                ),
+              Container(
+                width: 20,
+                height: 20,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF101426),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: accent),
+                ),
+                child: Text(
+                  isNow ? '▶' : '${index + 1}',
+                  style: const TextStyle(color: Colors.white, fontSize: 8),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(6, 0, 8, 3),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: accent,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${DateFormat('HH:mm').format(program.start)} - ${DateFormat('HH:mm').format(program.end)}  •  $runtime min',
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 8,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  program.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  program.description?.isNotEmpty == true
+                      ? program.description!
+                      : 'No programme description available',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white54, fontSize: 9),
+                ),
+                if (isNow) ...[
+                  const SizedBox(height: 2),
+                  _buildEpgProgressBar(program),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1166,7 +1635,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     final progress = (elapsed / total).clamp(0.0, 1.0);
 
     return Container(
-      height: 4,
+      height: 3,
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white10,
@@ -1223,33 +1692,32 @@ class _CategoryItemState extends State<_CategoryItem> {
   @override
   Widget build(BuildContext context) {
     final active = _isFocused || widget.isSelected;
+    final accent = Theme.of(context).colorScheme.primary;
 
     return FocusableActionDetector(
       onFocusChange: (v) => setState(() => _isFocused = v),
       child: AnimatedScale(
-        scale: _isFocused ? 1.05 : 1.0,
+        scale: _isFocused ? 1.02 : 1.0,
         duration: const Duration(milliseconds: 200),
         child: InkWell(
           onTap: widget.onTap,
           borderRadius: BorderRadius.circular(12),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             decoration: BoxDecoration(
-              color: active
-                  ? const Color(0xAA4A3D6A) // Glass background when active
-                  : Colors.white.withValues(alpha: 0.05),
+              color: active ? null : Colors.transparent,
+              gradient: active ? contentPanelGradientOf(context) : null,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: active ? const Color(0xFFC12CFF) : Colors.transparent,
-                width: active ? 2 : 0,
+                color: active ? accent : Colors.transparent,
+                width: active ? 1.5 : 1,
               ),
               boxShadow: active
                   ? [
                       BoxShadow(
-                        color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
-                        blurRadius: 12,
-                        spreadRadius: 1,
+                        color: accent.withValues(alpha: 0.35),
+                        blurRadius: 10,
                       ),
                     ]
                   : [],
@@ -1258,17 +1726,17 @@ class _CategoryItemState extends State<_CategoryItem> {
               children: [
                 Icon(
                   widget.icon,
-                  color: active ? Colors.white : Colors.white70,
-                  size: 20,
+                  color: active ? accent : Colors.white70,
+                  size: 18,
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     widget.label,
                     style: TextStyle(
                       color: active ? Colors.white : Colors.white70,
                       fontWeight: active ? FontWeight.w900 : FontWeight.w600,
-                      fontSize: 13,
+                      fontSize: 12,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1280,7 +1748,7 @@ class _CategoryItemState extends State<_CategoryItem> {
                     color: active
                         ? Colors.white.withValues(alpha: 0.7)
                         : Colors.white24,
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

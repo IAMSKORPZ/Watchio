@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+
+import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/theme_manager.dart';
 import '../../../shared/widgets/glass_panel.dart';
 import '../widgets/watchio_settings_scaffold.dart';
 
@@ -8,47 +12,61 @@ class AppearancePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final manager = context.watch<ThemeManager>();
+
     return WatchioSettingsScaffold(
       title: 'APPEARANCE',
       onBack: () => Navigator.pop(context),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(40),
+        padding: const EdgeInsets.fromLTRB(40, 8, 40, 8),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
+            constraints: const BoxConstraints(maxWidth: 680),
             child: GlassPanel(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
                 children: [
-                  _SettingsDropdownTile(
-                    title: 'Theme',
-                    subtitle: 'Select application visual style',
-                    value: 'Glassmorphism Dark',
-                    onTap: () {},
+                  _ChoiceTile<AppThemeType>(
+                    title: 'Colour Theme',
+                    subtitle: 'Changes highlights, borders and glow',
+                    value: manager.currentThemeType,
+                    label: _themeName,
+                    options: AppThemeType.values
+                        .where((type) => type != AppThemeType.custom)
+                        .toList(),
+                    onChanged: manager.setThemeType,
                   ),
-                  _SettingsDropdownTile(
-                    title: 'Accent Color',
-                    subtitle: 'Primary color for highlights and glow',
-                    value: 'Vivid Purple',
-                    onTap: () {},
-                  ),
-                  _SettingsDropdownTile(
+                  _ChoiceTile<String>(
                     title: 'Background Style',
-                    subtitle: 'Choose between dynamic or static background',
-                    value: 'Dynamic Mesh',
-                    onTap: () {},
+                    subtitle: 'Changes backgrounds across the application',
+                    value: manager.backgroundStyle,
+                    label: _backgroundName,
+                    options: const ['dynamic', 'dark', 'amoled'],
+                    onChanged: manager.setBackgroundStyle,
                   ),
-                  _SettingsDropdownTile(
+                  _ChoiceTile<String>(
                     title: 'Tile Style',
-                    subtitle: 'Adjust card corners and glass intensity',
-                    value: 'Rounded Glass',
-                    onTap: () {},
+                    subtitle: 'Changes card corners and glass intensity',
+                    value: manager.tileStyle,
+                    label: _tileName,
+                    options: const ['rounded', 'compact'],
+                    onChanged: manager.setTileStyle,
                   ),
-                  const _SettingsToggleTile(
-                    title: 'Animations',
-                    subtitle: 'Enable smooth transitions and focus effects',
-                    initialValue: true,
-                    isLast: true,
+                  SwitchListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 2,
+                    ),
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    title: Text('Animations', style: _titleStyle),
+                    subtitle: Text(
+                      'Enable smooth transitions and focus effects',
+                      style: _subtitleStyle,
+                    ),
+                    value: manager.animationsEnabled,
+                    onChanged: manager.setAnimationsEnabled,
+                    activeThumbColor: Theme.of(context).colorScheme.primary,
                   ),
                 ],
               ),
@@ -58,94 +76,88 @@ class AppearancePage extends StatelessWidget {
       ),
     );
   }
+
+  static String _themeName(AppThemeType type) => switch (type) {
+    AppThemeType.bingieNeon => 'Bingie Neon',
+    AppThemeType.emerald => 'Emerald',
+    AppThemeType.crimson => 'Crimson',
+    AppThemeType.ocean => 'Ocean',
+    AppThemeType.gold => 'Gold',
+    AppThemeType.midnight => 'Midnight',
+    AppThemeType.amoled => 'AMOLED',
+    AppThemeType.custom => 'Custom',
+  };
+
+  static String _backgroundName(String value) => switch (value) {
+    'dark' => 'Dark Gradient',
+    'amoled' => 'AMOLED Black',
+    _ => 'Dynamic Mesh',
+  };
+
+  static String _tileName(String value) =>
+      value == 'compact' ? 'Compact Glass' : 'Rounded Glass';
+
+  static final _titleStyle = GoogleFonts.outfit(
+    color: Colors.white,
+    fontWeight: FontWeight.bold,
+    fontSize: 13,
+  );
+  static final _subtitleStyle = GoogleFonts.outfit(
+    color: Colors.white38,
+    fontSize: 10,
+  );
 }
 
-class _SettingsToggleTile extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final bool initialValue;
-  final bool isLast;
-
-  const _SettingsToggleTile({
-    required this.title,
-    required this.subtitle,
-    required this.initialValue,
-    this.isLast = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          title: Text(
-            title,
-            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          subtitle: Text(
-            subtitle,
-            style: GoogleFonts.outfit(color: Colors.white38, fontSize: 13),
-          ),
-          trailing: Switch(
-            value: initialValue,
-            onChanged: (v) {},
-            activeThumbColor: const Color(0xFFC12CFF),
-          ),
-        ),
-        if (!isLast) const Divider(color: Colors.white10, indent: 16, endIndent: 16),
-      ],
-    );
-  }
-}
-
-class _SettingsDropdownTile extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final String value;
-  final VoidCallback onTap;
-
-  const _SettingsDropdownTile({
+class _ChoiceTile<T> extends StatelessWidget {
+  const _ChoiceTile({
     required this.title,
     required this.subtitle,
     required this.value,
-    required this.onTap,
+    required this.label,
+    required this.options,
+    required this.onChanged,
   });
+
+  final String title;
+  final String subtitle;
+  final T value;
+  final String Function(T) label;
+  final List<T> options;
+  final Future<void> Function(T) onChanged;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          title: Text(
-            title,
-            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 0,
           ),
-          subtitle: Text(
-            subtitle,
-            style: GoogleFonts.outfit(color: Colors.white38, fontSize: 13),
-          ),
-          trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
+          dense: true,
+          visualDensity: const VisualDensity(vertical: -3),
+          title: Text(title, style: AppearancePage._titleStyle),
+          subtitle: Text(subtitle, style: AppearancePage._subtitleStyle),
+          trailing: DropdownButton<T>(
+            value: value,
+            dropdownColor: const Color(0xFF1A1D29),
+            underline: const SizedBox.shrink(),
+            style: GoogleFonts.outfit(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.bold,
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  value,
-                  style: GoogleFonts.outfit(color: const Color(0xFF00B7FF), fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(width: 12),
-                const Icon(Icons.arrow_drop_down, color: Colors.white38),
-              ],
-            ),
+            items: options
+                .map(
+                  (option) => DropdownMenuItem<T>(
+                    value: option,
+                    child: Text(label(option)),
+                  ),
+                )
+                .toList(),
+            onChanged: (option) {
+              if (option != null) onChanged(option);
+            },
           ),
-          onTap: onTap,
         ),
         const Divider(color: Colors.white10, indent: 16, endIndent: 16),
       ],

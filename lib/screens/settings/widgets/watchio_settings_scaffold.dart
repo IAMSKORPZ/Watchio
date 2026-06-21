@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../../../services/config_service.dart';
+import '../../../core/theme/theme_manager.dart';
 
 class WatchioSettingsScaffold extends StatefulWidget {
   final String title;
@@ -51,6 +52,7 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
   @override
   Widget build(BuildContext context) {
     final config = context.watch<ConfigService>().config;
+    final themeManager = context.watch<ThemeManager>();
     final homeBg = config.backgrounds.home;
 
     return Scaffold(
@@ -63,7 +65,7 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
               decoration: BoxDecoration(
                 color: const Color(0xFF050812),
                 image: DecorationImage(
-                  image: (homeBg.isNotEmpty)
+                  image: (themeManager.showBackgroundImage && homeBg.isNotEmpty)
                       ? NetworkImage(homeBg)
                       : const AssetImage('assets/images/background.png')
                             as ImageProvider,
@@ -90,9 +92,9 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
             children: [
               // REFINED COMPACT HEADER - MATCHES APPROVED DESIGN
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
                 child: SizedBox(
-                  height: 110,
+                  height: 58,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -106,11 +108,18 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
                               icon: Icons.arrow_back_rounded,
                               onTap: widget.onBack,
                             ),
-                            const SizedBox(width: 16),
-                            Image.asset(
-                              'assets/images/App_Logo.png',
-                              height: 110,
-                              fit: BoxFit.contain,
+                            const SizedBox(width: 10),
+                            SizedBox(
+                              height: 52,
+                              width: 135,
+                              child: OverflowBox(
+                                maxHeight: 90,
+                                child: Image.asset(
+                                  'assets/images/App_Logo.png',
+                                  height: 90,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -120,7 +129,7 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
                         widget.title.toUpperCase(),
                         style: GoogleFonts.outfit(
                           color: Colors.white,
-                          fontSize: 28,
+                          fontSize: 22,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 2.0,
                         ),
@@ -132,7 +141,7 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
                           '${DateFormat('hh:mm A').format(_now)} | ${DateFormat('MMM d, yyyy').format(_now)}',
                           style: GoogleFonts.outfit(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: 13,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -147,12 +156,12 @@ class _WatchioSettingsScaffoldState extends State<WatchioSettingsScaffold> {
 
               // MINIMAL FOOTER
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Text(
                   _version,
                   style: GoogleFonts.outfit(
                     color: Colors.white24,
-                    fontSize: 12,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

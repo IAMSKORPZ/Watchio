@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:another_iptv_player/models/api_configuration_model.dart';
 import 'package:another_iptv_player/repositories/iptv_repository.dart';
 import 'package:another_iptv_player/services/app_state.dart';
 import 'package:another_iptv_player/services/config_service.dart';
+import 'package:another_iptv_player/services/epg_source_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -54,6 +57,7 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
     );
     AppState.xtreamCodeRepository = repository;
     AppState.currentPlaylist = widget.playlist;
+    unawaited(EpgSourceService.refreshOnStartup(widget.playlist));
     _controller = XtreamCodeHomeController(false);
   }
 
@@ -73,41 +77,40 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.transparent, // Let themed dialog or glass handle it
-        contentPadding: EdgeInsets.zero,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-        content: AppCard(
-          borderRadius: 24,
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('About ${config.branding.appName}', 
-                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              Text('${config.branding.appName} is a premium IPTV player.', 
-                style: const TextStyle(color: Colors.white70, fontSize: 16)),
-              const SizedBox(height: 24),
-              if (config.about.website.isNotEmpty)
-                _AboutLink(label: 'Website', url: config.about.website),
-              if (config.about.discord.isNotEmpty)
-                _AboutLink(label: 'Discord', url: config.about.discord),
-              if (config.about.support.isNotEmpty)
-                _AboutLink(label: 'Support', url: config.about.support),
-              const SizedBox(height: 24),
-              Text('Version: $_version', 
-                style: const TextStyle(color: Colors.white54, fontSize: 13)),
-              const SizedBox(height: 32),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context), 
-                  child: const Text('CLOSE', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1))),
-              ),
-            ],
-          ),
+        backgroundColor: const Color(0xFF101827),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'About ${config.branding.appName}',
+          style: const TextStyle(color: Colors.white),
         ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${config.branding.appName} is a premium IPTV player.',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 12),
+            if (config.about.website.isNotEmpty)
+              _AboutLink(label: 'Website', url: config.about.website),
+            if (config.about.discord.isNotEmpty)
+              _AboutLink(label: 'Discord', url: config.about.discord),
+            if (config.about.support.isNotEmpty)
+              _AboutLink(label: 'Support', url: config.about.support),
+            const SizedBox(height: 12),
+            Text(
+              'Version: $_version',
+              style: const TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
       ),
     );
   }
@@ -134,7 +137,9 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
       child: Consumer<XtreamCodeHomeController>(
         builder: (context, controller, child) {
           if (controller.isLoading) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
 
           final userInfo = controller.userInfo?.userInfo;
@@ -193,7 +198,12 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
   }
 
   void _navigateToSearch(ContentType contentType) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => SearchScreen(contentType: contentType)));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SearchScreen(contentType: contentType),
+      ),
+    );
   }
 }
 
@@ -205,12 +215,16 @@ class _AboutLink extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+      onTap: () =>
+          launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Text(
           '$label: $url',
-          style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+          style: const TextStyle(
+            color: Colors.blue,
+            decoration: TextDecoration.underline,
+          ),
         ),
       ),
     );

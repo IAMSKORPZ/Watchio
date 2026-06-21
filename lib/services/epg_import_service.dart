@@ -24,10 +24,14 @@ class EpgImportService {
     ImportProgressCallback? onProgress,
     ImportCancellationToken? cancellationToken,
   }) async {
-    final maskedUrl = url.replaceFirst(RegExp(r'password=[^&]+'), 'password=***').replaceFirst(RegExp(r'username=[^&]+'), 'username=***');
+    final maskedUrl = url
+        .replaceFirst(RegExp(r'password=[^&]+'), 'password=***')
+        .replaceFirst(RegExp(r'username=[^&]+'), 'username=***');
     debugPrint('EPG XMLTV download started: $maskedUrl');
-    
-    final response = await http.Client().send(http.Request('GET', Uri.parse(url)));
+
+    final response = await http.Client().send(
+      http.Request('GET', Uri.parse(url)),
+    );
     if (response.statusCode >= 400) {
       throw Exception('EPG import failed: HTTP ${response.statusCode}');
     }
@@ -38,15 +42,15 @@ class EpgImportService {
 
     // For debugging small responses
     if (contentLength != null && contentLength < 10000) {
-       // It's a small response, let's see what it contains
-       // Note: reading from stream here will consume it, so we need to be careful.
-       // Instead, let's just log the first chunk in _importLines.
+      // It's a small response, let's see what it contains
+      // Note: reading from stream here will consume it, so we need to be careful.
+      // Instead, let's just log the first chunk in _importLines.
     }
 
     // We use a stream for memory efficiency
     return _importLines(
       playlistId: playlistId,
-      lines: response.stream.transform(utf8.decoder).transform(const LineSplitter()),
+      lines: _xmlElements(response.stream.transform(utf8.decoder)),
       onProgress: onProgress,
       cancellationToken: cancellationToken,
     );
@@ -60,10 +64,7 @@ class EpgImportService {
   }) {
     return _importLines(
       playlistId: playlistId,
-      lines: File(filePath)
-          .openRead()
-          .transform(utf8.decoder)
-          .transform(const LineSplitter()),
+      lines: _xmlElements(File(filePath).openRead().transform(utf8.decoder)),
       onProgress: onProgress,
       cancellationToken: cancellationToken,
     );
@@ -132,6 +133,21 @@ INSERT OR REPLACE INTO epg_programs(
         channelId = _attr(line, 'id');
         buffer.clear();
         buffer.write(line);
+        if (line.contains('</channel>')) {
+          final xml = buffer.toString();
+          if (channelId != null) {
+            final displayName = _tag(xml, 'display-name') ?? channelId;
+            await _upsertChannel(
+              playlistId,
+              channelId,
+              displayName,
+              _attr(xml, 'src'),
+            );
+            channelsFound++;
+          }
+          channelId = null;
+          buffer.clear();
+        }
       } else if (channelId != null) {
         buffer.write(line);
         if (line.contains('</channel>')) {
@@ -187,7 +203,9 @@ INSERT OR REPLACE INTO epg_programs(
     }
 
     await flushPrograms();
-    debugPrint('EPG full import complete. Channels: $channelsFound, Programmes: $programsFound, Skipped: $programsSkipped');
+    debugPrint(
+      'EPG full import complete. Channels: $channelsFound, Programmes: $programsFound, Skipped: $programsSkipped',
+    );
 
     final done = ImportProgressModel(
       currentItem: '$channelsFound channels, $programsFound programmes',
@@ -196,6 +214,41 @@ INSERT OR REPLACE INTO epg_programs(
     );
     onProgress?.call(done);
     return done;
+  }
+
+  Stream<String> _xmlElements(Stream<String> chunks) async* {
+    var pending = '';
+    await for (final chunk in chunks) {
+      pending += chunk;
+      while (true) {
+        final channelStart = pending.indexOf('<channel ');
+        final programmeStart = pending.indexOf('<programme ');
+        int start;
+        String closingTag;
+        if (channelStart >= 0 &&
+            (programmeStart < 0 || channelStart < programmeStart)) {
+          start = channelStart;
+          closingTag = '</channel>';
+        } else if (programmeStart >= 0) {
+          start = programmeStart;
+          closingTag = '</programme>';
+        } else {
+          if (pending.length > 64) {
+            pending = pending.substring(pending.length - 64);
+          }
+          break;
+        }
+
+        final end = pending.indexOf(closingTag, start);
+        if (end < 0) {
+          if (start > 0) pending = pending.substring(start);
+          break;
+        }
+        final elementEnd = end + closingTag.length;
+        yield pending.substring(start, elementEnd);
+        pending = pending.substring(elementEnd);
+      }
+    }
   }
 
   Future<void> _upsertChannel(
@@ -258,9 +311,10 @@ INSERT OR REPLACE INTO epg_channels(
   }
 
   String? _tag(String xml, String name) {
-    final value = RegExp('<$name[^>]*>(.*?)</$name>', dotAll: true)
-        .firstMatch(xml)
-        ?.group(1);
+    final value = RegExp(
+      '<$name[^>]*>(.*?)</$name>',
+      dotAll: true,
+    ).firstMatch(xml)?.group(1);
     return value?.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 }

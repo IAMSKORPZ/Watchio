@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/player_engine.dart';
 import '../../repositories/user_preferences.dart';
 import '../../shared/widgets/glass_panel.dart';
+import 'widgets/watchio_settings_scaffold.dart';
 
 class PlaybackSettingsScreen extends StatefulWidget {
   const PlaybackSettingsScreen({super.key});
@@ -18,6 +19,7 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
   String _subLang = 'en';
 
   final List<Map<String, String>> _languages = [
+    {'code': 'auto', 'name': 'Automatic'},
     {'code': 'en', 'name': 'English'},
     {'code': 'tr', 'name': 'Turkish'},
     {'code': 'es', 'name': 'Spanish'},
@@ -43,35 +45,31 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
     final ratio = await UserPreferences.getPlayerAspectRatio();
     final audio = await UserPreferences.getAudioTrack();
     final sub = await UserPreferences.getSubtitleTrack();
-    
+    final languageCodes = _languages
+        .map((language) => language['code'])
+        .toSet();
+
+    if (!mounted) return;
     setState(() {
-      _engine = PlayerEngine.values.firstWhere((e) => e.name == engineStr, orElse: () => PlayerEngine.auto);
+      _engine = PlayerEngine.values.firstWhere(
+        (e) => e.name == engineStr,
+        orElse: () => PlayerEngine.auto,
+      );
       _hardwareDecoding = hardware;
       _aspectRatio = ratio;
-      _audioLang = audio;
-      _subLang = sub;
+      _audioLang = languageCodes.contains(audio) ? audio : 'auto';
+      _subLang = languageCodes.contains(sub) ? sub : 'auto';
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF050812),
-      appBar: AppBar(
-        title: const Text('Playback Settings',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/background.png'),
-            fit: BoxFit.cover,
-            opacity: 0.3,
-          ),
-        ),
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
+    return WatchioSettingsScaffold(
+      title: 'PLAYER SETTINGS',
+      onBack: () => Navigator.pop(context),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+        children: [
           _buildSection('Player Engine', [
             _buildDropdown<PlayerEngine>(
               title: 'Preferred Engine',
@@ -86,11 +84,17 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
               labelBuilder: (e) => e.name.toUpperCase(),
             ),
           ]),
-          const SizedBox(height: 24),
+          const SizedBox(height: 10),
           _buildSection('Hardware Acceleration', [
             SwitchListTile(
-              title: const Text('Enable Hardware Decoding', style: TextStyle(color: Colors.white)),
-              subtitle: const Text('Uses GPU for video decoding if supported', style: TextStyle(color: Colors.white54)),
+              title: const Text(
+                'Enable Hardware Decoding',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: const Text(
+                'Uses GPU for video decoding if supported',
+                style: TextStyle(color: Colors.white54),
+              ),
               value: _hardwareDecoding,
               activeThumbColor: const Color(0xFFC12CFF),
               onChanged: (v) {
@@ -99,7 +103,7 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
               },
             ),
           ]),
-          const SizedBox(height: 24),
+          const SizedBox(height: 10),
           _buildSection('Preferred Languages', [
             _buildDropdown<String>(
               title: 'Audio Language',
@@ -111,7 +115,8 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
                   UserPreferences.setAudioTrack(v);
                 }
               },
-              labelBuilder: (c) => _languages.firstWhere((l) => l['code'] == c)['name']!,
+              labelBuilder: (c) =>
+                  _languages.firstWhere((l) => l['code'] == c)['name']!,
             ),
             const Divider(color: Colors.white10),
             _buildDropdown<String>(
@@ -124,10 +129,11 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
                   UserPreferences.setSubtitleTrack(v);
                 }
               },
-              labelBuilder: (c) => _languages.firstWhere((l) => l['code'] == c)['name']!,
+              labelBuilder: (c) =>
+                  _languages.firstWhere((l) => l['code'] == c)['name']!,
             ),
           ]),
-          const SizedBox(height: 24),
+          const SizedBox(height: 10),
           _buildSection('Default Aspect Ratio', [
             _buildDropdown<String>(
               title: 'Aspect Ratio',
@@ -152,9 +158,18 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title.toUpperCase(), style: const TextStyle(color: Color(0xFF00B7FF), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-        const SizedBox(height: 12),
+        Text(
+          title.toUpperCase(),
+          style: const TextStyle(
+            color: Color(0xFF00B7FF),
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 5),
         GlassPanel(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           child: Column(children: children),
         ),
       ],
@@ -169,15 +184,24 @@ class _PlaybackSettingsScreenState extends State<PlaybackSettingsScreen> {
     required String Function(T) labelBuilder,
   }) {
     return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
       title: Text(title, style: const TextStyle(color: Colors.white)),
       trailing: DropdownButton<T>(
         value: value,
         dropdownColor: const Color(0xFF1A1D29),
         underline: const SizedBox(),
-        items: items.map((i) => DropdownMenuItem(
-          value: i,
-          child: Text(labelBuilder(i), style: const TextStyle(color: Colors.white)),
-        )).toList(),
+        items: items
+            .map(
+              (i) => DropdownMenuItem(
+                value: i,
+                child: Text(
+                  labelBuilder(i),
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            )
+            .toList(),
         onChanged: onChanged,
       ),
     );

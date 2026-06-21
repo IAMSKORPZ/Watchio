@@ -10,7 +10,7 @@ class AppearanceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeManager = context.watch<ThemeManager>();
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Appearance'),
@@ -70,7 +70,7 @@ class _ThemeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeData = AppTheme.getTheme(type);
-    
+
     return AppCard(
       padding: EdgeInsets.zero,
       onTap: onTap,
@@ -123,14 +123,22 @@ class _ThemeTile extends StatelessWidget {
 
   String _getThemeName(AppThemeType type) {
     switch (type) {
-      case AppThemeType.bingieNeon: return 'Bingie Neon';
-      case AppThemeType.emerald: return 'Emerald';
-      case AppThemeType.crimson: return 'Crimson';
-      case AppThemeType.ocean: return 'Ocean';
-      case AppThemeType.gold: return 'Gold';
-      case AppThemeType.midnight: return 'Midnight';
-      case AppThemeType.amoled: return 'AMOLED';
-      default: return 'Custom';
+      case AppThemeType.bingieNeon:
+        return 'Bingie Neon';
+      case AppThemeType.emerald:
+        return 'Emerald';
+      case AppThemeType.crimson:
+        return 'Crimson';
+      case AppThemeType.ocean:
+        return 'Ocean';
+      case AppThemeType.gold:
+        return 'Gold';
+      case AppThemeType.midnight:
+        return 'Midnight';
+      case AppThemeType.amoled:
+        return 'AMOLED';
+      default:
+        return 'Custom';
     }
   }
 }
