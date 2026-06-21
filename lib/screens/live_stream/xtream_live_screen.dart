@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/xtream_code_home_controller.dart';
+import '../../core/theme/theme_manager.dart';
 import '../../models/category_type.dart';
 import '../../models/category_view_model.dart';
 import '../../models/content_type.dart';
@@ -614,6 +615,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   @override
   Widget build(BuildContext context) {
     final config = context.watch<ConfigService>().config;
+    final themeManager = context.watch<ThemeManager>();
     final homeBg = config.backgrounds.home;
 
     return Consumer<XtreamCodeHomeController>(
@@ -626,7 +628,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
             decoration: BoxDecoration(
               color: const Color(0xFF050812),
               image: DecorationImage(
-                image: (homeBg.isNotEmpty)
+                image: (themeManager.showBackgroundImage && homeBg.isNotEmpty)
                     ? NetworkImage(homeBg)
                     : const AssetImage('assets/images/background.png')
                           as ImageProvider,
@@ -675,7 +677,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                             child: GlassPanel(
                               opacity: 0.1,
                               blur: 20,
-                              gradient: contentPanelGradient,
+                              gradient: contentPanelGradientOf(context),
                               child: _buildCategoryPanel(controller),
                             ),
                           ),
@@ -687,7 +689,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                             child: GlassPanel(
                               opacity: 0.1,
                               blur: 20,
-                              gradient: contentPanelGradient,
+                              gradient: contentPanelGradientOf(context),
                               child: _buildChannelPanel(),
                             ),
                           ),
@@ -992,7 +994,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
           child: GlassPanel(
             opacity: 0.1,
             blur: 20,
-            gradient: contentPanelGradient,
+            gradient: contentPanelGradientOf(context),
             padding: const EdgeInsets.all(20),
             child: _buildEpgContent(),
           ),

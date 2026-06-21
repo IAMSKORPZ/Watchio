@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/xtream_code_home_controller.dart';
+import '../../core/theme/theme_manager.dart';
 import '../../models/category_type.dart';
 import '../../models/category_view_model.dart';
 import '../../models/playlist_content_model.dart';
@@ -120,6 +121,7 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
   @override
   Widget build(BuildContext context) {
     final config = context.watch<ConfigService>().config;
+    final themeManager = context.watch<ThemeManager>();
     final homeBg = config.backgrounds.home;
 
     return Consumer<XtreamCodeHomeController>(
@@ -139,7 +141,7 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF050812),
               image: DecorationImage(
-                image: (homeBg.isNotEmpty)
+                image: (themeManager.showBackgroundImage && homeBg.isNotEmpty)
                     ? NetworkImage(homeBg)
                     : const AssetImage('assets/images/background.png')
                           as ImageProvider,
@@ -183,7 +185,7 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
                           child: GlassPanel(
                             opacity: 0.1,
                             blur: 20,
-                            gradient: contentPanelGradient,
+                            gradient: contentPanelGradientOf(context),
                             child: ListView.separated(
                               padding: const EdgeInsets.all(8),
                               itemCount: controller.seriesCategories.length,
