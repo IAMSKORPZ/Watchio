@@ -15,6 +15,7 @@ import '../../shared/widgets/watchio_header.dart';
 import '../../utils/navigate_by_content_type.dart';
 import '../../utils/responsive_helper.dart';
 import '../search_screen.dart';
+import '../shared/content_sort_dialog.dart';
 
 class XtreamSeriesScreen extends StatefulWidget {
   const XtreamSeriesScreen({super.key});
@@ -124,10 +125,14 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
     int itemNumber(ContentItem item) => int.tryParse(item.id) ?? 0;
     switch (_sortOrder) {
       case 'az':
-        _currentItems.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        _currentItems.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
         break;
       case 'za':
-        _currentItems.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+        _currentItems.sort(
+          (a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()),
+        );
         break;
       default:
         _currentItems.sort((a, b) => itemNumber(b).compareTo(itemNumber(a)));
@@ -135,7 +140,11 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
   }
 
   Future<void> _showSortDialog() async {
-    final selected = await _showContentSortDialog(context, _sortOrder, 'TV Shows');
+    final selected = await showContentSortDialog(
+      context,
+      _sortOrder,
+      'TV Shows',
+    );
     if (selected == null || !mounted) return;
     setState(() {
       _sortOrder = selected;
