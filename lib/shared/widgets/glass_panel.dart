@@ -49,7 +49,7 @@ class GlassPanel extends StatelessWidget {
             borderRadius: BorderRadius.circular(effectiveRadius),
             border: border ?? Border.all(color: theme.glassBorder),
           ),
-          child: child,
+          child: Material(type: MaterialType.transparency, child: child),
         ),
       ),
     );
