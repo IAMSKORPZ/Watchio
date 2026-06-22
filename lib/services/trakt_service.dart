@@ -57,15 +57,26 @@ class TraktService {
     var interval = code.interval;
     while (DateTime.now().isBefore(deadline)) {
       await Future<void>.delayed(Duration(seconds: interval));
-      final response = await http.post(
-        Uri.parse('$_baseUrl/oauth/device/token'),
-        headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'code': code.deviceCode,
-          'client_id': _clientId,
-          'client_secret': _clientSecret,
-        }),
-      );
+      late final http.Response response;
+      try {
+        response = await http
+            .post(
+              Uri.parse('$_baseUrl/oauth/device/token'),
+              headers: const {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'code': code.deviceCode,
+                'client_id': _clientId,
+                'client_secret': _clientSecret,
+              }),
+            )
+            .timeout(const Duration(seconds: 15));
+      } on http.ClientException {
+        // Android can briefly lose DNS while returning from the browser.
+        // Keep polling until the activation code expires.
+        continue;
+      } on TimeoutException {
+        continue;
+      }
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
         final prefs = await SharedPreferences.getInstance();
@@ -73,7 +84,7 @@ class TraktService {
         await prefs.setString(_refreshKey, json['refresh_token'] as String);
         return true;
       }
-      if (response.statusCode == 410) return false;
+      if ([410, 418].contains(response.statusCode)) return false;
       if (response.statusCode == 429) interval += 5;
       if (![400, 404, 409, 429].contains(response.statusCode)) {
         throw Exception('Trakt login failed (${response.statusCode}).');
@@ -86,16 +97,16 @@ class TraktService {
 
   Future<List<Map<String, dynamic>>> getWatchlist() async {
     final results = await Future.wait([
-      _getList('/sync/watchlist/movies'),
-      _getList('/sync/watchlist/shows'),
+      _getList('/sync/watchlist/movies?extended=full'),
+      _getList('/sync/watchlist/shows?extended=full'),
     ]);
     return [...results[0], ...results[1]];
   }
 
   Future<List<Map<String, dynamic>>> getHistory() async {
     final results = await Future.wait([
-      _getList('/sync/history/movies?limit=50'),
-      _getList('/sync/history/shows?limit=50'),
+      _getList('/sync/history/movies?limit=50&extended=full'),
+      _getList('/sync/history/shows?limit=50&extended=full'),
     ]);
     return [...results[0], ...results[1]];
   }

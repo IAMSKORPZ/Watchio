@@ -20,11 +20,13 @@ import '../../services/epg_storage_service.dart';
 import '../../services/player/app_player_controller.dart';
 import '../../services/player/player_factory.dart';
 import '../../services/playback_url_resolver.dart';
+import '../../services/watch_history_service.dart';
 import '../../shared/widgets/glass_panel.dart';
 import '../../shared/widgets/watchio_header.dart';
 import '../player/unified_player_screen.dart';
 import '../search_screen.dart';
 import '../../services/epg_import_service.dart';
+import '../../services/epg_source_service.dart';
 
 class XtreamLiveScreen extends StatefulWidget {
   final Playlist? playlist;
@@ -62,6 +64,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   bool _isReconnecting = false;
   Timer? _epgUpdateTimer;
   int _epgRequestId = 0;
+  int _epgRevision = EpgSourceService.revision.value;
 
   @override
   void initState() {
@@ -70,6 +73,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     // BUG FIX: Removed _initPreviewController() and _startEpgTimer() from initState
     // Player and EPG should only be initialized when entering the Live TV tab
     _channelScrollController.addListener(_scrollListener);
+    EpgSourceService.revision.addListener(_onEpgUpdated);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _homeController = Provider.of<XtreamCodeHomeController>(
@@ -232,9 +236,16 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     _previewController?.dispose();
     _previewController = null;
     _channelScrollController.removeListener(_scrollListener);
+    EpgSourceService.revision.removeListener(_onEpgUpdated);
     _categoryScrollController.dispose();
     _channelScrollController.dispose();
     super.dispose();
+  }
+
+  void _onEpgUpdated() {
+    if (!mounted) return;
+    setState(() => _epgRevision = EpgSourceService.revision.value);
+    if (_focusedChannel != null) _fetchEpg(_focusedChannel!);
   }
 
   void _scrollListener() {
@@ -247,8 +258,10 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   }
 
   Future<void> _onCategorySelected(CategoryViewModel category) async {
-    if (_selectedCategory?.category.categoryId == category.category.categoryId)
+    if (_selectedCategory?.category.categoryId ==
+        category.category.categoryId) {
       return;
+    }
 
     setState(() {
       _selectedCategory = category;
@@ -415,6 +428,45 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Live TV setup will be added next.')),
     );
+  }
+
+  Future<void> _clearLiveHistory() async {
+    final playlist = widget.playlist ?? AppState.currentPlaylist;
+    if (playlist == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Clear Live TV History'),
+        content: const Text('Remove every channel from Live TV history?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('CANCEL'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('CLEAR'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await WatchHistoryService().clearHistoryByContentType(
+      playlist.id,
+      ContentType.liveStream,
+    );
+    if (!mounted) return;
+    setState(() {
+      _currentItems.clear();
+      _currentOffset = 0;
+      _hasMore = false;
+      _focusedChannel = null;
+      _epgPrograms = [];
+      _categoryCounts[IptvRepository.virtualHistory] = 0;
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Live TV history cleared.')));
   }
 
   void _startEpgTimer() {
@@ -729,6 +781,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
         playlistId: playlist.id,
         url: xmltvUrl,
       );
+      EpgSourceService.notifyUpdated();
 
       debugPrint('EPG Refresh Complete: ${result.currentItem}');
 
@@ -811,6 +864,11 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                     onSort: _showSortDialog,
                     onRefresh: () => controller.refreshAllData(context),
                     onRefreshEpg: _forceRefreshEpg,
+                    onClearHistory:
+                        _selectedCategory?.category.categoryId ==
+                            IptvRepository.virtualHistory
+                        ? _clearLiveHistory
+                        : null,
                   ),
 
                   // MAIN CONTENT (3 Columns)
@@ -964,6 +1022,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                   isFocused: isFocused,
                   onFocus: () => _onChannelHighlighted(channel),
                   onTap: () => _onChannelFocused(channel, immediate: true),
+                  epgRevision: _epgRevision,
                 );
               } else {
                 return const Center(
@@ -1661,8 +1720,9 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     if (categoryId == IptvRepository.virtualFavorites) {
       return Icons.favorite_rounded;
     }
-    if (categoryId == IptvRepository.virtualHistory)
+    if (categoryId == IptvRepository.virtualHistory) {
       return Icons.history_rounded;
+    }
     return Icons.live_tv_rounded;
   }
 }
@@ -1767,6 +1827,7 @@ class _ChannelItem extends StatefulWidget {
   final bool isFocused;
   final VoidCallback onFocus;
   final VoidCallback onTap;
+  final int epgRevision;
 
   const _ChannelItem({
     required this.channel,
@@ -1774,6 +1835,7 @@ class _ChannelItem extends StatefulWidget {
     required this.isFocused,
     required this.onFocus,
     required this.onTap,
+    required this.epgRevision,
   });
 
   @override
@@ -1794,7 +1856,8 @@ class _ChannelItemState extends State<_ChannelItem> {
   @override
   void didUpdateWidget(_ChannelItem oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.channel.id != oldWidget.channel.id) {
+    if (widget.channel.id != oldWidget.channel.id ||
+        widget.epgRevision != oldWidget.epgRevision) {
       _fetchCurrentProgram();
     }
   }

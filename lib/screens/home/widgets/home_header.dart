@@ -126,7 +126,7 @@ class HomeHeader extends StatelessWidget {
               onTap: onAnnouncements ?? () {},
             ),
             _ToolbarItem(
-              icon: Icons.info_outline_rounded,
+              icon: Icons.bug_report_outlined,
               iconSize: iconSize,
               onTap: onAbout,
             ),

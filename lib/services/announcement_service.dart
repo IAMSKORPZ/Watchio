@@ -9,6 +9,7 @@ class AnnouncementService extends ChangeNotifier {
       'https://raw.githubusercontent.com/IAMSKORPZ/iamskorpz.github.io/master/config/announcements.json';
   static const String _cacheKey = 'watchio_announcements_cache';
   static const String _lastUpdateKey = 'watchio_announcements_last_update';
+  static const String _dismissedIdKey = 'watchio_announcement_dismissed_id';
 
   List<AnnouncementV2Model> _announcements = [];
   List<AnnouncementV2Model> get announcements => _announcements;
@@ -22,16 +23,20 @@ class AnnouncementService extends ChangeNotifier {
 
   Future<void> initialize() async {
     await _loadFromCache();
-    if (await _shouldRefresh()) {
-      await refresh();
-    }
+    await refresh();
   }
 
-  Future<bool> _shouldRefresh() async {
+  Future<AnnouncementV2Model?> latestUndismissed() async {
+    if (_announcements.isEmpty) return null;
     final prefs = await SharedPreferences.getInstance();
-    final lastUpdate = prefs.getInt(_lastUpdateKey) ?? 0;
-    final now = DateTime.now().millisecondsSinceEpoch;
-    return (now - lastUpdate) > const Duration(hours: 6).inMilliseconds;
+    final dismissedId = prefs.getInt(_dismissedIdKey) ?? 0;
+    final latest = _announcements.first;
+    return latest.id > dismissedId ? latest : null;
+  }
+
+  Future<void> dismiss(AnnouncementV2Model announcement) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_dismissedIdKey, announcement.id);
   }
 
   Future<void> refresh() async {
@@ -39,15 +44,19 @@ class AnnouncementService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.get(Uri.parse(_url)).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(Uri.parse(_url))
+          .timeout(const Duration(seconds: 10));
       debugPrint('Announcements Response: ${response.statusCode}');
       debugPrint('Announcements Body: ${response.body}');
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         final List<dynamic> list = data['announcements'] ?? [];
-        _announcements = list.map((e) => AnnouncementV2Model.fromJson(e)).toList();
+        _announcements = list
+            .map((e) => AnnouncementV2Model.fromJson(e))
+            .toList();
         debugPrint('Parsed Announcements Count: ${_announcements.length}');
-        
+
         // Sort by ID descending (assuming higher ID = newer) or date if needed.
         // ID is safer for "newest first" based on your example.
         _announcements.sort((a, b) => b.id.compareTo(a.id));
@@ -69,7 +78,9 @@ class AnnouncementService extends ChangeNotifier {
       if (cachedJson != null) {
         final Map<String, dynamic> data = json.decode(cachedJson);
         final List<dynamic> list = data['announcements'] ?? [];
-        _announcements = list.map((e) => AnnouncementV2Model.fromJson(e)).toList();
+        _announcements = list
+            .map((e) => AnnouncementV2Model.fromJson(e))
+            .toList();
         _announcements.sort((a, b) => b.id.compareTo(a.id));
       }
     } catch (e) {
