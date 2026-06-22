@@ -1,113 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/announcement_v2_model.dart';
 import '../../services/announcement_service.dart';
-import '../../services/config_service.dart';
-import '../home/widgets/home_header.dart';
-import '../home/home_theme.dart';
+import '../settings/widgets/watchio_settings_scaffold.dart';
 
 class WatchioAnnouncementsScreen extends StatelessWidget {
   const WatchioAnnouncementsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final config = context.watch<ConfigService>().config;
-    final announcementService = context.watch<AnnouncementService>();
-    final homeBg = config.backgrounds.home;
-
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          color: HomeTheme.background,
-          image: DecorationImage(
-            image: homeBg.isNotEmpty
-                ? NetworkImage(homeBg)
-                : const AssetImage('assets/images/background.png') as ImageProvider,
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(
-              Colors.black.withValues(alpha: 0.7),
-              BlendMode.darken,
-            ),
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: HomeHeader(
-                  onSearch: () {},
-                  onProfile: () {},
-                  onAbout: () {},
-                  onSports: () {
-                    // Navigate to Sports Hub if needed
+    final service = context.watch<AnnouncementService>();
+    return WatchioSettingsScaffold(
+      title: 'ANNOUNCEMENTS',
+      onBack: () => Navigator.pop(context),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760),
+          child: service.isLoading && service.announcements.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : service.announcements.isEmpty
+              ? const Center(child: Text('No announcements available'))
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                  itemCount: service.announcements.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final item = service.announcements[index];
+                    return _AnnouncementListCard(
+                      announcement: item,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => WatchioAnnouncementDetailsScreen(
+                            announcement: item,
+                          ),
+                        ),
+                      ),
+                    );
                   },
                 ),
-              ),
-              
-              const SizedBox(height: 12),
-              
-              const Text(
-                'ANNOUNCEMENTS',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              
-              const SizedBox(height: 12),
-              
-              // Announcements List
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 60),
-                  child: announcementService.isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : announcementService.announcements.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'No announcements available',
-                                style: TextStyle(color: Colors.white70, fontSize: 18),
-                              ),
-                            )
-                          : ListView.separated(
-                              padding: const EdgeInsets.only(bottom: 20),
-                              itemCount: announcementService.announcements.length,
-                              separatorBuilder: (context, index) => const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final item = announcementService.announcements[index];
-                                return _AnnouncementListCard(
-                                  announcement: item,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => WatchioAnnouncementDetailsScreen(announcement: item),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                ),
-              ),
-              
-              // Back Button
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Center(
-                  child: HeaderButton(
-                    icon: Icons.arrow_back,
-                    label: 'BACK TO DASHBOARD',
-                    onTap: () => Navigator.pop(context),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -115,74 +47,79 @@ class WatchioAnnouncementsScreen extends StatelessWidget {
 }
 
 class _AnnouncementListCard extends StatefulWidget {
-  final AnnouncementV2Model announcement;
-  final VoidCallback onTap;
-
   const _AnnouncementListCard({
     required this.announcement,
     required this.onTap,
   });
+
+  final AnnouncementV2Model announcement;
+  final VoidCallback onTap;
 
   @override
   State<_AnnouncementListCard> createState() => _AnnouncementListCardState();
 }
 
 class _AnnouncementListCardState extends State<_AnnouncementListCard> {
-  bool _isFocused = false;
+  bool _focused = false;
 
   @override
   Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
     return FocusableActionDetector(
-      onFocusChange: (val) => setState(() => _isFocused = val),
+      onFocusChange: (value) => setState(() => _focused = value),
       child: InkWell(
         onTap: widget.onTap,
         borderRadius: BorderRadius.circular(16),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          constraints: const BoxConstraints(minHeight: 72),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           decoration: BoxDecoration(
-            color: _isFocused ? Colors.white.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.08),
+            color: Colors.white.withValues(alpha: _focused ? 0.14 : 0.07),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: _isFocused ? Colors.white : Colors.white.withValues(alpha: 0.12),
-              width: _isFocused ? 2 : 1,
+              color: _focused ? accent : Colors.white12,
+              width: _focused ? 2 : 1,
             ),
-            boxShadow: _isFocused ? [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ] : [],
+            boxShadow: _focused
+                ? [
+                    BoxShadow(
+                      color: accent.withValues(alpha: 0.25),
+                      blurRadius: 14,
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
             children: [
-              const Icon(Icons.campaign_outlined, color: Colors.white70, size: 28),
-              const SizedBox(width: 16),
+              Icon(Icons.campaign_outlined, color: accent, size: 24),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       widget.announcement.title,
+                      maxLines: 2,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       widget.announcement.date,
                       style: const TextStyle(
                         color: Colors.white38,
-                        fontSize: 13,
+                        fontSize: 11,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.white38),
+              const Icon(Icons.chevron_right, color: Colors.white38, size: 20),
             ],
           ),
         ),
@@ -192,131 +129,59 @@ class _AnnouncementListCardState extends State<_AnnouncementListCard> {
 }
 
 class WatchioAnnouncementDetailsScreen extends StatelessWidget {
-  final AnnouncementV2Model announcement;
-
   const WatchioAnnouncementDetailsScreen({
     super.key,
     required this.announcement,
   });
 
+  final AnnouncementV2Model announcement;
+
   @override
   Widget build(BuildContext context) {
-    final config = context.watch<ConfigService>().config;
-    final homeBg = config.backgrounds.home;
-
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          color: HomeTheme.background,
-          image: DecorationImage(
-            image: homeBg.isNotEmpty
-                ? NetworkImage(homeBg)
-                : const AssetImage('assets/images/background.png') as ImageProvider,
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(
-              Colors.black.withValues(alpha: 0.7),
-              BlendMode.darken,
+    return WatchioSettingsScaffold(
+      title: 'ANNOUNCEMENT',
+      onBack: () => Navigator.pop(context),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(24, 6, 24, 20),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
             ),
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: HomeHeader(
-                  onSearch: () {},
-                  onProfile: () {},
-                  onAbout: () {},
-                  onSports: () {
-                    // Navigate to Sports Hub if needed
-                  },
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Content Area
-              Expanded(
-                child: Center(
-                  child: Container(
-                    width: MediaQuery.of(context).size.width * 0.7,
-                    constraints: const BoxConstraints(minHeight: 300),
-                    padding: const EdgeInsets.all(40),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.3),
-                          blurRadius: 30,
-                          offset: const Offset(0, 15),
-                        ),
-                      ],
-                    ),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            announcement.title.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 26,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            child: Divider(color: Colors.white10, thickness: 1),
-                          ),
-                          Text(
-                            announcement.message,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 18,
-                              height: 1.6,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-                          Align(
-                            alignment: Alignment.bottomRight,
-                            child: Text(
-                              announcement.date,
-                              style: const TextStyle(
-                                color: Colors.white38,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    announcement.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                ),
-              ),
-              
-              // Back Button
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24.0),
-                child: Center(
-                  child: HeaderButton(
-                    icon: Icons.arrow_back,
-                    label: 'BACK TO LIST',
-                    onTap: () => Navigator.pop(context),
+                  const SizedBox(height: 6),
+                  Text(
+                    announcement.date,
+                    style: const TextStyle(color: Colors.white38, fontSize: 11),
                   ),
-                ),
+                  const Divider(color: Colors.white10, height: 28),
+                  Text(
+                    announcement.message,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 15,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
