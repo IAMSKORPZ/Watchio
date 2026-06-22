@@ -24,7 +24,9 @@ class UpdateScreen extends StatelessWidget {
               children: [
                 _row(
                   'Current Version',
-                  result?.currentVersion ?? controller.currentVersion ?? 'Unknown',
+                  result?.currentVersion ??
+                      controller.currentVersion ??
+                      'Unknown',
                 ),
                 const Divider(height: 1),
                 _row(
@@ -47,8 +49,8 @@ class UpdateScreen extends StatelessWidget {
             onPressed: controller.isChecking
                 ? null
                 : () => controller.checkForUpdates(
-                      remoteUpdateInfo: branding.updateInfo,
-                    ),
+                    remoteUpdateInfo: branding.updateInfo,
+                  ),
             icon: const Icon(Icons.system_update_alt),
             label: Text(
               controller.isChecking ? 'Checking...' : 'Check For Updates',
@@ -84,7 +86,9 @@ class UpdateScreen extends StatelessWidget {
             Text(
               result.forceRequired
                   ? 'Update Required'
-                  : (result.updateAvailable ? 'Update Available' : 'Up to date'),
+                  : (result.updateAvailable
+                        ? 'Update Available'
+                        : 'Up to date'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
@@ -110,7 +114,9 @@ class UpdateScreen extends StatelessWidget {
                           ? null
                           : controller.downloadUpdate,
                       child: Text(
-                        controller.isDownloading ? 'Downloading...' : 'Download',
+                        controller.isDownloading
+                            ? 'Downloading...'
+                            : 'Download',
                       ),
                     ),
                   ),
@@ -129,7 +135,9 @@ class UpdateScreen extends StatelessWidget {
                 const Text(
                   'Open the file to install. Unknown sources may be required on Android/Firestick.',
                 ),
-                const Text('Windows users should restart BingieTV after the installer completes.'),
+                const Text(
+                  'Windows users should restart BingieTV after the installer completes.',
+                ),
                 OutlinedButton.icon(
                   onPressed: () =>
                       _openInstaller(controller.downloadedInstallerPath),

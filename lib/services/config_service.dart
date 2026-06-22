@@ -6,7 +6,7 @@ import '../models/app_config.dart';
 
 class ConfigService extends ChangeNotifier {
   static const String _configUrl =
-      'https://raw.githubusercontent.com/IAMSKORPZ/iamskorpz.github.io/master/config/app_config.json';
+      'https://raw.githubusercontent.com/IAMSKORPZ/Watchio/main/assets/images/gdsfad/dfgfsad/dfgfs/app_config.json';
   static const String _cacheKey = 'watchio_app_config_v3';
   static const String _lastUpdateKey = 'watchio_config_last_update_v3';
 
@@ -40,17 +40,19 @@ class ConfigService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final lastUpdate = prefs.getInt(_lastUpdateKey) ?? 0;
     final now = DateTime.now().millisecondsSinceEpoch;
-    
+
     // Use refreshHours from config if available, fallback to 6
     final hours = _config.refreshHours > 0 ? _config.refreshHours : 6;
     final refreshInterval = Duration(hours: hours).inMilliseconds;
-    
+
     return (now - lastUpdate) > refreshInterval;
   }
 
   Future<void> refresh() async {
     try {
-      final response = await http.get(Uri.parse(_configUrl)).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(Uri.parse(_configUrl))
+          .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         _config = AppConfig.fromJson(data);
