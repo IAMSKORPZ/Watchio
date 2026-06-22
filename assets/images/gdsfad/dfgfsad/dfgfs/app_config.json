@@ -1,0 +1,37 @@
+{
+  "branding": {
+    "appName": "Watchio IPTV",
+    "logoUrl": null,
+    "splashUrl": null,
+    "iconUrl": null,
+    "supportUrl": "https://github.com/IAMSKORPZ/Watchio/issues",
+    "websiteUrl": "https://github.com/IAMSKORPZ/Watchio",
+    "discordUrl": null,
+    "homeBackgroundUrl": null,
+    "loginBackgroundUrl": null
+  },
+  "maintenance": {
+    "enabled": false,
+    "title": "Maintenance",
+    "message": "",
+    "allowPlayback": true,
+    "allowLogin": true
+  },
+  "updateInfo": {
+    "latestVersion": "0.0.1",
+    "minimumVersion": "0.0.1",
+    "forceUpdate": false,
+    "updateUrl": "https://github.com/IAMSKORPZ/Watchio/releases/latest",
+    "releaseNotes": ""
+  },
+  "backgrounds": {
+    "home": "",
+    "login": ""
+  },
+  "about": {
+    "website": "https://github.com/IAMSKORPZ/Watchio",
+    "discord": "",
+    "support": "https://github.com/IAMSKORPZ/Watchio/issues"
+  },
+  "refreshHours": 6
+}
