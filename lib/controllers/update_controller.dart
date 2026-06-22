@@ -7,7 +7,7 @@ class UpdateController extends ChangeNotifier {
   final UpdateService service;
 
   UpdateController({UpdateService? service})
-      : service = service ?? UpdateService();
+    : service = service ?? UpdateService();
 
   UpdateCheckResult? result;
   UpdateChannel channel = UpdateChannel.stable;
@@ -30,9 +30,9 @@ class UpdateController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setChannel(UpdateChannel value) async {
-    channel = value;
-    await service.setChannel(value);
+  Future<void> setChannel(UpdateChannel _) async {
+    channel = UpdateChannel.stable;
+    await service.setChannel(UpdateChannel.stable);
     notifyListeners();
   }
 

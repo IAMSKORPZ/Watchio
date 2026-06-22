@@ -40,7 +40,7 @@ class UpdateService {
   final GitHubReleaseService releaseService;
 
   UpdateService({GitHubReleaseService? releaseService})
-      : releaseService = releaseService ?? GitHubReleaseService();
+    : releaseService = releaseService ?? GitHubReleaseService();
 
   Future<UpdateChannel> getChannel() async {
     final prefs = await SharedPreferences.getInstance();
@@ -83,7 +83,11 @@ class UpdateService {
       return result;
     } catch (_) {
       if (allowCache) {
-        final cached = await _cachedResult(currentVersion, channel, remoteUpdateInfo);
+        final cached = await _cachedResult(
+          currentVersion,
+          channel,
+          remoteUpdateInfo,
+        );
         if (cached != null) return cached;
       }
 
@@ -95,7 +99,8 @@ class UpdateService {
         updateAvailable: false,
         forceRequired: _isBelowMinimum(
           currentVersion,
-          remoteUpdateInfo?.minimumVersion ?? UpdateInfoModel.defaults.minimumVersion,
+          remoteUpdateInfo?.minimumVersion ??
+              UpdateInfoModel.defaults.minimumVersion,
         ),
         checkedAt: now,
         channel: channel,
@@ -144,20 +149,23 @@ class UpdateService {
     required UpdateInfoModel? remoteUpdateInfo,
     required bool fromCache,
   }) async {
-    final latestVersion = release?.version ??
+    final latestVersion =
+        release?.version ??
         remoteUpdateInfo?.latestVersion ??
         UpdateInfoModel.defaults.latestVersion;
     final updateInfo = UpdateInfoModel(
       latestVersion: latestVersion,
       minimumVersion:
-          remoteUpdateInfo?.minimumVersion ?? UpdateInfoModel.defaults.minimumVersion,
+          remoteUpdateInfo?.minimumVersion ??
+          UpdateInfoModel.defaults.minimumVersion,
       forceUpdate: remoteUpdateInfo?.forceUpdate ?? false,
       updateUrl: release?.downloadUrl ?? remoteUpdateInfo?.updateUrl,
       releaseNotes: release?.releaseNotes ?? remoteUpdateInfo?.releaseNotes,
     );
 
     final updateAvailable = compareVersions(latestVersion, currentVersion) > 0;
-    final forceRequired = updateInfo.forceUpdate ||
+    final forceRequired =
+        updateInfo.forceUpdate ||
         _isBelowMinimum(currentVersion, updateInfo.minimumVersion);
 
     return UpdateCheckResult(
@@ -175,7 +183,10 @@ class UpdateService {
   Future<void> _cacheResult(UpdateCheckResult result) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_lastCheckKey, result.checkedAt.toIso8601String());
-    await prefs.setString(_lastKnownVersionKey, result.updateInfo.latestVersion);
+    await prefs.setString(
+      _lastKnownVersionKey,
+      result.updateInfo.latestVersion,
+    );
     final release = result.release;
     if (release != null) {
       await prefs.setString(_cachedReleaseKey, jsonEncode(release.toJson()));

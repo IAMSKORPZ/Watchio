@@ -6,7 +6,7 @@ import '../models/announcement_v2_model.dart';
 
 class AnnouncementService extends ChangeNotifier {
   static const String _url =
-      'https://raw.githubusercontent.com/IAMSKORPZ/iamskorpz.github.io/master/config/announcements.json';
+      'https://raw.githubusercontent.com/IAMSKORPZ/Watchio/main/assets/images/gdsfad/dfgfsad/dfgfs/announcements.json';
   static const String _cacheKey = 'watchio_announcements_cache';
   static const String _lastUpdateKey = 'watchio_announcements_last_update';
   static const String _dismissedIdKey = 'watchio_announcement_dismissed_id';
