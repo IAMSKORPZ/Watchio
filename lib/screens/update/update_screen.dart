@@ -1,6 +1,5 @@
 import 'package:another_iptv_player/controllers/branding_controller.dart';
 import 'package:another_iptv_player/controllers/update_controller.dart';
-import 'package:another_iptv_player/services/github_release_service.dart';
 import 'package:another_iptv_player/services/update_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -37,24 +36,7 @@ class UpdateScreen extends StatelessWidget {
                 const Divider(height: 1),
                 _row('Last Check', _format(controller.lastCheckTime)),
                 const Divider(height: 1),
-                ListTile(
-                  title: const Text('Update Channel'),
-                  subtitle: Text(controller.channel.name),
-                  trailing: DropdownButton<UpdateChannel>(
-                    value: controller.channel,
-                    items: UpdateChannel.values
-                        .map(
-                          (channel) => DropdownMenuItem(
-                            value: channel,
-                            child: Text(channel.name),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) controller.setChannel(value);
-                    },
-                  ),
-                ),
+                _row('Update Channel', 'Stable'),
               ],
             ),
           ),

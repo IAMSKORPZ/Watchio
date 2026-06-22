@@ -44,16 +44,13 @@ class UpdateService {
 
   Future<UpdateChannel> getChannel() async {
     final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString(_channelKey);
-    return UpdateChannel.values.firstWhere(
-      (item) => item.name == value,
-      orElse: () => UpdateChannel.stable,
-    );
+    await prefs.setString(_channelKey, UpdateChannel.stable.name);
+    return UpdateChannel.stable;
   }
 
   Future<void> setChannel(UpdateChannel channel) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_channelKey, channel.name);
+    await prefs.setString(_channelKey, UpdateChannel.stable.name);
   }
 
   Future<DateTime?> getLastCheckTime() async {
