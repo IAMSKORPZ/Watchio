@@ -218,13 +218,27 @@ class _TraktScreenState extends State<TraktScreen> {
                     ),
                   ),
                   const Spacer(),
-                  TextButton.icon(
+                  FilledButton.icon(
                     onPressed: () async {
                       await _service.logout();
                       await _load();
                     },
                     icon: const Icon(Icons.logout),
                     label: const Text('LOG OUT'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.07),
+                      foregroundColor: Colors.white,
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -262,7 +276,7 @@ class _TraktScreenState extends State<TraktScreen> {
           padding: const EdgeInsets.all(14),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
-            childAspectRatio: 0.72,
+            childAspectRatio: 0.84,
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
           ),
@@ -289,56 +303,65 @@ class _TraktScreenState extends State<TraktScreen> {
                             )
                           : CachedNetworkImage(
                               imageUrl: poster,
-                              fit: BoxFit.cover,
+                              fit: BoxFit.contain,
                               errorWidget: (_, _, _) => const Icon(
                                 Icons.broken_image_outlined,
                                 size: 48,
                               ),
                             ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 6, 8, 2),
-                      child: Text(
-                        media['title']?.toString() ?? 'Unknown',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                    SizedBox(
+                      height: 56,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 6, 8, 2),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              media['title']?.toString() ?? 'Unknown',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              media['year']?.toString() ?? '',
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        media['year']?.toString() ?? '',
-                        style: const TextStyle(fontSize: 11),
+                    SizedBox(
+                      height: 42,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(6, 3, 6, 6),
+                        child: local == null
+                            ? const Center(
+                                child: Text(
+                                  'COMING SOON',
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              )
+                            : FilledButton.icon(
+                                onPressed: () => _openItem(item),
+                                icon: const Icon(Icons.play_arrow_rounded),
+                                label: const Text('PLAY'),
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(30),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                  ),
+                                  textStyle: const TextStyle(fontSize: 11),
+                                ),
+                              ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: local == null
-                          ? const Center(
-                              child: Text(
-                                'COMING SOON',
-                                style: TextStyle(
-                                  color: Colors.white54,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            )
-                          : FilledButton.icon(
-                              onPressed: () => _openItem(item),
-                              icon: const Icon(Icons.play_arrow_rounded),
-                              label: const Text('PLAY'),
-                              style: FilledButton.styleFrom(
-                                minimumSize: const Size.fromHeight(30),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                ),
-                                textStyle: const TextStyle(fontSize: 11),
-                              ),
-                            ),
                     ),
                   ],
                 ),
