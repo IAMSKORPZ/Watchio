@@ -19,8 +19,8 @@
   },
   "updateInfo": {
     "latestVersion": "0.0.1",
-    "minimumVersion": "0.0.1",
-    "forceUpdate": false,
+    "minimumVersion": "0.0.1a",
+    "forceUpdate": true,
     "updateUrl": "https://github.com/IAMSKORPZ/Watchio/releases/latest",
     "releaseNotes": ""
   },
