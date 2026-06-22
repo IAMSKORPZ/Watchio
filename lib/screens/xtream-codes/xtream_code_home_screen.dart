@@ -6,7 +6,6 @@ import 'package:another_iptv_player/services/app_state.dart';
 import 'package:another_iptv_player/services/epg_source_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../controllers/xtream_code_home_controller.dart';
 import '../../models/playlist_model.dart';
 import '../../models/content_type.dart';
@@ -24,6 +23,7 @@ import '../live_stream/xtream_live_screen.dart';
 import '../sports/sports_hub_screen.dart';
 import '../settings/watchio_settings_screen.dart';
 import '../trakt/trakt_screen.dart';
+import '../bug_report/bug_report_screen.dart';
 
 class XtreamCodeHomeScreen extends StatefulWidget {
   final Playlist playlist;
@@ -71,14 +71,11 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
     super.dispose();
   }
 
-  Future<void> _openBugReport() async {
-    final uri = Uri.https('github.com', '/IAMSKORPZ/Watchio/issues/new', {
-      'labels': 'bug',
-      'title': '[Bug] ',
-      'body':
-          'Describe the problem:\n\nSteps to reproduce:\n1. \n2. \n3. \n\nExpected result:\n\nApp version: $_version',
-    });
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  void _openBugReport() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const BugReportScreen()),
+    );
   }
 
   void _showAnnouncements() {
