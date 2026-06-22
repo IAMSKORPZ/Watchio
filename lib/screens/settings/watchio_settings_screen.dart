@@ -13,6 +13,7 @@ import 'sections/parental_controls_page.dart';
 import 'sections/stream_format_page.dart';
 import 'sections/appearance_page.dart';
 import 'sections/backup_restore_page.dart';
+import '../update/update_screen.dart';
 import 'dart:ui';
 
 class WatchioSettingsScreen extends StatelessWidget {
@@ -86,6 +87,12 @@ class WatchioSettingsScreen extends StatelessWidget {
               subtitle: 'Export and restore application data',
               icon: Icons.backup_rounded,
               onTap: () => _navigate(context, const BackupRestorePage()),
+            ),
+            SettingsTile(
+              title: 'Check for Updates',
+              subtitle: 'Check for a newer Watchio version',
+              icon: Icons.system_update_alt_rounded,
+              onTap: () => _navigate(context, const UpdateScreen()),
             ),
           ],
         ),
