@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/playlist_model.dart';
 import 'epg_import_service.dart';
@@ -20,6 +21,10 @@ class EpgSourceService {
 
   final http.Client _client;
   final EpgImportService _importer;
+
+  static final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
+  static void notifyUpdated() => revision.value++;
 
   static const builtInSources = <EpgSourceResult>[
     EpgSourceResult(
@@ -74,6 +79,7 @@ class EpgSourceService {
     final source = sources.first;
     onStatus?.call('Importing ${source.label}…');
     await _importer.importUrl(playlistId: playlist.id, url: source.url);
+    notifyUpdated();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(
       'epg_last_refresh_${playlist.id}',

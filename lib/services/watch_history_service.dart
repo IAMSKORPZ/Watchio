@@ -41,10 +41,15 @@ class WatchHistoryService {
   }
 
   Future<List<WatchHistory>> getWatchHistoryByContentType(
-    ContentType contentType, String playlistId
+    ContentType contentType,
+    String playlistId,
   ) async {
     final query = _database.select(_database.watchHistories)
-      ..where((tbl) => tbl.contentType.equals(contentType.index) & tbl.playlistId.equals(playlistId))
+      ..where(
+        (tbl) =>
+            tbl.contentType.equals(contentType.index) &
+            tbl.playlistId.equals(playlistId),
+      )
       ..orderBy([(tbl) => OrderingTerm.desc(tbl.lastWatched)]);
 
     final results = await query.get();
@@ -90,6 +95,18 @@ class WatchHistoryService {
     await (_database.delete(
       _database.watchHistories,
     )..where((tbl) => tbl.playlistId.equals(playlistId))).go();
+  }
+
+  Future<void> clearHistoryByContentType(
+    String playlistId,
+    ContentType contentType,
+  ) async {
+    await (_database.delete(_database.watchHistories)..where(
+          (tbl) =>
+              tbl.playlistId.equals(playlistId) &
+              tbl.contentType.equals(contentType.index),
+        ))
+        .go();
   }
 
   Future<void> clearAllHistory() async {

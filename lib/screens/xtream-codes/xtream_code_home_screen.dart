@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:another_iptv_player/models/api_configuration_model.dart';
 import 'package:another_iptv_player/repositories/iptv_repository.dart';
 import 'package:another_iptv_player/services/app_state.dart';
-import 'package:another_iptv_player/services/config_service.dart';
 import 'package:another_iptv_player/services/epg_source_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -72,47 +71,14 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
     super.dispose();
   }
 
-  void _showAboutDialog() {
-    final config = context.read<ConfigService>().config;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF101827),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'About ${config.branding.appName}',
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${config.branding.appName} is a premium IPTV player.',
-              style: const TextStyle(color: Colors.white70),
-            ),
-            const SizedBox(height: 12),
-            if (config.about.website.isNotEmpty)
-              _AboutLink(label: 'Website', url: config.about.website),
-            if (config.about.discord.isNotEmpty)
-              _AboutLink(label: 'Discord', url: config.about.discord),
-            if (config.about.support.isNotEmpty)
-              _AboutLink(label: 'Support', url: config.about.support),
-            const SizedBox(height: 12),
-            Text(
-              'Version: $_version',
-              style: const TextStyle(color: Colors.white54, fontSize: 12),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _openBugReport() async {
+    final uri = Uri.https('github.com', '/IAMSKORPZ/Watchio/issues/new', {
+      'labels': 'bug',
+      'title': '[Bug] ',
+      'body':
+          'Describe the problem:\n\nSteps to reproduce:\n1. \n2. \n3. \n\nExpected result:\n\nApp version: $_version',
+    });
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   void _showAnnouncements() {
@@ -171,7 +137,7 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
                 onSearch: () => _navigateToSearch(ContentType.liveStream),
                 onSports: _showSportsHub,
                 onProfile: () => controller.onNavigationTap(5),
-                onAbout: _showAboutDialog,
+                onAbout: _openBugReport,
                 onTrakt: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const TraktScreen()),
@@ -197,30 +163,6 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => SearchScreen(contentType: contentType),
-      ),
-    );
-  }
-}
-
-class _AboutLink extends StatelessWidget {
-  final String label;
-  final String url;
-  const _AboutLink({required this.label, required this.url});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () =>
-          launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Text(
-          '$label: $url',
-          style: const TextStyle(
-            color: Colors.blue,
-            decoration: TextDecoration.underline,
-          ),
-        ),
       ),
     );
   }

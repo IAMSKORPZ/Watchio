@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "watchio-bug-reporter",
+  "main": "src/index.js",
+  "compatibility_date": "2026-06-22",
+  "vars": {
+    "GITHUB_OWNER": "IAMSKORPZ",
+    "GITHUB_REPO": "Watchio"
+  }
+}

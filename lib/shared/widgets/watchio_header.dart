@@ -15,6 +15,7 @@ class WatchioHeader extends StatefulWidget {
   final String? sectionTitle;
   final VoidCallback? onProfile;
   final VoidCallback? onSetup;
+  final VoidCallback? onClearHistory;
 
   const WatchioHeader({
     super.key,
@@ -30,6 +31,7 @@ class WatchioHeader extends StatefulWidget {
     this.sectionTitle,
     this.onProfile,
     this.onSetup,
+    this.onClearHistory,
   });
 
   @override
@@ -188,6 +190,9 @@ class _WatchioHeaderState extends State<WatchioHeader> {
             case 'settings':
               (widget.onSettings ?? widget.onMenu)?.call();
               break;
+            case 'clear_history':
+              widget.onClearHistory?.call();
+              break;
           }
         },
         itemBuilder: (context) => [
@@ -201,6 +206,21 @@ class _WatchioHeaderState extends State<WatchioHeader> {
               ],
             ),
           ),
+          if (widget.onClearHistory != null)
+            const PopupMenuItem(
+              value: 'clear_history',
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.delete_sweep_rounded,
+                    color: Colors.redAccent,
+                    size: 20,
+                  ),
+                  SizedBox(width: 12),
+                  Text('Clear History', style: TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
           const PopupMenuItem(
             value: 'sort',
             child: Row(

@@ -12,7 +12,7 @@ class SearchRepository {
   final AppDatabase database;
 
   SearchRepository({AppDatabase? database})
-      : database = database ?? getIt<AppDatabase>();
+    : database = database ?? getIt<AppDatabase>();
 
   Future<void> ensureSearchSchema() async {
     await database.customStatement('''
@@ -43,21 +43,30 @@ CREATE VIRTUAL TABLE IF NOT EXISTS content_search_fts USING fts5(
         'DELETE FROM content_search_fts WHERE playlist_id = ?',
         [playlistId],
       );
-      await database.customStatement('''
+      await database.customStatement(
+        '''
 INSERT INTO content_search_fts(playlist_id, content_type, content_id, name, image_url)
 SELECT playlist_id, 'live', stream_id, name, stream_icon
 FROM live_streams WHERE playlist_id = ?
-''', [playlistId]);
-      await database.customStatement('''
+''',
+        [playlistId],
+      );
+      await database.customStatement(
+        '''
 INSERT INTO content_search_fts(playlist_id, content_type, content_id, name, image_url)
 SELECT playlist_id, 'vod', stream_id, name, stream_icon
 FROM vod_streams WHERE playlist_id = ?
-''', [playlistId]);
-      await database.customStatement('''
+''',
+        [playlistId],
+      );
+      await database.customStatement(
+        '''
 INSERT INTO content_search_fts(playlist_id, content_type, content_id, name, image_url)
 SELECT playlist_id, 'series', series_id, name, COALESCE(cover, '')
 FROM series_streams WHERE playlist_id = ?
-''', [playlistId]);
+''',
+        [playlistId],
+      );
     });
   }
 
@@ -116,27 +125,29 @@ FROM series_streams WHERE playlist_id = ?
     String playlistId,
     String query,
     int page,
-    int limit,
-    {ContentType? contentType}
-  ) async {
+    int limit, {
+    ContentType? contentType,
+  }) async {
     final typeName = _contentTypeName(contentType);
-    final rows = await database.customSelect(
-      '''
+    final rows = await database
+        .customSelect(
+          '''
 SELECT content_id, content_type, name, image_url
 FROM content_search_fts
 WHERE playlist_id = ? AND content_search_fts MATCH ?
   AND (? IS NULL OR content_type = ?)
 LIMIT ? OFFSET ?
 ''',
-      variables: [
-        Variable.withString(playlistId),
-        Variable.withString(_ftsQuery(query)),
-        Variable<String>(typeName),
-        Variable<String>(typeName),
-        Variable.withInt(limit),
-        Variable.withInt(page * limit),
-      ],
-    ).get();
+          variables: [
+            Variable.withString(playlistId),
+            Variable.withString(_ftsQuery(query)),
+            Variable<String>(typeName),
+            Variable<String>(typeName),
+            Variable.withInt(limit),
+            Variable.withInt(page * limit),
+          ],
+        )
+        .get();
     return rows.map(_rowToContentItem).toList();
   }
 
@@ -144,9 +155,9 @@ LIMIT ? OFFSET ?
     String playlistId,
     String query,
     int page,
-    int limit,
-    {ContentType? contentType}
-  ) async {
+    int limit, {
+    ContentType? contentType,
+  }) async {
     final like = '%${query.replaceAll('%', r'\%').replaceAll('_', r'\_')}%';
     final clauses = <String>[];
     final variables = <Variable>[
@@ -183,25 +194,28 @@ FROM series_streams WHERE playlist_id = ? AND name LIKE ? ESCAPE '\\'
       ContentType.series => variables.sublist(4, 6),
       null => variables,
     };
-    final rows = await database.customSelect(
-      '''
+    final rows = await database
+        .customSelect(
+          '''
 ${clauses.join('UNION ALL')}
 LIMIT ? OFFSET ?
 ''',
-      variables: [
-        ...activeVariables,
-        Variable.withInt(limit),
-        Variable.withInt(page * limit),
-      ],
-    ).get();
+          variables: [
+            ...activeVariables,
+            Variable.withInt(limit),
+            Variable.withInt(page * limit),
+          ],
+        )
+        .get();
     return rows.map(_rowToContentItem).toList();
   }
 
   String _ftsQuery(String query) {
     return query
+        .replaceAll(RegExp(r'[^a-zA-Z0-9\u00C0-\uFFFF]+'), ' ')
         .split(RegExp(r'\s+'))
         .where((part) => part.isNotEmpty)
-        .map((part) => '${part.replaceAll('"', '""')}*')
+        .map((part) => '"${part.replaceAll('"', '""')}"*')
         .join(' ');
   }
 

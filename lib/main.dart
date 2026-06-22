@@ -26,10 +26,8 @@ Future<void> main() async {
   MediaKit.ensureInitialized();
 
   // Enable true fullscreen mode
-  await SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.immersiveSticky,
-  );
-  
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
   // Lock orientation to landscape
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.landscapeLeft,
@@ -38,7 +36,7 @@ Future<void> main() async {
 
   await PerformanceService.track('startup_setup', setupServiceLocator);
   unawaited(CachePolicyService().cleanupTemporaryCache());
-  
+
   runApp(
     MultiProvider(
       providers: [
@@ -47,7 +45,9 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ThemeManager()),
         ChangeNotifierProvider(create: (_) => BrandingController()..load()),
         ChangeNotifierProvider(create: (_) => ConfigService()..initialize()),
-        ChangeNotifierProvider(create: (_) => AnnouncementService()..initialize()),
+        ChangeNotifierProvider(
+          create: (_) => AnnouncementService()..initialize(),
+        ),
         ChangeNotifierProvider(create: (_) => UpdateController()..loadState()),
       ],
       child: const MyApp(),
@@ -66,8 +66,9 @@ class MyApp extends StatelessWidget {
 
     return MaterialApp(
       locale: localeProvider.locale,
-      supportedLocales:
-      supportedLanguages.map((lang) => Locale(lang['code'])).toList(),
+      supportedLocales: supportedLanguages
+          .map((lang) => Locale(lang['code']))
+          .toList(),
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
