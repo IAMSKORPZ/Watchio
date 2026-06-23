@@ -18,11 +18,11 @@
     "allowLogin": true
   },
   "updateInfo": {
-    "latestVersion": "0.0.1",
-    "minimumVersion": "0.0.1a",
-    "forceUpdate": true,
-    "updateUrl": "https://github.com/IAMSKORPZ/Watchio/releases/latest",
-    "releaseNotes": ""
+    "latestVersion": "0.0.2",
+    "minimumVersion": "0.0.1",
+    "forceUpdate": false,
+    "updateUrl": "https://github.com/IAMSKORPZ/Watchio/releases/tag/sgdf",
+    "releaseNotes": "Firestick install compatibility build. Version bumped to 0.0.2."
   },
   "backgrounds": {
     "home": "",
