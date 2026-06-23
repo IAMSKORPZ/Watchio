@@ -54,7 +54,14 @@ export default {
       const result = await response.json();
       if (!response.ok) {
         console.error('GitHub issue failure', response.status, result.message);
-        return json({ error: 'Could not create issue.' }, 502);
+        return json(
+          {
+            error: 'Could not create issue.',
+            status: response.status,
+            detail: result.message || 'GitHub rejected the request.',
+          },
+          502,
+        );
       }
       return json({ ok: true, issue: result.number });
     } catch (error) {
