@@ -24,7 +24,7 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
   bool _isLoading = true;
   List<FootballMatch> _allMatches = [];
   String _selectedSection = 'TODAY';
-  
+
   late Timer _clockTimer;
   DateTime _now = DateTime.now();
 
@@ -52,7 +52,7 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
       } else {
         matches = await _footballService.getTodayMatches();
       }
-      
+
       if (mounted) {
         setState(() {
           _allMatches = matches;
@@ -74,18 +74,25 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
       case 'LIVE':
         return _allMatches.where((m) => m.isLive).toList();
       case 'UPCOMING':
-        // getUpcomingMatches already filters for future dates, 
+        // getUpcomingMatches already filters for future dates,
         // but let's be sure it fits the tab logic.
-        return _allMatches.where((m) => m.status == 'TIMED' || m.status == 'SCHEDULED' || m.utcDate.isAfter(DateTime.now())).toList();
-      case 'RESULTS':
-        return _allMatches.where((m) => m.isFinished).toList();
+        return _allMatches
+            .where(
+              (m) =>
+                  m.status == 'TIMED' ||
+                  m.status == 'SCHEDULED' ||
+                  m.utcDate.isAfter(DateTime.now()),
+            )
+            .toList();
       case 'TODAY':
       default:
         // Filter for matches occurring today in local time
         final today = DateTime.now();
         return _allMatches.where((m) {
           final localDate = m.utcDate.toLocal();
-          return localDate.year == today.year && localDate.month == today.month && localDate.day == today.day;
+          return localDate.year == today.year &&
+              localDate.month == today.month &&
+              localDate.day == today.day;
         }).toList();
     }
   }
@@ -105,7 +112,8 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
           image: DecorationImage(
             image: (homeBg.isNotEmpty)
                 ? NetworkImage(homeBg)
-                : const AssetImage('assets/images/background.png') as ImageProvider,
+                : const AssetImage('assets/images/background.png')
+                      as ImageProvider,
             fit: BoxFit.cover,
           ),
         ),
@@ -127,9 +135,13 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
                 _buildHeader(context),
                 _buildSectionTabs(),
                 Expanded(
-                  child: _isLoading 
-                    ? const Center(child: CircularProgressIndicator(color: Color(0xFFC12CFF)))
-                    : _buildMatchList(),
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFC12CFF),
+                          ),
+                        )
+                      : _buildMatchList(),
                 ),
                 _buildFooter(),
               ],
@@ -160,16 +172,27 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
             children: [
               Text(
                 DateFormat('hh:mm a').format(_now),
-                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               Text(
                 DateFormat('MMM d, yyyy').format(_now),
-                style: const TextStyle(color: Color(0xFFC12CFF), fontSize: 12, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Color(0xFFC12CFF),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
           const Spacer(),
-          _HeaderIconButton(icon: Icons.refresh_rounded, onTap: _loadData), // Change to refresh
+          _HeaderIconButton(
+            icon: Icons.refresh_rounded,
+            onTap: _loadData,
+          ), // Change to refresh
           const SizedBox(width: 12),
           _HeaderIconButton(icon: Icons.more_vert_rounded, onTap: () {}),
         ],
@@ -178,19 +201,23 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
   }
 
   Widget _buildSectionTabs() {
-    final sections = ['TODAY', 'LIVE', 'UPCOMING', 'RESULTS'];
+    final sections = ['TODAY', 'LIVE', 'UPCOMING'];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: sections.map((s) => _SectionTab(
-          label: s, 
-          isSelected: _selectedSection == s,
-          onTap: () {
-            setState(() => _selectedSection = s);
-            _loadData();
-          },
-        )).toList(),
+        children: sections
+            .map(
+              (s) => _SectionTab(
+                label: s,
+                isSelected: _selectedSection == s,
+                onTap: () {
+                  setState(() => _selectedSection = s);
+                  _loadData();
+                },
+              ),
+            )
+            .toList(),
       ),
     );
   }
@@ -203,7 +230,9 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              _selectedSection == 'TODAY' ? 'No matches today' : 'No matches found for $_selectedSection',
+              _selectedSection == 'TODAY'
+                  ? 'No matches today'
+                  : 'No matches found for $_selectedSection',
               style: const TextStyle(color: Colors.white54, fontSize: 18),
             ),
             if (_selectedSection == 'TODAY') ...[
@@ -215,9 +244,14 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFC12CFF),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text('View upcoming matches', style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'View upcoming matches',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ],
@@ -229,7 +263,8 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
       itemCount: matches.length,
       separatorBuilder: (_, _) => const SizedBox(height: 16),
-      itemBuilder: (context, index) => _MatchCard(match: matches[index]),
+      itemBuilder: (context, index) =>
+          _MatchCard(match: matches[index], currentSection: _selectedSection),
     );
   }
 
@@ -241,7 +276,10 @@ class _SportsHubScreenState extends State<SportsHubScreen> {
         children: [
           Text(
             'Powered by football-data.org',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 10),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.3),
+              fontSize: 10,
+            ),
           ),
         ],
       ),
@@ -254,7 +292,11 @@ class _SectionTab extends StatefulWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _SectionTab({required this.label, required this.isSelected, required this.onTap});
+  const _SectionTab({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   State<_SectionTab> createState() => _SectionTabState();
@@ -277,12 +319,22 @@ class _SectionTabState extends State<_SectionTab> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
             decoration: BoxDecoration(
-              color: active ? const Color(0xFFC12CFF).withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+              color: active
+                  ? const Color(0xFFC12CFF).withValues(alpha: 0.2)
+                  : Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: active ? const Color(0xFFC12CFF) : Colors.white10, width: 1.5),
-              boxShadow: _isFocused ? [
-                BoxShadow(color: const Color(0xFFC12CFF).withValues(alpha: 0.3), blurRadius: 10)
-              ] : [],
+              border: Border.all(
+                color: active ? const Color(0xFFC12CFF) : Colors.white10,
+                width: 1.5,
+              ),
+              boxShadow: _isFocused
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFFC12CFF).withValues(alpha: 0.3),
+                        blurRadius: 10,
+                      ),
+                    ]
+                  : [],
             ),
             child: Text(
               widget.label,
@@ -302,7 +354,9 @@ class _SectionTabState extends State<_SectionTab> {
 
 class _MatchCard extends StatefulWidget {
   final FootballMatch match;
-  const _MatchCard({required this.match});
+  final String currentSection;
+
+  const _MatchCard({required this.match, required this.currentSection});
 
   @override
   State<_MatchCard> createState() => _MatchCardState();
@@ -328,30 +382,36 @@ class _MatchCardState extends State<_MatchCard> {
 
     try {
       final matches = <ContentItem>[];
-      
-      // 1. Try to match by team names
-      final homeResults = await repo.searchLiveStreams(widget.match.homeTeam.name, limit: 2);
-      final awayResults = await repo.searchLiveStreams(widget.match.awayTeam.name, limit: 2);
-      
-      // 2. Try to match by competition short names/keywords
-      final competitionKeywords = _getCompetitionKeywords(widget.match.competitionName);
+
+      // Match real sports/broadcaster channels. Avoid team-name search: it often
+      // finds unrelated random channels.
+      final competitionKeywords = _getCompetitionKeywords(
+        widget.match.competitionName,
+      );
       final compResults = <LiveStream>[];
       for (var kw in competitionKeywords) {
-        final res = await repo.searchLiveStreams(kw, limit: 2);
+        final res = await repo.searchLiveStreams(kw, limit: 8);
         compResults.addAll(res);
       }
 
-      // Merge results, avoiding duplicates
+      compResults.sort((a, b) {
+        final aScore = _channelScore(a.name);
+        final bScore = _channelScore(b.name);
+        return bScore.compareTo(aScore);
+      });
+
       final seenIds = <String>{};
-      for (var ls in [...homeResults, ...awayResults, ...compResults]) {
+      for (var ls in compResults) {
         if (!seenIds.contains(ls.streamId)) {
-          matches.add(ContentItem(
-            ls.streamId, 
-            ls.name, 
-            ls.streamIcon, 
-            ContentType.liveStream,
-            liveStream: ls,
-          ));
+          matches.add(
+            ContentItem(
+              ls.streamId,
+              ls.name,
+              ls.streamIcon,
+              ContentType.liveStream,
+              liveStream: ls,
+            ),
+          );
           seenIds.add(ls.streamId);
         }
       }
@@ -368,12 +428,66 @@ class _MatchCardState extends State<_MatchCard> {
   }
 
   List<String> _getCompetitionKeywords(String name) {
-    if (name.contains('Premier League')) return ['Sky Sports Premier League', 'TNT Sports 1', 'TNT Sports 2'];
-    if (name.contains('Champions League')) return ['TNT Sports', 'beIN Sports'];
-    if (name.contains('La Liga')) return ['Viaplay Sports', 'LaLiga TV'];
-    if (name.contains('Bundesliga')) return ['Sky Sports Football'];
-    if (name.contains('Serie A')) return ['TNT Sports'];
-    return ['Sky Sports', 'TNT Sports', 'Eurosport', 'DAZN'];
+    final value = name.toLowerCase();
+    if (value.contains('world cup') || value.contains('fifa')) {
+      return [
+        'FIFA EVENTS',
+        'WORLD CUP',
+        'BBC ONE',
+        'BBC 1',
+        'ITV1',
+        'ITV',
+        'CHANNEL 4',
+      ];
+    }
+    if (value.contains('premier league')) {
+      return [
+        'Sky Sports Main Event',
+        'Sky Sports Premier League',
+        'TNT Sports 1',
+        'TNT Sports 2',
+      ];
+    }
+    if (value.contains('champions league') || value.contains('europa')) {
+      return ['TNT Sports 1', 'TNT Sports 2', 'TNT Sports 3', 'TNT Sports'];
+    }
+    if (value.contains('fa cup') || value.contains('efl')) {
+      return [
+        'BBC ONE',
+        'ITV1',
+        'Sky Sports Football',
+        'Sky Sports Main Event',
+      ];
+    }
+    if (value.contains('la liga')) return ['LaLiga TV', 'Premier Sports'];
+    if (value.contains('bundesliga')) return ['Sky Sports Football'];
+    if (value.contains('serie a')) return ['TNT Sports', 'Premier Sports'];
+    return [
+      'Sky Sports Main Event',
+      'Sky Sports Football',
+      'Sky Sports Premier League',
+      'TNT Sports',
+      'FIFA EVENTS',
+      'BBC ONE',
+      'ITV1',
+    ];
+  }
+
+  int _channelScore(String name) {
+    final n = name.toLowerCase();
+    var score = 0;
+    if (n.contains('main event')) score += 100;
+    if (n.contains('fifa')) score += 90;
+    if (n.contains('world cup')) score += 80;
+    if (n.contains('premier league')) score += 70;
+    if (n.contains('football')) score += 60;
+    if (n.contains('tnt sports 1')) score += 55;
+    if (n.contains('sky sports')) score += 50;
+    if (n.contains('bbc one') || n.contains('bbc 1')) score += 45;
+    if (n.contains('itv1') || n.contains('itv')) score += 40;
+    if (n.contains('hd')) score += 10;
+    if (n.contains('vm')) score -= 5;
+    return score;
   }
 
   @override
@@ -399,13 +513,20 @@ class _MatchCardState extends State<_MatchCard> {
                   children: [
                     Text(
                       widget.match.competitionName.toUpperCase(),
-                      style: const TextStyle(color: Color(0xFF00B7FF), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
+                      style: const TextStyle(
+                        color: Color(0xFF00B7FF),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       widget.match.status,
                       style: TextStyle(
-                        color: widget.match.isLive ? Colors.redAccent : Colors.white38,
+                        color: widget.match.isLive
+                            ? Colors.redAccent
+                            : Colors.white38,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -413,7 +534,7 @@ class _MatchCardState extends State<_MatchCard> {
                   ],
                 ),
               ),
-              
+
               // Teams & Score
               Expanded(
                 flex: 5,
@@ -424,42 +545,82 @@ class _MatchCardState extends State<_MatchCard> {
                       child: Text(
                         widget.match.homeTeam.name,
                         textAlign: TextAlign.right,
-                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: widget.match.isLive || widget.match.isFinished
-                        ? Text(
-                            '${widget.match.score.homeScore ?? 0} - ${widget.match.score.awayScore ?? 0}',
-                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
-                          )
-                        : Text(
-                            DateFormat('HH:mm').format(widget.match.utcDate.toLocal()),
-                            style: const TextStyle(color: Colors.white70, fontSize: 18, fontWeight: FontWeight.w900),
-                          ),
+                          ? Text(
+                              '${widget.match.score.homeScore ?? 0} - ${widget.match.score.awayScore ?? 0}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            )
+                          : Text(
+                              DateFormat(
+                                'HH:mm',
+                              ).format(widget.match.utcDate.toLocal()),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
                     ),
                     Expanded(
                       child: Text(
                         widget.match.awayTeam.name,
                         textAlign: TextAlign.left,
-                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              
-              // Watch Button
+
+              // Action Button
               Expanded(
                 flex: 2,
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: _isCheckingChannels 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : _matchingChannels.isNotEmpty
-                      ? _WatchButton(onTap: () => navigateByContentType(context, _matchingChannels.first))
-                      : const Text('NO COVERAGE', style: TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold)),
+                  child: widget.match.isFinished
+                      ? _WatchButton(
+                          label: 'STATS',
+                          onTap: () => _showStats(context, widget.match),
+                        )
+                      : _isCheckingChannels
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : _matchingChannels.isNotEmpty
+                      ? _WatchButton(
+                          label: 'WATCH',
+                          onTap: () => navigateByContentType(
+                            context,
+                            _matchingChannels.first,
+                          ),
+                        )
+                      : const Text(
+                          'NO COVERAGE',
+                          style: TextStyle(
+                            color: Colors.white24,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -468,11 +629,93 @@ class _MatchCardState extends State<_MatchCard> {
       ),
     );
   }
+
+  Future<void> _showStats(BuildContext context, FootballMatch match) async {
+    final localTime = DateFormat(
+      'EEE d MMM yyyy HH:mm',
+    ).format(match.utcDate.toLocal());
+    final lastUpdated = match.lastUpdated == null
+        ? 'Unknown'
+        : DateFormat(
+            'EEE d MMM yyyy HH:mm',
+          ).format(match.lastUpdated!.toLocal());
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Match Stats'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _statRow('Competition', match.competitionName),
+              _statRow('Area', match.areaName),
+              _statRow('Stage', match.stage ?? 'Unknown'),
+              _statRow('Group', match.group ?? 'Unknown'),
+              _statRow('Matchday', match.matchday?.toString() ?? 'Unknown'),
+              const Divider(),
+              _statRow(
+                'Full time',
+                '${match.homeTeam.name} ${match.score.homeScore ?? 0} - ${match.score.awayScore ?? 0} ${match.awayTeam.name}',
+              ),
+              _statRow(
+                'Half time',
+                '${match.halfTimeHomeScore ?? '-'} - ${match.halfTimeAwayScore ?? '-'}',
+              ),
+              _statRow('Winner', _winnerLabel(match)),
+              _statRow('Duration', match.duration ?? 'Unknown'),
+              const Divider(),
+              _statRow('Status', match.status),
+              _statRow('Kick off', localTime),
+              _statRow('Last updated', lastUpdated),
+              _statRow(
+                'Referee',
+                match.refereeName == null
+                    ? 'Unknown'
+                    : '${match.refereeName} (${match.refereeNationality ?? 'Unknown'})',
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Free API does not include possession, shots, corners, cards, or lineups.',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('CLOSE'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text('$label: $value'),
+    );
+  }
+
+  String _winnerLabel(FootballMatch match) {
+    switch (match.winner) {
+      case 'HOME_TEAM':
+        return match.homeTeam.name;
+      case 'AWAY_TEAM':
+        return match.awayTeam.name;
+      case 'DRAW':
+        return 'Draw';
+      default:
+        return 'Unknown';
+    }
+  }
 }
 
 class _WatchButton extends StatefulWidget {
   final VoidCallback onTap;
-  const _WatchButton({required this.onTap});
+  final String label;
+  const _WatchButton({required this.onTap, required this.label});
 
   @override
   State<_WatchButton> createState() => _WatchButtonState();
@@ -492,15 +735,26 @@ class _WatchButtonState extends State<_WatchButton> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFF6A11CB), Color(0xFF2575FC)]),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+            ),
             borderRadius: BorderRadius.circular(12),
-            boxShadow: _isFocused ? [
-              BoxShadow(color: const Color(0xFF2575FC).withValues(alpha: 0.4), blurRadius: 15)
-            ] : [],
+            boxShadow: _isFocused
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF2575FC).withValues(alpha: 0.4),
+                      blurRadius: 15,
+                    ),
+                  ]
+                : [],
           ),
-          child: const Text(
-            'WATCH',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14),
+          child: Text(
+            widget.label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 14,
+            ),
           ),
         ),
       ),
@@ -530,11 +784,19 @@ class _HeaderIconButtonState extends State<_HeaderIconButton> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: _isFocused ? Colors.white.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+            color: _isFocused
+                ? Colors.white.withValues(alpha: 0.2)
+                : Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _isFocused ? const Color(0xFFC12CFF) : Colors.white10),
+            border: Border.all(
+              color: _isFocused ? const Color(0xFFC12CFF) : Colors.white10,
+            ),
           ),
-          child: Icon(widget.icon, color: _isFocused ? Colors.white : Colors.white70, size: 22),
+          child: Icon(
+            widget.icon,
+            color: _isFocused ? Colors.white : Colors.white70,
+            size: 22,
+          ),
         ),
       ),
     );
