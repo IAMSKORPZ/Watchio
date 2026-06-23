@@ -32,7 +32,7 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
   int _currentOffset = 0;
   static const int _pageSize = 60;
   final Map<String, int> _categoryCounts = {};
-  String _sortOrder = 'recent';
+  String _sortOrder = 'server';
 
   final ScrollController _scrollController = ScrollController();
 
@@ -137,6 +137,8 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
   void _sortLoadedItems() {
     int itemNumber(ContentItem item) => int.tryParse(item.id) ?? 0;
     switch (_sortOrder) {
+      case 'server':
+        break;
       case 'az':
         _currentItems.sort(
           (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
@@ -147,8 +149,11 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
           (a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()),
         );
         break;
-      default:
+      case 'recent':
         _currentItems.sort((a, b) => itemNumber(b).compareTo(itemNumber(a)));
+        break;
+      default:
+        break;
     }
   }
 

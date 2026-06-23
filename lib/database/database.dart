@@ -636,14 +636,12 @@ class AppDatabase extends _$AppDatabase {
     CategoryType type,
   ) async {
     final categoriesData =
-        await (select(categories)
-              ..where(
-                (tbl) =>
-                    tbl.playlistId.equals(playlistId) &
-                    tbl.type.equals(type.value) &
-                    tbl.parentId.equals(0),
-              )
-              ..orderBy([(tbl) => OrderingTerm.asc(tbl.categoryName)]))
+        await (select(categories)..where(
+              (tbl) =>
+                  tbl.playlistId.equals(playlistId) &
+                  tbl.type.equals(type.value) &
+                  tbl.parentId.equals(0),
+            ))
             .get();
 
     return categoriesData.map((cat) => Category.fromDrift(cat)).toList();
@@ -656,14 +654,12 @@ class AppDatabase extends _$AppDatabase {
     String parentId,
   ) async {
     final categoriesData =
-        await (select(categories)
-              ..where(
-                (tbl) =>
-                    tbl.playlistId.equals(playlistId) &
-                    tbl.type.equals(type.value) &
-                    tbl.parentId.equals(int.parse(parentId)),
-              )
-              ..orderBy([(tbl) => OrderingTerm.asc(tbl.categoryName)]))
+        await (select(categories)..where(
+              (tbl) =>
+                  tbl.playlistId.equals(playlistId) &
+                  tbl.type.equals(type.value) &
+                  tbl.parentId.equals(int.parse(parentId)),
+            ))
             .get();
 
     return categoriesData.map((cat) => Category.fromDrift(cat)).toList();
@@ -706,11 +702,9 @@ class AppDatabase extends _$AppDatabase {
   Future<Map<CategoryType, List<Category>>> getAllCategoriesByPlaylist(
     String playlistId,
   ) async {
-    final allCategoriesData =
-        await (select(categories)
-              ..where((tbl) => tbl.playlistId.equals(playlistId))
-              ..orderBy([(tbl) => OrderingTerm.asc(tbl.categoryName)]))
-            .get();
+    final allCategoriesData = await (select(
+      categories,
+    )..where((tbl) => tbl.playlistId.equals(playlistId))).get();
 
     final result = <CategoryType, List<Category>>{};
 
@@ -999,13 +993,18 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  Future<List<LiveStream>> getLiveStreams(String playlistId, {int? top, int offset = 0}) async {
-    var query = select(liveStreams)..where((ls) => ls.playlistId.equals(playlistId));
-    
+  Future<List<LiveStream>> getLiveStreams(
+    String playlistId, {
+    int? top,
+    int offset = 0,
+  }) async {
+    var query = select(liveStreams)
+      ..where((ls) => ls.playlistId.equals(playlistId));
+
     if (top != null) {
       query = query..limit(top, offset: offset);
     }
-    
+
     final rows = await query.get();
     return rows.map((row) => LiveStream.fromDriftLiveStream(row)).toList();
   }
@@ -1037,11 +1036,17 @@ class AppDatabase extends _$AppDatabase {
     )..where((ls) => ls.playlistId.equals(playlistId))).go();
   }
 
-  Future<int> getLiveStreamCountByCategoryId(String playlistId, String categoryId) async {
+  Future<int> getLiveStreamCountByCategoryId(
+    String playlistId,
+    String categoryId,
+  ) async {
     final countExp = liveStreams.streamId.count();
     final query = selectOnly(liveStreams)
       ..addColumns([countExp])
-      ..where(liveStreams.playlistId.equals(playlistId) & liveStreams.categoryId.equals(categoryId));
+      ..where(
+        liveStreams.playlistId.equals(playlistId) &
+            liveStreams.categoryId.equals(categoryId),
+      );
     final row = await query.getSingle();
     return row.read(countExp) ?? 0;
   }
@@ -1061,9 +1066,12 @@ class AppDatabase extends _$AppDatabase {
       ..addColumns([liveStreams.categoryId, countExp])
       ..where(liveStreams.playlistId.equals(playlistId))
       ..groupBy([liveStreams.categoryId]);
-    
+
     final rows = await query.get();
-    return {for (var row in rows) row.read(liveStreams.categoryId)!: row.read(countExp)!};
+    return {
+      for (var row in rows)
+        row.read(liveStreams.categoryId)!: row.read(countExp)!,
+    };
   }
 
   // Vod Streams
@@ -1077,13 +1085,18 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  Future<List<VodStream>> getVodStreamsByPlaylistId(String playlistId, {int? top, int offset = 0}) async {
-    var query = select(vodStreams)..where((vs) => vs.playlistId.equals(playlistId));
-    
+  Future<List<VodStream>> getVodStreamsByPlaylistId(
+    String playlistId, {
+    int? top,
+    int offset = 0,
+  }) async {
+    var query = select(vodStreams)
+      ..where((vs) => vs.playlistId.equals(playlistId));
+
     if (top != null) {
       query = query..limit(top, offset: offset);
     }
-    
+
     final rows = await query.get();
     return rows.map((row) => VodStream.fromDriftVodStream(row)).toList();
   }
@@ -1149,9 +1162,12 @@ class AppDatabase extends _$AppDatabase {
       ..addColumns([vodStreams.categoryId, countExp])
       ..where(vodStreams.playlistId.equals(playlistId))
       ..groupBy([vodStreams.categoryId]);
-    
+
     final rows = await query.get();
-    return {for (var row in rows) row.read(vodStreams.categoryId)!: row.read(countExp)!};
+    return {
+      for (var row in rows)
+        row.read(vodStreams.categoryId)!: row.read(countExp)!,
+    };
   }
 
   Future<void> deleteVodStreamsByPlaylistId(String playlistId) async {
@@ -1160,11 +1176,17 @@ class AppDatabase extends _$AppDatabase {
     )..where((vs) => vs.playlistId.equals(playlistId))).go();
   }
 
-  Future<int> getVodStreamCountByCategoryId(String playlistId, String categoryId) async {
+  Future<int> getVodStreamCountByCategoryId(
+    String playlistId,
+    String categoryId,
+  ) async {
     final countExp = vodStreams.streamId.count();
     final query = selectOnly(vodStreams)
       ..addColumns([countExp])
-      ..where(vodStreams.playlistId.equals(playlistId) & vodStreams.categoryId.equals(categoryId));
+      ..where(
+        vodStreams.playlistId.equals(playlistId) &
+            vodStreams.categoryId.equals(categoryId),
+      );
     final row = await query.getSingle();
     return row.read(countExp) ?? 0;
   }
@@ -1204,16 +1226,17 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<List<SeriesStream>> getSeriesStreamsByPlaylistId(
-    String playlistId,
-    {int? top,
-    int offset = 0}
-  ) async {
-    var query = select(seriesStreams)..where((ss) => ss.playlistId.equals(playlistId));
-    
+    String playlistId, {
+    int? top,
+    int offset = 0,
+  }) async {
+    var query = select(seriesStreams)
+      ..where((ss) => ss.playlistId.equals(playlistId));
+
     if (top != null) {
       query = query..limit(top, offset: offset);
     }
-    
+
     final rows = await query.get();
     return rows.map((row) => SeriesStream.fromDriftSeriesStream(row)).toList();
   }
@@ -1281,9 +1304,12 @@ class AppDatabase extends _$AppDatabase {
       ..addColumns([seriesStreams.categoryId, countExp])
       ..where(seriesStreams.playlistId.equals(playlistId))
       ..groupBy([seriesStreams.categoryId]);
-    
+
     final rows = await query.get();
-    return {for (var row in rows) row.read(seriesStreams.categoryId)!: row.read(countExp)!};
+    return {
+      for (var row in rows)
+        row.read(seriesStreams.categoryId)!: row.read(countExp)!,
+    };
   }
 
   Future<void> deleteSeriesStreamsByPlaylistId(String playlistId) async {
@@ -1292,11 +1318,17 @@ class AppDatabase extends _$AppDatabase {
     )..where((ss) => ss.playlistId.equals(playlistId))).go();
   }
 
-  Future<int> getSeriesStreamCountByCategoryId(String playlistId, String categoryId) async {
+  Future<int> getSeriesStreamCountByCategoryId(
+    String playlistId,
+    String categoryId,
+  ) async {
     final countExp = seriesStreams.seriesId.count();
     final query = selectOnly(seriesStreams)
       ..addColumns([countExp])
-      ..where(seriesStreams.playlistId.equals(playlistId) & seriesStreams.categoryId.equals(categoryId));
+      ..where(
+        seriesStreams.playlistId.equals(playlistId) &
+            seriesStreams.categoryId.equals(categoryId),
+      );
     final row = await query.getSingle();
     return row.read(countExp) ?? 0;
   }
@@ -1390,7 +1422,10 @@ class AppDatabase extends _$AppDatabase {
         .getSingleOrNull();
   }
 
-  Future<SeriesStream?> findSeriesStreamById(String seriesId, String playlistId) async {
+  Future<SeriesStream?> findSeriesStreamById(
+    String seriesId,
+    String playlistId,
+  ) async {
     var seriesData =
         await (select(seriesStreams)..where(
               (tbl) =>
@@ -1455,9 +1490,9 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<LiveStream>> searchLiveStreams(
     String playlistId,
-    String query,
-    {int limit = 20}
-  ) async {
+    String query, {
+    int limit = 20,
+  }) async {
     final liveStreamList =
         await (select(liveStreams)
               ..where(
@@ -1546,13 +1581,18 @@ class AppDatabase extends _$AppDatabase {
     )..where((tbl) => tbl.playlistId.equals(playlistId))).go();
   }
 
-  Future<List<M3uItem>> getM3uItemsByPlaylist(String playlistId, {int? top, int offset = 0}) async {
-    var query = select(m3uItems)..where((tbl) => tbl.playlistId.equals(playlistId));
-    
+  Future<List<M3uItem>> getM3uItemsByPlaylist(
+    String playlistId, {
+    int? top,
+    int offset = 0,
+  }) async {
+    var query = select(m3uItems)
+      ..where((tbl) => tbl.playlistId.equals(playlistId));
+
     if (top != null) {
       query = query..limit(top, offset: offset);
     }
-    
+
     final data = await query.get();
     return data.map((item) => M3uItem.fromData(item)).toList();
   }
@@ -1590,9 +1630,9 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<SeriesStream>> searchSeries(
     String playlistId,
-    String query,
-    {int limit = 20}
-  ) async {
+    String query, {
+    int limit = 20,
+  }) async {
     final seriesList =
         await (select(seriesStreams)
               ..where(

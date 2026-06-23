@@ -35,6 +35,7 @@ Future<String?> showContentSortDialog(
           mainAxisSize: MainAxisSize.min,
           children: [
             for (final option in const [
+              ('server', 'Server Order'),
               ('recent', 'Recently Added'),
               ('az', 'A–Z'),
               ('za', 'Z–A'),

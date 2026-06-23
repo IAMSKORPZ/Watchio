@@ -1,13 +1,18 @@
 import 'package:another_iptv_player/models/update_info_model.dart';
+import 'package:another_iptv_player/services/apk_installer_service.dart';
 import 'package:another_iptv_player/services/github_release_service.dart';
 import 'package:another_iptv_player/services/update_service.dart';
 import 'package:flutter/material.dart';
 
 class UpdateController extends ChangeNotifier {
   final UpdateService service;
+  final ApkInstallerService installerService;
 
-  UpdateController({UpdateService? service})
-    : service = service ?? UpdateService();
+  UpdateController({
+    UpdateService? service,
+    ApkInstallerService? installerService,
+  }) : service = service ?? UpdateService(),
+       installerService = installerService ?? ApkInstallerService();
 
   UpdateCheckResult? result;
   UpdateChannel channel = UpdateChannel.stable;
@@ -15,6 +20,7 @@ class UpdateController extends ChangeNotifier {
   DateTime? lastCheckTime;
   String? lastKnownVersion;
   String? downloadedInstallerPath;
+  bool installPermissionRequired = false;
   bool isChecking = false;
   bool isDownloading = false;
   String? error;
@@ -77,11 +83,40 @@ class UpdateController extends ChangeNotifier {
 
     try {
       downloadedInstallerPath = await service.downloadInstaller(release);
+      await installDownloadedUpdate();
     } catch (e) {
       error = e.toString();
     } finally {
       isDownloading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> installDownloadedUpdate() async {
+    final path = downloadedInstallerPath;
+    if (path == null || path.isEmpty) {
+      error = 'No downloaded APK found.';
+      notifyListeners();
+      return;
+    }
+
+    try {
+      final canInstall = await installerService.canInstallPackages();
+      if (!canInstall) {
+        installPermissionRequired = true;
+        await installerService.openUnknownSourcesSettings();
+        notifyListeners();
+        return;
+      }
+      installPermissionRequired = false;
+      await installerService.installApk(path);
+    } catch (e) {
+      error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> openUnknownSourcesSettings() async {
+    await installerService.openUnknownSourcesSettings();
   }
 }

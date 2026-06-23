@@ -47,7 +47,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   static const int _pageSize = 60;
   final Map<String, int> _categoryCounts = {};
   String _categoryQuery = '';
-  String _channelSortOrder = 'recent';
+  String _channelSortOrder = 'server';
 
   final ScrollController _categoryScrollController = ScrollController();
   final ScrollController _channelScrollController = ScrollController();
@@ -319,6 +319,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   void _sortLoadedChannels() {
     int channelNumber(ContentItem item) => int.tryParse(item.id) ?? 0;
     switch (_channelSortOrder) {
+      case 'server':
+        break;
       case 'az':
         _currentItems.sort(
           (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
@@ -334,10 +336,13 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
           (a, b) => channelNumber(a).compareTo(channelNumber(b)),
         );
         break;
-      default:
+      case 'recent':
         _currentItems.sort(
           (a, b) => channelNumber(b).compareTo(channelNumber(a)),
         );
+        break;
+      default:
+        break;
     }
   }
 
@@ -377,6 +382,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               for (final option in const [
+                ('server', 'Server Order'),
                 ('recent', 'Recently Added'),
                 ('az', 'A–Z'),
                 ('za', 'Z–A'),

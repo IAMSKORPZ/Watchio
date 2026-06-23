@@ -132,18 +132,23 @@ class UpdateScreen extends StatelessWidget {
               if (controller.downloadedInstallerPath != null) ...[
                 const SizedBox(height: 8),
                 Text('Downloaded: ${controller.downloadedInstallerPath}'),
-                const Text(
-                  'Open the file to install. Unknown sources may be required on Android/Firestick.',
-                ),
-                const Text(
-                  'Windows users should restart BingieTV after the installer completes.',
-                ),
+                if (controller.installPermissionRequired)
+                  const Text(
+                    'Enable Install Unknown Apps for Watchio, then press Install APK.',
+                  )
+                else
+                  const Text('Installer should open automatically.'),
                 OutlinedButton.icon(
-                  onPressed: () =>
-                      _openInstaller(controller.downloadedInstallerPath),
-                  icon: const Icon(Icons.open_in_new),
-                  label: const Text('Open Installer'),
+                  onPressed: controller.installDownloadedUpdate,
+                  icon: const Icon(Icons.install_mobile),
+                  label: const Text('Install APK'),
                 ),
+                if (controller.installPermissionRequired)
+                  TextButton.icon(
+                    onPressed: controller.openUnknownSourcesSettings,
+                    icon: const Icon(Icons.settings),
+                    label: const Text('Open Unknown Sources Settings'),
+                  ),
               ],
             ],
           ],
@@ -159,14 +164,6 @@ class UpdateScreen extends StatelessWidget {
   Future<void> _openRelease(String? url) async {
     if (url == null || url.isEmpty) return;
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  Future<void> _openInstaller(String? path) async {
-    if (path == null || path.isEmpty) return;
-    final uri = Uri.file(path);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
