@@ -3,7 +3,6 @@ import 'package:another_iptv_player/controllers/update_controller.dart';
 import 'package:another_iptv_player/services/update_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class UpdateScreen extends StatelessWidget {
   const UpdateScreen({super.key});
@@ -123,8 +122,8 @@ class UpdateScreen extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => _openRelease(release?.htmlUrl),
-                      child: const Text('Open Release'),
+                      onPressed: () => _showChangelog(context, result),
+                      child: const Text('Show Changelog'),
                     ),
                   ),
                 ],
@@ -161,12 +160,31 @@ class UpdateScreen extends StatelessWidget {
     return ListTile(title: Text(label), subtitle: Text(value), dense: true);
   }
 
-  Future<void> _openRelease(String? url) async {
-    if (url == null || url.isEmpty) return;
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+  Future<void> _showChangelog(
+    BuildContext context,
+    UpdateCheckResult result,
+  ) async {
+    final notes = (result.updateInfo.releaseNotes ?? '').trim();
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Changelog v${result.updateInfo.latestVersion}'),
+        content: SizedBox(
+          width: 520,
+          child: SingleChildScrollView(
+            child: SelectableText(
+              notes.isEmpty ? 'No changelog available.' : notes,
+            ),
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('CLOSE'),
+          ),
+        ],
+      ),
+    );
   }
 
   String _format(DateTime? value) {

@@ -48,7 +48,7 @@ class GitHubRelease {
 }
 
 class GitHubReleaseService {
-  static const String releaseTag = 'sgdf';
+  static const String releaseTag = 'Latest';
   final String owner;
   final String repo;
   final http.Client _client;
