@@ -59,9 +59,21 @@ class _BugReportScreenState extends State<BugReportScreen> {
             }),
           )
           .timeout(const Duration(seconds: 20));
-      final result = jsonDecode(response.body) as Map<String, dynamic>;
+      final decoded = jsonDecode(response.body);
+      final result = decoded is Map<String, dynamic>
+          ? decoded
+          : <String, dynamic>{'error': response.body};
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw Exception(result['error'] ?? 'Report could not be sent.');
+        final error = result['error'] ?? 'Report could not be sent.';
+        final detail = result['detail'];
+        final status = result['status'];
+        throw Exception(
+          [
+            error,
+            ?status == null ? null : 'GitHub status $status',
+            ?detail,
+          ].join(' - '),
+        );
       }
       if (!mounted) return;
       await showDialog<void>(
