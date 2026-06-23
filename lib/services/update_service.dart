@@ -33,9 +33,9 @@ class UpdateCheckResult {
 
 class UpdateService {
   static const _lastCheckKey = 'bingietv.update.last_check.v1';
-  static const _lastKnownVersionKey = 'bingietv.update.last_known_version.v1';
+  static const _lastKnownVersionKey = 'watchio.update.last_known_version.v2';
   static const _channelKey = 'bingietv.update.channel.v1';
-  static const _cachedReleaseKey = 'bingietv.update.cached_release.v1';
+  static const _cachedReleaseKey = 'watchio.update.cached_release.v2';
 
   final GitHubReleaseService releaseService;
 

@@ -78,9 +78,17 @@ class MyApp extends StatelessWidget {
       title: config.branding.appName,
       theme: themeManager.currentThemeData,
       themeMode: ThemeMode.dark,
-      builder: (context, child) => FocusTraversalGroup(
-        policy: ReadingOrderTraversalPolicy(),
-        child: child ?? const SizedBox.shrink(),
+      builder: (context, child) => Shortcuts(
+        shortcuts: const <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.numpadEnter): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+        },
+        child: FocusTraversalGroup(
+          policy: ReadingOrderTraversalPolicy(),
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
       home: UpdateStartupCheck(
         child: MaintenanceBanner(child: const AppInitializerScreen()),

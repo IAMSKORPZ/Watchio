@@ -34,6 +34,9 @@ class NewM3uPlaylistScreenState extends State<NewM3uPlaylistScreen> {
     super.initState();
     _nameController.addListener(_validateForm);
     _urlController.addListener(_validateForm);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _nameFocus.requestFocus();
+    });
   }
 
   @override
@@ -88,7 +91,8 @@ class NewM3uPlaylistScreenState extends State<NewM3uPlaylistScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.loc.file_selection_error)));
+          SnackBar(content: Text(context.loc.file_selection_error)),
+        );
       }
     }
   }
@@ -162,7 +166,7 @@ class NewM3uPlaylistScreenState extends State<NewM3uPlaylistScreen> {
                   image: loginBg.isNotEmpty
                       ? NetworkImage(loginBg)
                       : const AssetImage('assets/images/background.png')
-                          as ImageProvider,
+                            as ImageProvider,
                   fit: BoxFit.cover,
                   colorFilter: ColorFilter.mode(
                     Colors.black.withValues(alpha: 0.5),
@@ -188,14 +192,16 @@ class NewM3uPlaylistScreenState extends State<NewM3uPlaylistScreen> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFFC12CFF)
-                                          .withValues(alpha: 0.1),
+                                      color: const Color(
+                                        0xFFC12CFF,
+                                      ).withValues(alpha: 0.1),
                                       blurRadius: 35,
                                       spreadRadius: 12,
                                     ),
                                     BoxShadow(
-                                      color: const Color(0xFF00B7FF)
-                                          .withValues(alpha: 0.08),
+                                      color: const Color(
+                                        0xFF00B7FF,
+                                      ).withValues(alpha: 0.08),
                                       blurRadius: 30,
                                       spreadRadius: 6,
                                     ),
@@ -206,9 +212,11 @@ class NewM3uPlaylistScreenState extends State<NewM3uPlaylistScreen> {
                                   width: logoWidth,
                                   fit: BoxFit.contain,
                                   errorBuilder: (context, error, stackTrace) =>
-                                      Icon(Icons.play_arrow_rounded,
-                                          color: const Color(0xFF00B7FF),
-                                          size: logoWidth * 0.4),
+                                      Icon(
+                                        Icons.play_arrow_rounded,
+                                        color: const Color(0xFF00B7FF),
+                                        size: logoWidth * 0.4,
+                                      ),
                                 ),
                               ),
                               const SizedBox(height: 25), // Gap logo -> VPN
@@ -222,13 +230,17 @@ class NewM3uPlaylistScreenState extends State<NewM3uPlaylistScreen> {
                                   onTap: () {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                          content:
-                                              Text('VPN Service coming soon')),
+                                        content: Text(
+                                          'VPN Service coming soon',
+                                        ),
+                                      ),
                                     );
                                   },
                                 ),
                               ),
-                              const SizedBox(height: 14), // Gap VPN -> Playlists
+                              const SizedBox(
+                                height: 14,
+                              ), // Gap VPN -> Playlists
                               SizedBox(
                                 width: 220,
                                 height: 60,
@@ -247,8 +259,9 @@ class NewM3uPlaylistScreenState extends State<NewM3uPlaylistScreen> {
                     Expanded(
                       flex: 6,
                       child: Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: isMobile ? 24 : 60),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 24 : 60,
+                        ),
                         child: Center(
                           child: SingleChildScrollView(
                             physics: const BouncingScrollPhysics(),
@@ -294,8 +307,9 @@ class NewM3uPlaylistScreenState extends State<NewM3uPlaylistScreen> {
                                         textInputAction: TextInputAction.next,
                                         onSubmitted: (_) {
                                           if (_isUrlSource) {
-                                            FocusScope.of(context)
-                                                .requestFocus(_urlFocus);
+                                            FocusScope.of(
+                                              context,
+                                            ).requestFocus(_urlFocus);
                                           }
                                         },
                                       ),
@@ -351,8 +365,8 @@ class NewM3uPlaylistScreenState extends State<NewM3uPlaylistScreen> {
                                         onTap: controller.isLoading
                                             ? null
                                             : (_isFormValid
-                                                ? _savePlaylist
-                                                : null),
+                                                  ? _savePlaylist
+                                                  : null),
                                       ),
                                       if (isMobile) ...[
                                         const SizedBox(height: 12),
@@ -362,15 +376,17 @@ class NewM3uPlaylistScreenState extends State<NewM3uPlaylistScreen> {
                                           children: [
                                             IconButton(
                                               icon: const Icon(
-                                                  Icons.vpn_lock_rounded,
-                                                  color: Colors.white70),
+                                                Icons.vpn_lock_rounded,
+                                                color: Colors.white70,
+                                              ),
                                               onPressed: () {},
                                             ),
                                             const SizedBox(width: 20),
                                             IconButton(
                                               icon: const Icon(
-                                                  Icons.view_list_rounded,
-                                                  color: Colors.white70),
+                                                Icons.view_list_rounded,
+                                                color: Colors.white70,
+                                              ),
                                               onPressed: () =>
                                                   Navigator.pop(context),
                                             ),
@@ -383,9 +399,10 @@ class NewM3uPlaylistScreenState extends State<NewM3uPlaylistScreen> {
                                           controller.error!,
                                           textAlign: TextAlign.center,
                                           style: const TextStyle(
-                                              color: Colors.redAccent,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 13),
+                                            color: Colors.redAccent,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
                                         ),
                                       ],
                                     ],
@@ -428,7 +445,7 @@ class NewM3uPlaylistScreenState extends State<NewM3uPlaylistScreen> {
         playlistController.setError("Please enter an M3U URL");
         return;
       }
-      
+
       final uri = Uri.tryParse(url);
       if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
         playlistController.setError("Please enter a valid URL");
@@ -497,6 +514,11 @@ class _SideButtonState extends State<_SideButton> {
     return FocusableActionDetector(
       onFocusChange: (val) => setState(() => _isFocused = val),
       onShowHoverHighlight: (val) => setState(() => _isHovered = val),
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onTap(),
+        ),
+      },
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedScale(
@@ -530,7 +552,7 @@ class _SideButtonState extends State<_SideButton> {
                         color: const Color(0xFF00B7FF).withValues(alpha: 0.3),
                         blurRadius: 18,
                         spreadRadius: 1,
-                      )
+                      ),
                     ]
                   : [],
             ),
@@ -539,9 +561,11 @@ class _SideButtonState extends State<_SideButton> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(widget.icon,
-                    color: _isActive ? const Color(0xFF00B7FF) : Colors.white70,
-                    size: 28),
+                Icon(
+                  widget.icon,
+                  color: _isActive ? const Color(0xFF00B7FF) : Colors.white70,
+                  size: 28,
+                ),
                 const SizedBox(width: 16),
                 Text(
                   widget.label,
@@ -586,6 +610,11 @@ class _SourceTypeCardState extends State<_SourceTypeCard> {
     final active = widget.isSelected || _isFocused;
     return FocusableActionDetector(
       onFocusChange: (val) => setState(() => _isFocused = val),
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onTap(),
+        ),
+      },
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
@@ -605,8 +634,10 @@ class _SourceTypeCardState extends State<_SourceTypeCard> {
           ),
           child: Column(
             children: [
-              Icon(widget.icon,
-                  color: active ? const Color(0xFF00B7FF) : Colors.white54),
+              Icon(
+                widget.icon,
+                color: active ? const Color(0xFF00B7FF) : Colors.white54,
+              ),
               const SizedBox(height: 8),
               Text(
                 widget.label,
@@ -646,6 +677,11 @@ class _FilePickerCardState extends State<_FilePickerCard> {
   Widget build(BuildContext context) {
     return FocusableActionDetector(
       onFocusChange: (val) => setState(() => _isFocused = val),
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onTap(),
+        ),
+      },
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
@@ -664,8 +700,11 @@ class _FilePickerCardState extends State<_FilePickerCard> {
           ),
           child: Row(
             children: [
-              Icon(Icons.file_upload_rounded,
-                  color: const Color(0xFFC12CFF), size: 24),
+              Icon(
+                Icons.file_upload_rounded,
+                color: const Color(0xFFC12CFF),
+                size: 24,
+              ),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
@@ -678,8 +717,11 @@ class _FilePickerCardState extends State<_FilePickerCard> {
                   ),
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios_rounded,
-                  color: Colors.white24, size: 16),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white24,
+                size: 16,
+              ),
             ],
           ),
         ),
@@ -738,77 +780,94 @@ class _XTextFieldState extends State<_XTextField> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: _isFocused ? 1.01 : 1.0,
-      duration: const Duration(milliseconds: 200),
-      child: AnimatedContainer(
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.select ||
+                event.logicalKey == LogicalKeyboardKey.enter ||
+                event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
+          widget.focusNode.requestFocus();
+          SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: AnimatedScale(
+        scale: _isFocused ? 1.01 : 1.0,
         duration: const Duration(milliseconds: 200),
-        height: widget.height,
-        decoration: BoxDecoration(
-          color: const Color(0xFF0F1423).withValues(alpha: 0.75),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: _isFocused
-                ? Colors.transparent
-                : const Color(0xFF00B7FF).withValues(alpha: 0.3),
-            width: _isFocused ? 0 : 1,
-          ),
-          boxShadow: _isFocused
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
-                    blurRadius: 15,
-                    spreadRadius: 2,
-                  ),
-                  BoxShadow(
-                    color: const Color(0xFF00B7FF).withValues(alpha: 0.2),
-                    blurRadius: 25,
-                    spreadRadius: 4,
-                  )
-                ]
-              : [],
-        ),
-        child: Container(
-          decoration: _isFocused
-              ? BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  border: const Border.fromBorderSide(
-                    BorderSide(
-                      width: 3.0,
-                      color: Colors.transparent,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F1423).withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: _isFocused
+                  ? Colors.transparent
+                  : const Color(0xFF00B7FF).withValues(alpha: 0.3),
+              width: _isFocused ? 0 : 1,
+            ),
+            boxShadow: _isFocused
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
+                      blurRadius: 15,
+                      spreadRadius: 2,
                     ),
-                  ),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
-                  ),
-                )
-              : null,
+                    BoxShadow(
+                      color: const Color(0xFF00B7FF).withValues(alpha: 0.2),
+                      blurRadius: 25,
+                      spreadRadius: 4,
+                    ),
+                  ]
+                : [],
+          ),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: _isFocused
                 ? BoxDecoration(
-                    color: const Color(0xFF0F1423),
-                    borderRadius: BorderRadius.circular(15),
+                    borderRadius: BorderRadius.circular(18),
+                    border: const Border.fromBorderSide(
+                      BorderSide(width: 3.0, color: Colors.transparent),
+                    ),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
+                    ),
                   )
                 : null,
-            child: Center(
-              child: TextFormField(
-                controller: widget.controller,
-                focusNode: widget.focusNode,
-                textInputAction: widget.textInputAction,
-                onFieldSubmitted: widget.onSubmitted,
-                style: const TextStyle(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: _isFocused
+                  ? BoxDecoration(
+                      color: const Color(0xFF0F1423),
+                      borderRadius: BorderRadius.circular(15),
+                    )
+                  : null,
+              child: Center(
+                child: TextFormField(
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
+                  textInputAction: widget.textInputAction,
+                  onFieldSubmitted: widget.onSubmitted,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
-                    fontSize: 16),
-                decoration: InputDecoration(
-                  isDense: true,
-                  border: InputBorder.none,
-                  icon:
-                      Icon(widget.icon, color: const Color(0xFFC12CFF), size: 22),
-                  hintText: widget.label,
-                  hintStyle: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.4), fontSize: 15),
+                    fontSize: 16,
+                  ),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    border: InputBorder.none,
+                    icon: Icon(
+                      widget.icon,
+                      color: const Color(0xFFC12CFF),
+                      size: 22,
+                    ),
+                    hintText: widget.label,
+                    hintStyle: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.4),
+                      fontSize: 15,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -826,12 +885,13 @@ class _AddPlaylistButton extends StatefulWidget {
   final FocusNode focusNode;
   final VoidCallback? onTap;
 
-  const _AddPlaylistButton(
-      {required this.label,
-      required this.isLoading,
-      required this.height,
-      required this.focusNode,
-      this.onTap});
+  const _AddPlaylistButton({
+    required this.label,
+    required this.isLoading,
+    required this.height,
+    required this.focusNode,
+    this.onTap,
+  });
 
   @override
   State<_AddPlaylistButton> createState() => _AddPlaylistButtonState();
@@ -855,7 +915,8 @@ class _AddPlaylistButtonState extends State<_AddPlaylistButton> {
       },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
-            onInvoke: (_) => widget.onTap?.call()),
+          onInvoke: (_) => widget.onTap?.call(),
+        ),
       },
       child: GestureDetector(
         onTap: widget.onTap,
@@ -874,7 +935,10 @@ class _AddPlaylistButtonState extends State<_AddPlaylistButton> {
                     ? LinearGradient(
                         colors: _isFocused
                             ? [const Color(0xFFD14CFF), const Color(0xFF20C7FF)]
-                            : [const Color(0xFFC12CFF), const Color(0xFF00B7FF)],
+                            : [
+                                const Color(0xFFC12CFF),
+                                const Color(0xFF00B7FF),
+                              ],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                       )
@@ -887,8 +951,9 @@ class _AddPlaylistButtonState extends State<_AddPlaylistButton> {
                 boxShadow: isEnabled
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF00B7FF)
-                              .withValues(alpha: _isFocused ? 0.6 : 0.4),
+                          color: const Color(
+                            0xFF00B7FF,
+                          ).withValues(alpha: _isFocused ? 0.6 : 0.4),
                           blurRadius: _isFocused ? 30 : 15,
                           offset: Offset(0, _isFocused ? 8 : 4),
                         ),
@@ -901,15 +966,18 @@ class _AddPlaylistButtonState extends State<_AddPlaylistButton> {
                         height: 24,
                         width: 24,
                         child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2.5),
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
                       )
                     : Text(
                         widget.label,
                         style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.5),
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                        ),
                       ),
               ),
             ),

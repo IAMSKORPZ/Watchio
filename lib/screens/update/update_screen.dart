@@ -104,7 +104,7 @@ class UpdateScreen extends StatelessWidget {
               const SizedBox(height: 12),
               Text(result.updateInfo.releaseNotes!),
             ],
-            if (result.updateAvailable || result.forceRequired) ...[
+            if (release?.downloadUrl != null) ...[
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -116,7 +116,7 @@ class UpdateScreen extends StatelessWidget {
                       child: Text(
                         controller.isDownloading
                             ? 'Downloading...'
-                            : 'Download',
+                            : 'Download Latest APK',
                       ),
                     ),
                   ),

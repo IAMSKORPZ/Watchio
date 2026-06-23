@@ -46,6 +46,15 @@ class NewXtreamCodePlaylistScreenState
     _urlController.addListener(_validateForm);
     _usernameController.addListener(_validateForm);
     _passwordController.addListener(_validateForm);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _playlistFocus.requestFocus();
+        _nameController.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: _nameController.text.length,
+        );
+      }
+    });
   }
 
   @override
@@ -86,15 +95,15 @@ class NewXtreamCodePlaylistScreenState
           final double height = constraints.maxHeight;
           final bool isMobile = width < 700;
           final bool isTV = width >= 1600;
-          
+
           // Logo Scaling (Width-based) + 10% Increase
           double logoWidth;
           if (isMobile) {
-            logoWidth = 120; 
+            logoWidth = 120;
           } else if (isTV) {
-            logoWidth = 210; 
+            logoWidth = 210;
           } else {
-            logoWidth = 165; 
+            logoWidth = 165;
           }
 
           double fieldHeight;
@@ -114,11 +123,11 @@ class NewXtreamCodePlaylistScreenState
           double spacing = isMobile ? 8 : 12;
 
           if (height < 450) {
-             logoWidth *= 0.8;
-             fieldHeight *= 0.8;
-             buttonHeight *= 0.8;
-             spacing = 6;
-             titleFontSize = 18;
+            logoWidth *= 0.8;
+            fieldHeight *= 0.8;
+            buttonHeight *= 0.8;
+            spacing = 6;
+            titleFontSize = 18;
           }
 
           return TweenAnimationBuilder<double>(
@@ -141,7 +150,8 @@ class NewXtreamCodePlaylistScreenState
                 image: DecorationImage(
                   image: loginBg.isNotEmpty
                       ? NetworkImage(loginBg)
-                      : const AssetImage('assets/images/background.png') as ImageProvider,
+                      : const AssetImage('assets/images/background.png')
+                            as ImageProvider,
                   fit: BoxFit.cover,
                   colorFilter: ColorFilter.mode(
                     Colors.black.withValues(alpha: 0.5),
@@ -168,12 +178,16 @@ class NewXtreamCodePlaylistScreenState
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFFC12CFF).withValues(alpha: 0.1),
+                                      color: const Color(
+                                        0xFFC12CFF,
+                                      ).withValues(alpha: 0.1),
                                       blurRadius: 35,
                                       spreadRadius: 12,
                                     ),
                                     BoxShadow(
-                                      color: const Color(0xFF00B7FF).withValues(alpha: 0.08),
+                                      color: const Color(
+                                        0xFF00B7FF,
+                                      ).withValues(alpha: 0.08),
                                       blurRadius: 30,
                                       spreadRadius: 6,
                                     ),
@@ -183,11 +197,17 @@ class NewXtreamCodePlaylistScreenState
                                   'assets/images/logo.png',
                                   width: logoWidth,
                                   fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) => 
-                                    Icon(Icons.play_arrow_rounded, color: const Color(0xFF00B7FF), size: logoWidth * 0.4),
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Icon(
+                                        Icons.play_arrow_rounded,
+                                        color: const Color(0xFF00B7FF),
+                                        size: logoWidth * 0.4,
+                                      ),
                                 ),
                               ),
-                              const SizedBox(height: 25), // Reduced gap to move logo closer to buttons
+                              const SizedBox(
+                                height: 25,
+                              ), // Reduced gap to move logo closer to buttons
                               SizedBox(
                                 width: 220,
                                 height: 60,
@@ -197,12 +217,18 @@ class NewXtreamCodePlaylistScreenState
                                   height: 60,
                                   onTap: () {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('VPN Service coming soon')),
+                                      const SnackBar(
+                                        content: Text(
+                                          'VPN Service coming soon',
+                                        ),
+                                      ),
                                     );
                                   },
                                 ),
                               ),
-                              const SizedBox(height: 14), // Target 12-16px spacing for grouping
+                              const SizedBox(
+                                height: 14,
+                              ), // Target 12-16px spacing for grouping
                               SizedBox(
                                 width: 220,
                                 height: 60,
@@ -221,7 +247,9 @@ class NewXtreamCodePlaylistScreenState
                     Expanded(
                       flex: 6,
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: isMobile ? 24 : 60),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 24 : 60,
+                        ),
                         child: Center(
                           child: SingleChildScrollView(
                             physics: const BouncingScrollPhysics(),
@@ -231,7 +259,9 @@ class NewXtreamCodePlaylistScreenState
                                   key: _formKey,
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+                                    crossAxisAlignment: isMobile
+                                        ? CrossAxisAlignment.center
+                                        : CrossAxisAlignment.start,
                                     children: [
                                       if (isMobile) ...[
                                         Image.asset(
@@ -245,7 +275,9 @@ class NewXtreamCodePlaylistScreenState
                                         'ENTER YOUR PLAYLIST DETAILS',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        textAlign: isMobile ? TextAlign.center : TextAlign.left,
+                                        textAlign: isMobile
+                                            ? TextAlign.center
+                                            : TextAlign.left,
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: titleFontSize,
@@ -262,7 +294,11 @@ class NewXtreamCodePlaylistScreenState
                                         height: fieldHeight,
                                         textInputAction: TextInputAction.next,
                                         onSubmitted: (_) {
-                                          if (mounted) FocusScope.of(context).requestFocus(_usernameFocus);
+                                          if (mounted) {
+                                            FocusScope.of(
+                                              context,
+                                            ).requestFocus(_usernameFocus);
+                                          }
                                         },
                                       ),
                                       SizedBox(height: spacing),
@@ -274,7 +310,11 @@ class NewXtreamCodePlaylistScreenState
                                         height: fieldHeight,
                                         textInputAction: TextInputAction.next,
                                         onSubmitted: (_) {
-                                          if (mounted) FocusScope.of(context).requestFocus(_passwordFocus);
+                                          if (mounted) {
+                                            FocusScope.of(
+                                              context,
+                                            ).requestFocus(_passwordFocus);
+                                          }
                                         },
                                       ),
                                       SizedBox(height: spacing),
@@ -288,9 +328,16 @@ class NewXtreamCodePlaylistScreenState
                                         height: fieldHeight,
                                         textInputAction: TextInputAction.next,
                                         onSubmitted: (_) {
-                                          if (mounted) FocusScope.of(context).requestFocus(_urlFocus);
+                                          if (mounted) {
+                                            FocusScope.of(
+                                              context,
+                                            ).requestFocus(_urlFocus);
+                                          }
                                         },
-                                        onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
+                                        onToggleObscure: () => setState(
+                                          () => _obscurePassword =
+                                              !_obscurePassword,
+                                        ),
                                       ),
                                       SizedBox(height: spacing),
                                       _XTextField(
@@ -310,31 +357,47 @@ class NewXtreamCodePlaylistScreenState
                                         focusNode: _submitFocus,
                                         isLoading: controller.isLoading,
                                         height: buttonHeight,
-                                        onTap: controller.isLoading ? null : (_isFormValid ? _savePlaylist : null),
+                                        onTap: controller.isLoading
+                                            ? null
+                                            : (_isFormValid
+                                                  ? _savePlaylist
+                                                  : null),
                                       ),
                                       if (isMobile) ...[
-                                         const SizedBox(height: 12),
-                                         Row(
-                                           mainAxisAlignment: MainAxisAlignment.center,
-                                           children: [
-                                             IconButton(
-                                               icon: const Icon(Icons.vpn_lock_rounded, color: Colors.white70),
-                                               onPressed: () {},
-                                             ),
-                                             const SizedBox(width: 20),
-                                             IconButton(
-                                               icon: const Icon(Icons.view_list_rounded, color: Colors.white70),
-                                               onPressed: () => Navigator.pop(context),
-                                             ),
-                                           ],
-                                         ),
+                                        const SizedBox(height: 12),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.vpn_lock_rounded,
+                                                color: Colors.white70,
+                                              ),
+                                              onPressed: () {},
+                                            ),
+                                            const SizedBox(width: 20),
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.view_list_rounded,
+                                                color: Colors.white70,
+                                              ),
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                            ),
+                                          ],
+                                        ),
                                       ],
                                       if (controller.error != null) ...[
                                         const SizedBox(height: 8),
                                         Text(
                                           controller.error!,
                                           textAlign: TextAlign.center,
-                                          style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                                          style: const TextStyle(
+                                            color: Colors.redAccent,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
                                         ),
                                       ],
                                     ],
@@ -430,6 +493,15 @@ class _SideButtonState extends State<_SideButton> {
     return FocusableActionDetector(
       onFocusChange: (val) => setState(() => _isFocused = val),
       onShowHoverHighlight: (val) => setState(() => _isHovered = val),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+      },
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onTap(),
+        ),
+      },
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedScale(
@@ -442,31 +514,41 @@ class _SideButtonState extends State<_SideButton> {
             width: double.infinity,
             height: widget.height,
             decoration: BoxDecoration(
-              color: _isActive ? Colors.white.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.05),
+              color: _isActive
+                  ? Colors.white.withValues(alpha: 0.15)
+                  : Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: _isActive ? const Color(0xFF00B7FF) : Colors.white.withValues(alpha: 0.1),
+                color: _isActive
+                    ? const Color(0xFF00B7FF)
+                    : Colors.white.withValues(alpha: 0.1),
                 width: _isActive ? 3.0 : 1,
               ),
-              boxShadow: _isActive ? [
-                BoxShadow(
-                  color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
-                  blurRadius: 24,
-                  spreadRadius: 2,
-                ),
-                BoxShadow(
-                  color: const Color(0xFF00B7FF).withValues(alpha: 0.3),
-                  blurRadius: 18,
-                  spreadRadius: 1,
-                )
-              ] : [],
+              boxShadow: _isActive
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
+                        blurRadius: 24,
+                        spreadRadius: 2,
+                      ),
+                      BoxShadow(
+                        color: const Color(0xFF00B7FF).withValues(alpha: 0.3),
+                        blurRadius: 18,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : [],
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(widget.icon, color: _isActive ? const Color(0xFF00B7FF) : Colors.white70, size: 28),
+                Icon(
+                  widget.icon,
+                  color: _isActive ? const Color(0xFF00B7FF) : Colors.white70,
+                  size: 28,
+                ),
                 const SizedBox(width: 16),
                 Text(
                   widget.label,
@@ -540,75 +622,130 @@ class _XTextFieldState extends State<_XTextField> {
     }
   }
 
+  void _openKeyboard() {
+    widget.focusNode.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.focusNode.hasFocus) {
+        SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: _isFocused ? 1.01 : 1.0,
-      duration: const Duration(milliseconds: 200),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: widget.height,
-        decoration: BoxDecoration(
-          color: const Color(0xFF0F1423).withValues(alpha: 0.75),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: _isFocused ? Colors.transparent : const Color(0xFF00B7FF).withValues(alpha: 0.3),
-            width: _isFocused ? 0 : 1,
+    return Shortcuts(
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.numpadEnter): ActivateIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              _openKeyboard();
+              return null;
+            },
           ),
-          boxShadow: _isFocused ? [
-            BoxShadow(
-              color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
-              blurRadius: 15,
-              spreadRadius: 2,
-            ),
-            BoxShadow(
-              color: const Color(0xFF00B7FF).withValues(alpha: 0.2),
-              blurRadius: 25,
-              spreadRadius: 4,
-            )
-          ] : [],
-        ),
-        child: Container(
-          decoration: _isFocused ? BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: const Border.fromBorderSide(
-              BorderSide(
-                width: 3.0,
-                color: Colors.transparent,
+        },
+        child: AnimatedScale(
+          scale: _isFocused ? 1.01 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: widget.height,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F1423).withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: _isFocused
+                    ? Colors.transparent
+                    : const Color(0xFF00B7FF).withValues(alpha: 0.3),
+                width: _isFocused ? 0 : 1,
               ),
+              boxShadow: _isFocused
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                      ),
+                      BoxShadow(
+                        color: const Color(0xFF00B7FF).withValues(alpha: 0.2),
+                        blurRadius: 25,
+                        spreadRadius: 4,
+                      ),
+                    ]
+                  : [],
             ),
-            gradient: const LinearGradient(
-              colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
-            ),
-          ) : null,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: _isFocused ? BoxDecoration(
-               color: const Color(0xFF0F1423),
-               borderRadius: BorderRadius.circular(15),
-            ) : null,
-            child: Center(
-              child: TextFormField(
-                controller: widget.controller,
-                focusNode: widget.focusNode,
-                obscureText: widget.obscure,
-                textInputAction: widget.textInputAction,
-                onFieldSubmitted: widget.onSubmitted,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
-                decoration: InputDecoration(
-                  isDense: true,
-                  border: InputBorder.none,
-                  icon: Icon(widget.icon, color: const Color(0xFFC12CFF), size: 22),
-                  hintText: widget.label,
-                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 15),
-                  suffixIcon: widget.isPassword
-                      ? IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          icon: Icon(widget.obscure ? Icons.visibility_off : Icons.visibility, color: Colors.white38, size: 20),
-                          onPressed: widget.onToggleObscure,
-                        )
-                      : null,
+            child: Container(
+              decoration: _isFocused
+                  ? BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      border: const Border.fromBorderSide(
+                        BorderSide(width: 3.0, color: Colors.transparent),
+                      ),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
+                      ),
+                    )
+                  : null,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                decoration: _isFocused
+                    ? BoxDecoration(
+                        color: const Color(0xFF0F1423),
+                        borderRadius: BorderRadius.circular(15),
+                      )
+                    : null,
+                child: Center(
+                  child: TextFormField(
+                    controller: widget.controller,
+                    focusNode: widget.focusNode,
+                    onTap: _openKeyboard,
+                    obscureText: widget.obscure,
+                    keyboardType: widget.isPassword
+                        ? TextInputType.visiblePassword
+                        : TextInputType.text,
+                    enableSuggestions: !widget.isPassword,
+                    autocorrect: false,
+                    cursorColor: const Color(0xFF00B7FF),
+                    textInputAction: widget.textInputAction,
+                    onFieldSubmitted: widget.onSubmitted,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                      icon: Icon(
+                        widget.icon,
+                        color: const Color(0xFFC12CFF),
+                        size: 22,
+                      ),
+                      hintText: widget.label,
+                      hintStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        fontSize: 15,
+                      ),
+                      suffixIcon: widget.isPassword
+                          ? IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: Icon(
+                                widget.obscure
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.white38,
+                                size: 20,
+                              ),
+                              onPressed: widget.onToggleObscure,
+                            )
+                          : null,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -625,7 +762,12 @@ class _AddPlaylistButton extends StatefulWidget {
   final FocusNode focusNode;
   final VoidCallback? onTap;
 
-  const _AddPlaylistButton({required this.isLoading, required this.height, required this.focusNode, this.onTap});
+  const _AddPlaylistButton({
+    required this.isLoading,
+    required this.height,
+    required this.focusNode,
+    this.onTap,
+  });
 
   @override
   State<_AddPlaylistButton> createState() => _AddPlaylistButtonState();
@@ -641,10 +783,13 @@ class _AddPlaylistButtonState extends State<_AddPlaylistButton> {
       onFocusChange: (val) => setState(() => _isFocused = val),
       shortcuts: {
         const SingleActivator(LogicalKeyboardKey.enter): const ActivateIntent(),
-        const SingleActivator(LogicalKeyboardKey.select): const ActivateIntent(),
+        const SingleActivator(LogicalKeyboardKey.select):
+            const ActivateIntent(),
       },
       actions: {
-        ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => widget.onTap?.call()),
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onTap?.call(),
+        ),
       },
       child: GestureDetector(
         onTap: widget.onTap,
@@ -657,17 +802,21 @@ class _AddPlaylistButtonState extends State<_AddPlaylistButton> {
             height: widget.height,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: _isFocused 
-                  ? [const Color(0xFFD14CFF), const Color(0xFF20C7FF)]
-                  : [const Color(0xFFC12CFF), const Color(0xFF00B7FF)],
+                colors: _isFocused
+                    ? [const Color(0xFFD14CFF), const Color(0xFF20C7FF)]
+                    : [const Color(0xFFC12CFF), const Color(0xFF00B7FF)],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),
               borderRadius: BorderRadius.circular(18),
-              border: _isFocused ? Border.all(color: Colors.white, width: 2.5) : null,
+              border: _isFocused
+                  ? Border.all(color: Colors.white, width: 2.5)
+                  : null,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF00B7FF).withValues(alpha: _isFocused ? 0.6 : 0.4),
+                  color: const Color(
+                    0xFF00B7FF,
+                  ).withValues(alpha: _isFocused ? 0.6 : 0.4),
                   blurRadius: _isFocused ? 30 : 15,
                   offset: Offset(0, _isFocused ? 8 : 4),
                 ),
@@ -678,11 +827,19 @@ class _AddPlaylistButtonState extends State<_AddPlaylistButton> {
                   ? const SizedBox(
                       height: 24,
                       width: 24,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
                     )
                   : const Text(
                       'ADD PLAYLIST',
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
+                      ),
                     ),
             ),
           ),
