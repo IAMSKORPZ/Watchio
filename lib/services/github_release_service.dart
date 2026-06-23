@@ -48,6 +48,7 @@ class GitHubRelease {
 }
 
 class GitHubReleaseService {
+  static const String releaseTag = 'sgdf';
   final String owner;
   final String repo;
   final http.Client _client;
@@ -55,53 +56,42 @@ class GitHubReleaseService {
   GitHubReleaseService({
     String owner = const String.fromEnvironment(
       'BINGIETV_GITHUB_OWNER',
-      defaultValue: 'bsogulcan',
+      defaultValue: 'IAMSKORPZ',
     ),
     String repo = const String.fromEnvironment(
       'BINGIETV_GITHUB_REPO',
-      defaultValue: 'another-iptv-player',
+      defaultValue: 'Watchio',
     ),
     http.Client? client,
-  })  : owner = owner.trim(),
-        repo = repo.trim(),
-        _client = client ?? http.Client();
+  }) : owner = owner.trim(),
+       repo = repo.trim(),
+       _client = client ?? http.Client();
 
   Future<GitHubRelease?> fetchLatestRelease(UpdateChannel channel) async {
-    final uri = Uri.https('api.github.com', '/repos/$owner/$repo/releases');
-    final response = await _client.get(
-      uri,
-      headers: const {'Accept': 'application/vnd.github+json'},
-    ).timeout(const Duration(seconds: 10));
+    final uri = Uri.https(
+      'api.github.com',
+      '/repos/$owner/$repo/releases/tags/$releaseTag',
+    );
+    final response = await _client
+        .get(uri, headers: const {'Accept': 'application/vnd.github+json'})
+        .timeout(const Duration(seconds: 10));
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw GitHubReleaseException('GitHub HTTP ${response.statusCode}');
     }
 
     final decoded = jsonDecode(response.body);
-    if (decoded is! List) {
-      throw const FormatException('GitHub releases response must be a list.');
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('GitHub release response must be an object.');
     }
-
-    final releases = decoded
-        .whereType<Map<String, dynamic>>()
-        .where((json) => json['draft'] != true)
-        .map(_fromGitHubJson)
-        .where((release) => release.channel == channel)
-        .toList();
-
-    if (releases.isEmpty) return null;
-    releases.sort((a, b) {
-      final aDate = a.publishedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final bDate = b.publishedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-      return bDate.compareTo(aDate);
-    });
-    return releases.first;
+    if (decoded['draft'] == true) return null;
+    return _fromGitHubJson(decoded);
   }
 
   GitHubRelease _fromGitHubJson(Map<String, dynamic> json) {
     final tag = (json['tag_name'] as String? ?? '').trim();
     final name = (json['name'] as String? ?? tag).trim();
-    final version = _normalizeVersion(tag.isEmpty ? name : tag);
+    final version = _releaseVersion(json, tag.isEmpty ? name : tag);
     final prerelease = json['prerelease'] == true;
     final channel = _detectChannel(tag, name, prerelease);
 
@@ -132,18 +122,30 @@ class GitHubReleaseService {
     if (assets is! List) return null;
     final typed = assets.whereType<Map<String, dynamic>>().toList();
     if (typed.isEmpty) return null;
-    final preferred = typed.firstWhere(
-      (asset) {
-        final name = (asset['name'] as String? ?? '').toLowerCase();
-        return name.endsWith('.apk') || name.endsWith('.exe') || name.endsWith('.msi');
-      },
-      orElse: () => typed.first,
-    );
+    final preferred = typed.firstWhere((asset) {
+      final name = (asset['name'] as String? ?? '').toLowerCase();
+      return name.endsWith('.apk');
+    }, orElse: () => <String, dynamic>{});
     return preferred['browser_download_url'] as String?;
   }
 
   String _normalizeVersion(String value) {
     return value.trim().replaceFirst(RegExp(r'^[vV]'), '').split('+').first;
+  }
+
+  String _releaseVersion(Map<String, dynamic> json, String fallback) {
+    final assets = json['assets'];
+    if (assets is List) {
+      for (final asset in assets.whereType<Map<String, dynamic>>()) {
+        final name = asset['name']?.toString() ?? '';
+        final match = RegExp(
+          r'v?(\d+\.\d+\.\d+)',
+          caseSensitive: false,
+        ).firstMatch(name);
+        if (match != null) return match.group(1)!;
+      }
+    }
+    return _normalizeVersion(fallback);
   }
 }
 
