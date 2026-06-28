@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import '../../models/player_engine.dart';
 import 'app_player_controller.dart';
 import 'media_kit_player_controller.dart';
@@ -13,11 +11,7 @@ class PlayerFactory {
       case PlayerEngine.mediaKit:
         return MediaKitPlayerController();
       case PlayerEngine.auto:
-        if (!kIsWeb && Platform.isAndroid) {
-          return ExoPlayerController();
-        } else {
-          return MediaKitPlayerController();
-        }
+        return MediaKitPlayerController();
       case PlayerEngine.vlc:
         // VLC fallback not implemented yet, using MediaKit
         return MediaKitPlayerController();

@@ -80,7 +80,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
 
   Future<void> _checkFavorite() async {
     final fav = await _favoritesController.isFavorite(
-        _currentPlaybackItem.id, _currentPlaybackItem.contentType);
+      _currentPlaybackItem.id,
+      _currentPlaybackItem.contentType,
+    );
     if (mounted) {
       setState(() {
         _isFavorite = fav;
@@ -89,8 +91,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   }
 
   Future<void> _toggleFavorite() async {
-    final res =
-        await _favoritesController.toggleFavorite(_currentPlaybackItem.originalItem!);
+    final res = await _favoritesController.toggleFavorite(
+      _currentPlaybackItem.originalItem!,
+    );
     if (mounted) {
       setState(() {
         _isFavorite = res;
@@ -105,8 +108,10 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     }
 
     final engineStr = await UserPreferences.getPlayerEngine();
-    final engine = PlayerEngine.values.firstWhere((e) => e.name == engineStr,
-        orElse: () => PlayerEngine.auto);
+    final engine = PlayerEngine.values.firstWhere(
+      (e) => e.name == engineStr,
+      orElse: () => PlayerEngine.auto,
+    );
 
     _playerController = PlayerFactory.create(engine);
     await _playerController.initialize();
@@ -118,7 +123,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     Duration startPos = Duration.zero;
     if (_currentPlaybackItem.contentType != ContentType.liveStream) {
       final history = await _historyService.getWatchHistory(
-          AppState.currentPlaylist!.id, _currentPlaybackItem.id);
+        AppState.currentPlaylist!.id,
+        _currentPlaybackItem.id,
+      );
       if (history != null && history.watchDuration != null) {
         startPos = history.watchDuration!;
       }
@@ -149,7 +156,8 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     debugPrint('Content Type: ${playItemWithUrl.contentType}');
     debugPrint('Stream ID: ${playItemWithUrl.id}');
     debugPrint(
-        'Episode ID: ${playItemWithUrl.originalItem?.season != null ? playItemWithUrl.id : "N/A"}');
+      'Episode ID: ${playItemWithUrl.originalItem?.season != null ? playItemWithUrl.id : "N/A"}',
+    );
     debugPrint('Generated URL: ${playItemWithUrl.url}');
     debugPrint('User-Agent: ${playItemWithUrl.headers['User-Agent']}');
     debugPrint('Referer: ${playItemWithUrl.headers['Referer']}');
@@ -237,10 +245,12 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
         lastWatched: DateTime.now(),
         title: _currentPlaybackItem.title,
         imagePath: _currentPlaybackItem.imagePath,
-        totalDuration:
-            _currentPlaybackItem.isLive ? Duration.zero : _playerController.duration,
-        watchDuration:
-            _currentPlaybackItem.isLive ? Duration.zero : _playerController.position,
+        totalDuration: _currentPlaybackItem.isLive
+            ? Duration.zero
+            : _playerController.duration,
+        watchDuration: _currentPlaybackItem.isLive
+            ? Duration.zero
+            : _playerController.position,
       ),
     );
   }
@@ -315,8 +325,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
 
   void _switchChannel(int delta) {
     if (widget.queue == null || widget.queue!.isEmpty) return;
-    final idx =
-        widget.queue!.indexWhere((item) => item.id == _currentPlaybackItem.id);
+    final idx = widget.queue!.indexWhere(
+      (item) => item.id == _currentPlaybackItem.id,
+    );
     if (idx == -1) return;
     final nextIdx = (idx + delta).clamp(0, widget.queue!.length - 1);
     if (nextIdx == idx) return;
@@ -334,8 +345,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
 
     if (mounted) {
       setState(() {
-        _currentPlaybackItem =
-            PlaybackItem.fromContentItem(item).copyWith(url: resolvedUrl);
+        _currentPlaybackItem = PlaybackItem.fromContentItem(
+          item,
+        ).copyWith(url: resolvedUrl);
         _checkFavorite();
         _epgPrograms = [];
       });
@@ -398,73 +410,94 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
             SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
             SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
             SingleActivator(LogicalKeyboardKey.space): _PlayPauseIntent(),
-            SingleActivator(LogicalKeyboardKey.mediaPlayPause): _PlayPauseIntent(),
+            SingleActivator(LogicalKeyboardKey.mediaPlayPause):
+                _PlayPauseIntent(),
             SingleActivator(LogicalKeyboardKey.mediaPlay): _PlayPauseIntent(),
             SingleActivator(LogicalKeyboardKey.mediaPause): _PlayPauseIntent(),
             SingleActivator(LogicalKeyboardKey.arrowUp): _ShowControlsIntent(),
-            SingleActivator(LogicalKeyboardKey.arrowDown): _ShowControlsIntent(),
+            SingleActivator(LogicalKeyboardKey.arrowDown):
+                _ShowControlsIntent(),
             SingleActivator(LogicalKeyboardKey.arrowLeft): _SeekBackIntent(),
-            SingleActivator(LogicalKeyboardKey.arrowRight): _SeekForwardIntent(),
+            SingleActivator(LogicalKeyboardKey.arrowRight):
+                _SeekForwardIntent(),
             SingleActivator(LogicalKeyboardKey.channelUp): _ChannelUpIntent(),
-            SingleActivator(LogicalKeyboardKey.channelDown): _ChannelDownIntent(),
+            SingleActivator(LogicalKeyboardKey.channelDown):
+                _ChannelDownIntent(),
             SingleActivator(LogicalKeyboardKey.escape): _HideControlsIntent(),
           },
           child: Actions(
             actions: {
-              ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
-                if (hasError) return null;
-                if (_showChannelList) return null;
-                if (!_showControls) {
+              ActivateIntent: CallbackAction<ActivateIntent>(
+                onInvoke: (_) {
+                  if (hasError) return null;
+                  if (_showChannelList) return null;
+                  if (!_showControls) {
+                    _showControlsTemporarily();
+                  } else {
+                    if (_playerController.isPlaying) {
+                      _playerController.pause();
+                    } else {
+                      _playerController.play();
+                    }
+                    _startControlsTimer();
+                  }
+                  return null;
+                },
+              ),
+              _PlayPauseIntent: CallbackAction<_PlayPauseIntent>(
+                onInvoke: (_) {
+                  if (hasError) return null;
                   _showControlsTemporarily();
-                } else {
-                  _toggleControls();
-                }
-                return null;
-              }),
-              _PlayPauseIntent: CallbackAction<_PlayPauseIntent>(onInvoke: (_) {
-                if (hasError) return null;
-                _showControlsTemporarily();
-                if (_playerController.isPlaying) {
-                  _playerController.pause();
-                } else {
-                  _playerController.play();
-                }
-                return null;
-              }),
-              _ShowControlsIntent:
-                  CallbackAction<_ShowControlsIntent>(onInvoke: (_) {
-                _showControlsTemporarily();
-                return null;
-              }),
-              _HideControlsIntent:
-                  CallbackAction<_HideControlsIntent>(onInvoke: (_) {
-                _hideControls();
-                return null;
-              }),
-              _SeekBackIntent: CallbackAction<_SeekBackIntent>(onInvoke: (_) {
-                if (hasError) return null;
-                if (!_currentPlaybackItem.isLive) {
-                  _seekRelative(-10);
-                }
-                return null;
-              }),
-              _SeekForwardIntent:
-                  CallbackAction<_SeekForwardIntent>(onInvoke: (_) {
-                if (hasError) return null;
-                if (!_currentPlaybackItem.isLive) {
-                  _seekRelative(30);
-                }
-                return null;
-              }),
-              _ChannelUpIntent: CallbackAction<_ChannelUpIntent>(onInvoke: (_) {
-                _switchChannel(1);
-                return null;
-              }),
-              _ChannelDownIntent:
-                  CallbackAction<_ChannelDownIntent>(onInvoke: (_) {
-                _switchChannel(-1);
-                return null;
-              }),
+                  if (_playerController.isPlaying) {
+                    _playerController.pause();
+                  } else {
+                    _playerController.play();
+                  }
+                  return null;
+                },
+              ),
+              _ShowControlsIntent: CallbackAction<_ShowControlsIntent>(
+                onInvoke: (_) {
+                  _showControlsTemporarily();
+                  return null;
+                },
+              ),
+              _HideControlsIntent: CallbackAction<_HideControlsIntent>(
+                onInvoke: (_) {
+                  _hideControls();
+                  return null;
+                },
+              ),
+              _SeekBackIntent: CallbackAction<_SeekBackIntent>(
+                onInvoke: (_) {
+                  if (hasError) return null;
+                  if (!_currentPlaybackItem.isLive) {
+                    _seekRelative(-10);
+                  }
+                  return null;
+                },
+              ),
+              _SeekForwardIntent: CallbackAction<_SeekForwardIntent>(
+                onInvoke: (_) {
+                  if (hasError) return null;
+                  if (!_currentPlaybackItem.isLive) {
+                    _seekRelative(30);
+                  }
+                  return null;
+                },
+              ),
+              _ChannelUpIntent: CallbackAction<_ChannelUpIntent>(
+                onInvoke: (_) {
+                  _switchChannel(1);
+                  return null;
+                },
+              ),
+              _ChannelDownIntent: CallbackAction<_ChannelDownIntent>(
+                onInvoke: (_) {
+                  _switchChannel(-1);
+                  return null;
+                },
+              ),
             },
             child: Focus(
               autofocus: true,
@@ -487,7 +520,10 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
 
                   if (_playerController.isBuffering && !hasError)
                     const Center(
-                        child: CircularProgressIndicator(color: Color(0xFFC12CFF))),
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFC12CFF),
+                      ),
+                    ),
 
                   if (hasError) _buildErrorOverlay(),
 
@@ -533,38 +569,40 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
 
   Widget _buildPremiumUI() {
     return Positioned.fill(
-      child: LayoutBuilder(builder: (context, constraints) {
-        final isLargeScreen = constraints.maxWidth > 800;
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.85),
-                Colors.transparent,
-                Colors.transparent,
-                Colors.black.withValues(alpha: 0.85)
-              ],
-              stops: const [0.0, 0.25, 0.75, 1.0],
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: [
-                  _buildTopBar(isLargeScreen),
-                  const Spacer(),
-                  _buildCenterControls(isLargeScreen),
-                  const Spacer(),
-                  _buildBottomSection(isLargeScreen),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isLargeScreen = constraints.maxWidth > 800;
+          return Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.85),
+                  Colors.transparent,
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.85),
                 ],
+                stops: const [0.0, 0.25, 0.75, 1.0],
               ),
             ),
-          ),
-        );
-      }),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    _buildTopBar(isLargeScreen),
+                    const Spacer(),
+                    _buildCenterControls(isLargeScreen),
+                    const Spacer(),
+                    _buildBottomSection(isLargeScreen),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -574,9 +612,10 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
       child: Row(
         children: [
           _CircleBtn(
-              icon: Icons.arrow_back_rounded,
-              size: isLargeScreen ? 44 : 36,
-              onTap: () => Navigator.pop(context)),
+            icon: Icons.arrow_back_rounded,
+            size: isLargeScreen ? 44 : 36,
+            onTap: () => Navigator.pop(context),
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -586,18 +625,22 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
                 Text(
                   _currentPlaybackItem.title,
                   style: TextStyle(
-                      color: Colors.white,
-                      fontSize: isLargeScreen ? 20 : 16,
-                      fontWeight: FontWeight.w900),
+                    color: Colors.white,
+                    fontSize: isLargeScreen ? 20 : 16,
+                    fontWeight: FontWeight.w900,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (_currentPlaybackItem.subtitle != null)
-                  Text(_currentPlaybackItem.subtitle!,
-                      style: const TextStyle(
-                          color: Color(0xFF00B7FF),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold)),
+                  Text(
+                    _currentPlaybackItem.subtitle!,
+                    style: const TextStyle(
+                      color: Color(0xFF00B7FF),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -614,9 +657,10 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
             const SizedBox(width: 12),
           ],
           _CircleBtn(
-              icon: Icons.more_vert_rounded,
-              size: isLargeScreen ? 44 : 36,
-              onTap: _showMoreMenu),
+            icon: Icons.more_vert_rounded,
+            size: isLargeScreen ? 44 : 36,
+            onTap: _showMoreMenu,
+          ),
         ],
       ),
     );
@@ -631,14 +675,16 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
       children: [
         if (isLive)
           _LargeControlBtn(
-              icon: Icons.skip_previous_rounded,
-              size: btnSize * 0.7,
-              onTap: () => _switchChannel(-1))
+            icon: Icons.skip_previous_rounded,
+            size: btnSize * 0.7,
+            onTap: () => _switchChannel(-1),
+          )
         else
           _LargeControlBtn(
-              icon: Icons.replay_10_rounded,
-              size: btnSize * 0.7,
-              onTap: () => _seekRelative(-10)),
+            icon: Icons.replay_10_rounded,
+            size: btnSize * 0.7,
+            onTap: () => _seekRelative(-10),
+          ),
         const SizedBox(width: 32),
         _LargeControlBtn(
           icon: _playerController.isPlaying
@@ -658,14 +704,16 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
         const SizedBox(width: 32),
         if (isLive)
           _LargeControlBtn(
-              icon: Icons.skip_next_rounded,
-              size: btnSize * 0.7,
-              onTap: () => _switchChannel(1))
+            icon: Icons.skip_next_rounded,
+            size: btnSize * 0.7,
+            onTap: () => _switchChannel(1),
+          )
         else
           _LargeControlBtn(
-              icon: Icons.forward_30_rounded,
-              size: btnSize * 0.7,
-              onTap: () => _seekRelative(30)),
+            icon: Icons.forward_30_rounded,
+            size: btnSize * 0.7,
+            onTap: () => _seekRelative(30),
+          ),
       ],
     );
   }
@@ -715,8 +763,11 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
                   width: 44,
                   height: 44,
                   fit: BoxFit.contain,
-                  errorBuilder: (ctx, err, st) => const Icon(Icons.live_tv,
-                      color: Colors.white24, size: 28),
+                  errorBuilder: (ctx, err, st) => const Icon(
+                    Icons.live_tv,
+                    color: Colors.white24,
+                    size: 28,
+                  ),
                 ),
               ),
             ),
@@ -725,37 +776,45 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(current?.title ?? 'No Programme Information',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: isLargeScreen ? 16 : 14,
-                        fontWeight: FontWeight.bold),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+                Text(
+                  current?.title ?? 'No Programme Information',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isLargeScreen ? 16 : 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(2),
                   child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 3,
-                      backgroundColor: Colors.white10,
-                      valueColor:
-                          const AlwaysStoppedAnimation(Color(0xFFC12CFF))),
+                    value: progress,
+                    minHeight: 3,
+                    backgroundColor: Colors.white10,
+                    valueColor: const AlwaysStoppedAnimation(Color(0xFFC12CFF)),
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(next != null ? 'Next: ${next.title}' : 'Next: No info',
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+                Text(
+                  next != null ? 'Next: ${next.title}' : 'Next: No info',
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          const Text('LIVE',
-              style: TextStyle(
-                  color: Colors.redAccent,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12)),
+          const Text(
+            'LIVE',
+            style: TextStyle(
+              color: Colors.redAccent,
+              fontWeight: FontWeight.w900,
+              fontSize: 12,
+            ),
+          ),
         ],
       ),
     );
@@ -764,8 +823,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   Widget _buildVodProgress(bool isLargeScreen) {
     final pos = _playerController.position;
     final dur = _playerController.duration;
-    final progress =
-        dur.inMilliseconds > 0 ? pos.inMilliseconds / dur.inMilliseconds : 0.0;
+    final progress = dur.inMilliseconds > 0
+        ? pos.inMilliseconds / dur.inMilliseconds
+        : 0.0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -783,7 +843,8 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
             value: progress.clamp(0.0, 1.0),
             onChanged: (v) {
               _playerController.seek(
-                  Duration(milliseconds: (v * dur.inMilliseconds).toInt()));
+                Duration(milliseconds: (v * dur.inMilliseconds).toInt()),
+              );
               _startControlsTimer();
             },
           ),
@@ -793,10 +854,14 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(_formatDuration(pos),
-                  style: const TextStyle(color: Colors.white70, fontSize: 11)),
-              Text(_formatDuration(dur),
-                  style: const TextStyle(color: Colors.white70, fontSize: 11)),
+              Text(
+                _formatDuration(pos),
+                style: const TextStyle(color: Colors.white70, fontSize: 11),
+              ),
+              Text(
+                _formatDuration(dur),
+                style: const TextStyle(color: Colors.white70, fontSize: 11),
+              ),
             ],
           ),
         ),
@@ -812,72 +877,89 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _ActionBtn(
-              icon: Icons.list_rounded,
-              label: 'CHANNELS',
-              onTap: _toggleChannelList),
+            icon: Icons.list_rounded,
+            label: 'CHANNELS',
+            onTap: _toggleChannelList,
+          ),
           if (isLive)
             _ActionBtn(
-                icon: Icons.calendar_view_day_rounded,
-                label: 'EPG',
-                onTap: _showEpgModal),
+              icon: Icons.calendar_view_day_rounded,
+              label: 'EPG',
+              onTap: _showEpgModal,
+            ),
           _ActionBtn(
-              icon: Icons.subtitles_rounded,
-              label: 'SUBTITLES',
-              onTap: _showSubtitleMenu),
+            icon: Icons.subtitles_rounded,
+            label: 'SUBTITLES',
+            onTap: _showSubtitleMenu,
+          ),
           _ActionBtn(
-              icon: Icons.audiotrack_rounded,
-              label: 'AUDIO',
-              onTap: _showAudioMenu),
+            icon: Icons.audiotrack_rounded,
+            label: 'AUDIO',
+            onTap: _showAudioMenu,
+          ),
           _ActionBtn(
-              icon: Icons.aspect_ratio_rounded,
-              label: 'RATIO',
-              onTap: _showAspectRatioMenu),
+            icon: Icons.aspect_ratio_rounded,
+            label: 'RATIO',
+            onTap: _showAspectRatioMenu,
+          ),
           _ActionBtn(
-              icon: _isFavorite
-                  ? Icons.favorite_rounded
-                  : Icons.favorite_border_rounded,
-              label: 'FAVOURITE',
-              iconColor: _isFavorite ? Colors.redAccent : null,
-              onTap: _toggleFavorite),
+            icon: _isFavorite
+                ? Icons.favorite_rounded
+                : Icons.favorite_border_rounded,
+            label: 'FAVOURITE',
+            iconColor: _isFavorite ? Colors.redAccent : null,
+            onTap: _toggleFavorite,
+          ),
           _ActionBtn(
-              icon: Icons.settings_rounded, label: 'MORE', onTap: _showMoreMenu),
+            icon: Icons.settings_rounded,
+            label: 'MORE',
+            onTap: _showMoreMenu,
+          ),
         ],
       ),
     );
   }
 
   void _showMoreMenu() {
-    _showTrackMenu('More Actions', [
-      'Audio Tracks',
-      'Subtitles',
-      'Aspect Ratio',
-      'Catchup',
-      'Multi-View',
-      'Player Settings'
-    ], (idx) {
-      switch (idx) {
-        case 0:
-          _showAudioMenu();
-          break;
-        case 1:
-          _showSubtitleMenu();
-          break;
-        case 2:
-          _showAspectRatioMenu();
-          break;
-        case 3:
-          _showTrackMenu('Catchup', ['Last 24 Hours', 'Last 7 Days'], (i) {});
-          break;
-        case 4:
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Multi-View coming soon')));
-          break;
-        case 5:
-          _showTrackMenu('Player Settings',
-              ['Hardware Decoding', 'Buffer Size', 'Network Timeout'], (i) {});
-          break;
-      }
-    });
+    _showTrackMenu(
+      'More Actions',
+      [
+        'Audio Tracks',
+        'Subtitles',
+        'Aspect Ratio',
+        'Catchup',
+        'Multi-View',
+        'Player Settings',
+      ],
+      (idx) {
+        switch (idx) {
+          case 0:
+            _showAudioMenu();
+            break;
+          case 1:
+            _showSubtitleMenu();
+            break;
+          case 2:
+            _showAspectRatioMenu();
+            break;
+          case 3:
+            _showTrackMenu('Catchup', ['Last 24 Hours', 'Last 7 Days'], (i) {});
+            break;
+          case 4:
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Multi-View coming soon')),
+            );
+            break;
+          case 5:
+            _showTrackMenu('Player Settings', [
+              'Hardware Decoding',
+              'Buffer Size',
+              'Network Timeout',
+            ], (i) {});
+            break;
+        }
+      },
+    );
   }
 
   Widget _buildSideSlider(bool isBrightness) {
@@ -891,9 +973,12 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-                isBrightness ? Icons.brightness_6_rounded : Icons.volume_up_rounded,
-                color: Colors.white70,
-                size: 16),
+              isBrightness
+                  ? Icons.brightness_6_rounded
+                  : Icons.volume_up_rounded,
+              color: Colors.white70,
+              size: 16,
+            ),
             const SizedBox(height: 8),
             Container(
               height: 140,
@@ -943,8 +1028,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
               top: 24,
               left: 24,
               child: _CircleBtn(
-                  icon: Icons.arrow_back_rounded,
-                  onTap: () => Navigator.pop(context)),
+                icon: Icons.arrow_back_rounded,
+                onTap: () => Navigator.pop(context),
+              ),
             ),
             Center(
               child: GlassPanel(
@@ -952,31 +1038,43 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline,
-                        color: Colors.redAccent, size: 64),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.redAccent,
+                      size: 64,
+                    ),
                     const SizedBox(height: 24),
-                    const Text('Playback Failed',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900)),
+                    const Text(
+                      'Playback Failed',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    const Text('Unable to connect to stream',
-                        style: TextStyle(color: Colors.white70, fontSize: 15)),
+                    const Text(
+                      'Unable to connect to stream',
+                      style: TextStyle(color: Colors.white70, fontSize: 15),
+                    ),
                     const SizedBox(height: 32),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         ElevatedButton.icon(
                           icon: const Icon(Icons.refresh_rounded),
-                          onPressed: () =>
-                              _playerController.setDataSource(_currentPlaybackItem),
+                          onPressed: () => _playerController.setDataSource(
+                            _currentPlaybackItem,
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFC12CFF),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           label: const Text('RETRY'),
                         ),
@@ -988,9 +1086,12 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
                             foregroundColor: Colors.white,
                             side: const BorderSide(color: Colors.white24),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           label: const Text('CHANNELS'),
                         ),
@@ -1024,25 +1125,35 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 20, 12, 12),
                 child: Row(
                   children: [
-                    const Text('CHANNELS',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.0)),
+                    const Text(
+                      'CHANNELS',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
                     const Spacer(),
                     IconButton(
-                        icon: const Icon(Icons.close,
-                            color: Colors.white70, size: 20),
-                        onPressed: _toggleChannelList),
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                      onPressed: _toggleChannelList,
+                    ),
                   ],
                 ),
               ),
               Expanded(
                 child: widget.queue == null || widget.queue!.isEmpty
                     ? const Center(
-                        child: Text('No Channels',
-                            style: TextStyle(color: Colors.white38)))
+                        child: Text(
+                          'No Channels',
+                          style: TextStyle(color: Colors.white38),
+                        ),
+                      )
                     : ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         itemCount: widget.queue!.length,
@@ -1078,59 +1189,80 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     final tracks = await _playerController.getSubtitleTracks();
     if (!mounted) return;
     _showTrackMenu(
-        'Subtitles', tracks, (idx) => _playerController.setSubtitleTrack(idx));
+      'Subtitles',
+      tracks,
+      (idx) => _playerController.setSubtitleTrack(idx),
+    );
   }
 
   void _showAudioMenu() async {
     final tracks = await _playerController.getAudioTracks();
     if (!mounted) return;
     _showTrackMenu(
-        'Audio Tracks', tracks, (idx) => _playerController.setAudioTrack(idx));
+      'Audio Tracks',
+      tracks,
+      (idx) => _playerController.setAudioTrack(idx),
+    );
   }
 
   void _showAspectRatioMenu() {
     final ratios = ['fit', 'fill', 'stretch', '16:9', '4:3'];
-    _showTrackMenu('Aspect Ratio', ratios.map((e) => e.toUpperCase()).toList(),
-        (idx) {
-      final selected = ratios[idx];
-      UserPreferences.setPlayerAspectRatio(selected);
-      _applyAspectRatio(selected);
-      if (mounted) {
-        setState(() {});
-      }
-    });
+    _showTrackMenu(
+      'Aspect Ratio',
+      ratios.map((e) => e.toUpperCase()).toList(),
+      (idx) {
+        final selected = ratios[idx];
+        UserPreferences.setPlayerAspectRatio(selected);
+        _applyAspectRatio(selected);
+        if (mounted) {
+          setState(() {});
+        }
+      },
+    );
   }
 
   void _showTrackMenu(
-      String title, List<String> items, Function(int) onSelected) {
+    String title,
+    List<String> items,
+    Function(int) onSelected,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A1D29),
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) => SafeArea(
         child: Container(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 16),
               Flexible(
-                  child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: items.length,
-                      itemBuilder: (context, index) => ListTile(
-                          title: Text(items[index],
-                              style: const TextStyle(color: Colors.white)),
-                          onTap: () {
-                            onSelected(index);
-                            Navigator.pop(context);
-                          }))),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  itemBuilder: (context, index) => ListTile(
+                    title: Text(
+                      items[index],
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    onTap: () {
+                      onSelected(index);
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -1143,7 +1275,8 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
       context: context,
       backgroundColor: const Color(0xFF050812),
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       isScrollControlled: true,
       builder: (context) => SafeArea(
         child: Container(
@@ -1151,44 +1284,57 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-              const Text('PROGRAMME GUIDE',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900)),
+              const Text(
+                'PROGRAMME GUIDE',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
               const SizedBox(height: 16),
               Expanded(
                 child: _epgPrograms.isEmpty
                     ? const Center(
-                        child: Text('No EPG Data',
-                            style: TextStyle(color: Colors.white38)))
+                        child: Text(
+                          'No EPG Data',
+                          style: TextStyle(color: Colors.white38),
+                        ),
+                      )
                     : ListView.builder(
                         itemCount: _epgPrograms.length,
                         itemBuilder: (context, i) {
                           final p = _epgPrograms[i];
 
                           return ListTile(
-                            title: Text(p.title,
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold)),
+                            title: Text(
+                              p.title,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             subtitle: Text(
-                                '${DateFormat('HH:mm').format(p.start)} - ${DateFormat('HH:mm').format(p.end)}',
-                                style: const TextStyle(color: Colors.white54)),
+                              '${DateFormat('HH:mm').format(p.start)} - ${DateFormat('HH:mm').format(p.end)}',
+                              style: const TextStyle(color: Colors.white54),
+                            ),
                             trailing: i == 0
                                 ? const Badge(
                                     label: Text('LIVE'),
-                                    backgroundColor: Colors.redAccent)
+                                    backgroundColor: Colors.redAccent,
+                                  )
                                 : (p.start.isBefore(DateTime.now())
-                                    ? IconButton(
-                                        icon: const Icon(Icons.history_rounded,
-                                            color: Color(0xFF00B7FF)),
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                          _playCatchup(p);
-                                        },
-                                      )
-                                    : null),
+                                      ? IconButton(
+                                          icon: const Icon(
+                                            Icons.history_rounded,
+                                            color: Color(0xFF00B7FF),
+                                          ),
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                            _playCatchup(p);
+                                          },
+                                        )
+                                      : null),
                           );
                         },
                       ),
@@ -1216,8 +1362,11 @@ class _ChannelListTile extends StatefulWidget {
   final ContentItem item;
   final bool isPlaying;
   final VoidCallback onTap;
-  const _ChannelListTile(
-      {required this.item, required this.isPlaying, required this.onTap});
+  const _ChannelListTile({
+    required this.item,
+    required this.isPlaying,
+    required this.onTap,
+  });
   @override
   State<_ChannelListTile> createState() => _ChannelListTileState();
 }
@@ -1226,61 +1375,81 @@ class _ChannelListTileState extends State<_ChannelListTile> {
   bool _isFocused = false;
   @override
   Widget build(BuildContext context) => FocusableActionDetector(
-        onFocusChange: (v) => setState(() => _isFocused = v),
-        child: InkWell(
-          onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.only(bottom: 4),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: _isFocused
-                  ? const Color(0xFFC12CFF).withValues(alpha: 0.2)
-                  : (widget.isPlaying
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : Colors.transparent),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: _isFocused
-                      ? const Color(0xFFC12CFF).withValues(alpha: 0.5)
-                      : (widget.isPlaying ? Colors.white10 : Colors.transparent)),
-            ),
-            child: Row(
-              children: [
-                if (widget.item.imagePath.isNotEmpty)
-                  ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: Image.network(widget.item.imagePath,
-                          width: 32,
-                          height: 32,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => const Icon(
-                              Icons.live_tv,
-                              size: 16,
-                              color: Colors.white24)))
-                else
-                  const Icon(Icons.live_tv, size: 16, color: Colors.white24),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: Text(widget.item.name,
-                        style: TextStyle(
-                            color: widget.isPlaying
-                                ? const Color(0xFF00B7FF)
-                                : Colors.white,
-                            fontWeight: widget.isPlaying
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            fontSize: 13),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis)),
-                if (widget.isPlaying)
-                  const Icon(Icons.play_arrow_rounded,
-                      color: Color(0xFF00B7FF), size: 14),
-              ],
-            ),
+    onFocusChange: (v) => setState(() => _isFocused = v),
+    actions: {
+      ActivateIntent: CallbackAction<ActivateIntent>(
+        onInvoke: (_) {
+          widget.onTap();
+          return null;
+        },
+      ),
+    },
+    child: InkWell(
+      onTap: widget.onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: _isFocused
+              ? const Color(0xFFC12CFF).withValues(alpha: 0.2)
+              : (widget.isPlaying
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.transparent),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _isFocused
+                ? const Color(0xFFC12CFF).withValues(alpha: 0.5)
+                : (widget.isPlaying ? Colors.white10 : Colors.transparent),
           ),
         ),
-      );
+        child: Row(
+          children: [
+            if (widget.item.imagePath.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Image.network(
+                  widget.item.imagePath,
+                  width: 32,
+                  height: 32,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.live_tv,
+                    size: 16,
+                    color: Colors.white24,
+                  ),
+                ),
+              )
+            else
+              const Icon(Icons.live_tv, size: 16, color: Colors.white24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                widget.item.name,
+                style: TextStyle(
+                  color: widget.isPlaying
+                      ? const Color(0xFF00B7FF)
+                      : Colors.white,
+                  fontWeight: widget.isPlaying
+                      ? FontWeight.bold
+                      : FontWeight.normal,
+                  fontSize: 13,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (widget.isPlaying)
+              const Icon(
+                Icons.play_arrow_rounded,
+                color: Color(0xFF00B7FF),
+                size: 14,
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _CircleBtn extends StatefulWidget {
@@ -1305,31 +1474,42 @@ class _CircleBtnState extends State<_CircleBtn> {
 
   @override
   Widget build(BuildContext context) => FocusableActionDetector(
-        onFocusChange: (v) => setState(() => _isFocused = v),
-        child: AnimatedScale(
-          scale: _isFocused ? 1.1 : 1.0,
-          duration: const Duration(milliseconds: 200),
-          child: InkWell(
-            onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(widget.size),
-            child: Container(
-              width: widget.size,
-              height: widget.size,
-              decoration: BoxDecoration(
-                color: _isFocused
-                    ? const Color(0xFFC12CFF)
-                    : Colors.white.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-                border: Border.all(
-                    color: _isFocused ? Colors.white : Colors.white10),
-              ),
-              child: Icon(widget.icon,
-                  color: widget.iconColor ?? Colors.white,
-                  size: widget.size * 0.6),
+    onFocusChange: (v) => setState(() => _isFocused = v),
+    actions: {
+      ActivateIntent: CallbackAction<ActivateIntent>(
+        onInvoke: (_) {
+          widget.onTap();
+          return null;
+        },
+      ),
+    },
+    child: AnimatedScale(
+      scale: _isFocused ? 1.1 : 1.0,
+      duration: const Duration(milliseconds: 200),
+      child: InkWell(
+        onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(widget.size),
+        child: Container(
+          width: widget.size,
+          height: widget.size,
+          decoration: BoxDecoration(
+            color: _isFocused
+                ? const Color(0xFFC12CFF)
+                : Colors.white.withValues(alpha: 0.08),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: _isFocused ? Colors.white : Colors.white10,
             ),
           ),
+          child: Icon(
+            widget.icon,
+            color: widget.iconColor ?? Colors.white,
+            size: widget.size * 0.6,
+          ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _LargeControlBtn extends StatefulWidget {
@@ -1337,11 +1517,12 @@ class _LargeControlBtn extends StatefulWidget {
   final VoidCallback onTap;
   final double size;
   final bool isPrimary;
-  const _LargeControlBtn(
-      {required this.icon,
-      required this.onTap,
-      this.size = 64,
-      this.isPrimary = false});
+  const _LargeControlBtn({
+    required this.icon,
+    required this.onTap,
+    this.size = 64,
+    this.isPrimary = false,
+  });
   @override
   State<_LargeControlBtn> createState() => _LargeControlBtnState();
 }
@@ -1350,26 +1531,38 @@ class _LargeControlBtnState extends State<_LargeControlBtn> {
   bool _isFocused = false;
   @override
   Widget build(BuildContext context) => FocusableActionDetector(
-        onFocusChange: (v) => setState(() => _isFocused = v),
-        child: InkWell(
-            onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(widget.size),
-            child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: widget.size,
-                height: widget.size,
-                decoration: BoxDecoration(
-                    color: _isFocused
-                        ? const Color(0xFFC12CFF)
-                        : (widget.isPrimary
-                            ? const Color(0xFFC12CFF).withValues(alpha: 0.2)
-                            : Colors.white10),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: _isFocused ? Colors.white : Colors.white10,
-                        width: 2)),
-                child: Icon(widget.icon, color: Colors.white, size: widget.size * 0.6))),
-      );
+    onFocusChange: (v) => setState(() => _isFocused = v),
+    actions: {
+      ActivateIntent: CallbackAction<ActivateIntent>(
+        onInvoke: (_) {
+          widget.onTap();
+          return null;
+        },
+      ),
+    },
+    child: InkWell(
+      onTap: widget.onTap,
+      borderRadius: BorderRadius.circular(widget.size),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: widget.size,
+        height: widget.size,
+        decoration: BoxDecoration(
+          color: _isFocused
+              ? const Color(0xFFC12CFF)
+              : (widget.isPrimary
+                    ? const Color(0xFFC12CFF).withValues(alpha: 0.2)
+                    : Colors.white10),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: _isFocused ? Colors.white : Colors.white10,
+            width: 2,
+          ),
+        ),
+        child: Icon(widget.icon, color: Colors.white, size: widget.size * 0.6),
+      ),
+    ),
+  );
 }
 
 class _ActionBtn extends StatefulWidget {
@@ -1393,41 +1586,55 @@ class _ActionBtnState extends State<_ActionBtn> {
   bool _isFocused = false;
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: FocusableActionDetector(
-          onFocusChange: (v) => setState(() => _isFocused = v),
-          child: InkWell(
-            onTap: widget.onTap,
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    child: FocusableActionDetector(
+      onFocusChange: (v) => setState(() => _isFocused = v),
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            widget.onTap();
+            return null;
+          },
+        ),
+      },
+      child: InkWell(
+        onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: _isFocused
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color:
-                    _isFocused ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                widget.icon,
+                color: _isFocused
+                    ? const Color(0xFFC12CFF)
+                    : (widget.iconColor ?? Colors.white70),
+                size: 24,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(widget.icon,
-                      color: _isFocused
-                          ? const Color(0xFFC12CFF)
-                          : (widget.iconColor ?? Colors.white70),
-                      size: 24),
-                  const SizedBox(height: 6),
-                  Text(widget.label,
-                      style: TextStyle(
-                          color: _isFocused ? Colors.white : Colors.white54,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5)),
-                ],
+              const SizedBox(height: 6),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  color: _isFocused ? Colors.white : Colors.white54,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                ),
               ),
-            ),
+            ],
           ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _ClockWidget extends StatefulWidget {
@@ -1442,8 +1649,10 @@ class _ClockWidgetState extends State<_ClockWidget> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1),
-        (t) => setState(() => _now = DateTime.now()));
+    _timer = Timer.periodic(
+      const Duration(seconds: 1),
+      (t) => setState(() => _now = DateTime.now()),
+    );
   }
 
   @override
@@ -1453,9 +1662,14 @@ class _ClockWidgetState extends State<_ClockWidget> {
   }
 
   @override
-  Widget build(BuildContext context) => Text(DateFormat('HH:mm').format(_now),
-      style: const TextStyle(
-          color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900));
+  Widget build(BuildContext context) => Text(
+    DateFormat('HH:mm').format(_now),
+    style: const TextStyle(
+      color: Colors.white,
+      fontSize: 16,
+      fontWeight: FontWeight.w900,
+    ),
+  );
 }
 
 class _ShowControlsIntent extends Intent {

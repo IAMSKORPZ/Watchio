@@ -778,99 +778,235 @@ class _XTextFieldState extends State<_XTextField> {
     }
   }
 
+  Future<void> _openEditor() async {
+    widget.focusNode.requestFocus();
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => _TextEntryDialog(
+        title: widget.label,
+        controller: widget.controller,
+        textInputAction: widget.textInputAction,
+      ),
+    );
+    if (!mounted) return;
+    widget.focusNode.requestFocus();
+    if (result != null) {
+      widget.onSubmitted?.call(result);
+    }
+  }
+
+  String get _displayText {
+    final text = widget.controller.text;
+    if (text.isEmpty) return widget.hint ?? widget.label;
+    return text;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      canRequestFocus: false,
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            (event.logicalKey == LogicalKeyboardKey.select ||
-                event.logicalKey == LogicalKeyboardKey.enter ||
-                event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
-          widget.focusNode.requestFocus();
-          SystemChannels.textInput.invokeMethod<void>('TextInput.show');
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
+    return FocusableActionDetector(
+      focusNode: widget.focusNode,
+      onFocusChange: (value) => setState(() => _isFocused = value),
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            _openEditor();
+            return null;
+          },
+        ),
       },
-      child: AnimatedScale(
-        scale: _isFocused ? 1.01 : 1.0,
-        duration: const Duration(milliseconds: 200),
-        child: AnimatedContainer(
+      child: GestureDetector(
+        onTap: _openEditor,
+        child: AnimatedScale(
+          scale: _isFocused ? 1.01 : 1.0,
           duration: const Duration(milliseconds: 200),
-          height: widget.height,
-          decoration: BoxDecoration(
-            color: const Color(0xFF0F1423).withValues(alpha: 0.75),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: _isFocused
-                  ? Colors.transparent
-                  : const Color(0xFF00B7FF).withValues(alpha: 0.3),
-              width: _isFocused ? 0 : 1,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: widget.height,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F1423).withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: _isFocused
+                    ? Colors.transparent
+                    : const Color(0xFF00B7FF).withValues(alpha: 0.3),
+                width: _isFocused ? 0 : 1,
+              ),
+              boxShadow: _isFocused
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                      ),
+                      BoxShadow(
+                        color: const Color(0xFF00B7FF).withValues(alpha: 0.2),
+                        blurRadius: 25,
+                        spreadRadius: 4,
+                      ),
+                    ]
+                  : [],
             ),
-            boxShadow: _isFocused
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
-                      blurRadius: 15,
-                      spreadRadius: 2,
-                    ),
-                    BoxShadow(
-                      color: const Color(0xFF00B7FF).withValues(alpha: 0.2),
-                      blurRadius: 25,
-                      spreadRadius: 4,
-                    ),
-                  ]
-                : [],
-          ),
-          child: Container(
-            decoration: _isFocused
-                ? BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
-                    border: const Border.fromBorderSide(
-                      BorderSide(width: 3.0, color: Colors.transparent),
-                    ),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
-                    ),
-                  )
-                : null,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
               decoration: _isFocused
                   ? BoxDecoration(
-                      color: const Color(0xFF0F1423),
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: BorderRadius.circular(18),
+                      border: const Border.fromBorderSide(
+                        BorderSide(width: 3.0, color: Colors.transparent),
+                      ),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
+                      ),
                     )
                   : null,
-              child: Center(
-                child: TextFormField(
-                  controller: widget.controller,
-                  focusNode: widget.focusNode,
-                  textInputAction: widget.textInputAction,
-                  onFieldSubmitted: widget.onSubmitted,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    border: InputBorder.none,
-                    icon: Icon(
-                      widget.icon,
-                      color: const Color(0xFFC12CFF),
-                      size: 22,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                decoration: _isFocused
+                    ? BoxDecoration(
+                        color: const Color(0xFF0F1423),
+                        borderRadius: BorderRadius.circular(15),
+                      )
+                    : null,
+                child: Row(
+                  children: [
+                    Icon(widget.icon, color: const Color(0xFFC12CFF), size: 22),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        _displayText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: widget.controller.text.isEmpty
+                              ? Colors.white.withValues(alpha: 0.45)
+                              : Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
-                    hintText: widget.label,
-                    hintStyle: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.4),
-                      fontSize: 15,
+                    const Icon(
+                      Icons.edit_rounded,
+                      color: Colors.white38,
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TextEntryDialog extends StatefulWidget {
+  final String title;
+  final TextEditingController controller;
+  final TextInputAction textInputAction;
+
+  const _TextEntryDialog({
+    required this.title,
+    required this.controller,
+    required this.textInputAction,
+  });
+
+  @override
+  State<_TextEntryDialog> createState() => _TextEntryDialogState();
+}
+
+class _TextEntryDialogState extends State<_TextEntryDialog> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.controller.text);
+    _focusNode = FocusNode();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _focusNode.requestFocus();
+      _controller.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _controller.text.length,
+      );
+      SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    widget.controller.text = _controller.text;
+    Navigator.of(context).pop(_controller.text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF111827),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 620),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 18),
+              TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                autofocus: true,
+                keyboardType: TextInputType.text,
+                textInputAction: widget.textInputAction,
+                onSubmitted: (_) => _save(),
+                style: const TextStyle(color: Colors.white, fontSize: 20),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: const Color(0xFF0F1423),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: Color(0xFFC12CFF)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFC12CFF),
+                      width: 2,
                     ),
                   ),
                 ),
               ),
-            ),
+              const SizedBox(height: 22),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('CANCEL'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(onPressed: _save, child: const Text('DONE')),
+                ],
+              ),
+            ],
           ),
         ),
       ),

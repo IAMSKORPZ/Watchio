@@ -20,6 +20,21 @@
 - `flutter analyze` - Run static analysis
 - `flutter format .` - Format all Dart files
 
+## Git Workflow
+- Long-lived branches:
+  - `dev` - Active development branch.
+  - `main` - Stable production branch.
+- Commit and push development work to `dev` by default.
+- Do not push minor fixes, experiments, refactors, or work-in-progress features directly to `main`.
+- Promote `dev` to `main` only after a major milestone is complete, tested, and verified.
+- Before promoting to `main`:
+  - `flutter analyze` must report no errors.
+  - The app must build successfully.
+  - The completed feature must work end-to-end.
+  - Relevant documentation must be updated.
+  - Use a clear milestone commit message.
+  - Merge or open a PR from `dev` to `main` only after all checks pass.
+
 ## Code Style Guidelines
 - Follow Flutter/Dart official conventions using flutter_lints
 - Use camelCase for variables/functions, PascalCase for classes/types

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/firestick_performance.dart';
 
 class TvFocusable extends StatefulWidget {
   final Widget child;
@@ -46,11 +47,11 @@ class _TvFocusableState extends State<TvFocusable> {
             ),
           },
           child: AnimatedScale(
-            scale: _focused ? 1.045 : 1,
-            duration: const Duration(milliseconds: 120),
+            scale: _focused ? perfScale(1.045) : 1,
+            duration: perfDuration(const Duration(milliseconds: 120)),
             curve: Curves.easeOut,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
+              duration: perfDuration(const Duration(milliseconds: 120)),
               curve: Curves.easeOut,
               decoration: BoxDecoration(
                 borderRadius: widget.borderRadius,
@@ -58,7 +59,9 @@ class _TvFocusableState extends State<TvFocusable> {
                   color: _focused ? colorScheme.primary : Colors.transparent,
                   width: 2,
                 ),
-                boxShadow: _focused
+                boxShadow: firestickPerformanceMode
+                    ? null
+                    : _focused
                     ? [
                         BoxShadow(
                           color: colorScheme.primary.withValues(alpha: 0.35),

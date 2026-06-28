@@ -17,7 +17,8 @@ class LocalMediaLibraryScreen extends StatefulWidget {
   const LocalMediaLibraryScreen({super.key});
 
   @override
-  State<LocalMediaLibraryScreen> createState() => _LocalMediaLibraryScreenState();
+  State<LocalMediaLibraryScreen> createState() =>
+      _LocalMediaLibraryScreenState();
 }
 
 class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
@@ -25,7 +26,7 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
   List<File> _recentMedia = [];
   final double _usedStorage = 128.0; // Mocked
   final double _totalStorage = 256.0; // Mocked
-  
+
   @override
   void initState() {
     super.initState();
@@ -62,7 +63,7 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
 
     try {
       final List<Directory> searchDirs = [];
-      
+
       if (Platform.isAndroid) {
         final List<String> commonPaths = [
           '/storage/emulated/0/Download',
@@ -88,7 +89,19 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
           for (var entity in entities) {
             if (entity is File) {
               final ext = entity.path.split('.').last.toLowerCase();
-              if (['mp4', 'mkv', 'mov', 'avi', 'webm', 'mp3', 'flac', 'wav', 'jpg', 'png', 'webp'].contains(ext)) {
+              if ([
+                'mp4',
+                'mkv',
+                'mov',
+                'avi',
+                'webm',
+                'mp3',
+                'flac',
+                'wav',
+                'jpg',
+                'png',
+                'webp',
+              ].contains(ext)) {
                 discovered.add(entity);
               }
             }
@@ -99,8 +112,10 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
       }
 
       // Sort by modified date
-      discovered.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
-      
+      discovered.sort(
+        (a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()),
+      );
+
       if (mounted) {
         setState(() {
           _recentMedia = discovered.take(10).toList();
@@ -122,23 +137,20 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
   void _playFile(File file) {
     final ext = file.path.split('.').last.toLowerCase();
     final String fileName = file.path.split(Platform.pathSeparator).last;
-    
+
     ContentType contentType;
     if (['mp4', 'mkv', 'mov', 'avi', 'webm'].contains(ext)) {
       contentType = ContentType.vod;
     } else if (['mp3', 'flac', 'wav', 'aac', 'ogg'].contains(ext)) {
-      contentType = ContentType.vod; 
+      contentType = ContentType.vod;
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Opening $fileName')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Opening $fileName')));
       return;
     }
 
-    final contentItem = ContentItem(
-      file.path,
-      fileName,
-      '',
-      contentType,
-    );
+    final contentItem = ContentItem(file.path, fileName, '', contentType);
 
     Navigator.push(
       context,
@@ -184,7 +196,8 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
                 image: DecorationImage(
                   image: loginBg.isNotEmpty
                       ? NetworkImage(loginBg)
-                      : const AssetImage('assets/images/background.png') as ImageProvider,
+                      : const AssetImage('assets/images/background.png')
+                            as ImageProvider,
                   fit: BoxFit.cover,
                   colorFilter: ColorFilter.mode(
                     Colors.black.withValues(alpha: 0.5),
@@ -210,12 +223,16 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(0xFFC12CFF).withValues(alpha: 0.1),
+                                        color: const Color(
+                                          0xFFC12CFF,
+                                        ).withValues(alpha: 0.1),
                                         blurRadius: 35,
                                         spreadRadius: 12,
                                       ),
                                       BoxShadow(
-                                        color: const Color(0xFF00B7FF).withValues(alpha: 0.08),
+                                        color: const Color(
+                                          0xFF00B7FF,
+                                        ).withValues(alpha: 0.08),
                                         blurRadius: 30,
                                         spreadRadius: 6,
                                       ),
@@ -225,8 +242,12 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
                                     'assets/images/logo.png',
                                     width: logoWidth,
                                     fit: BoxFit.contain,
-                                    errorBuilder: (context, error, stackTrace) => 
-                                      Icon(Icons.play_arrow_rounded, color: const Color(0xFF00B7FF), size: logoWidth * 0.4),
+                                    errorBuilder:
+                                        (context, error, stackTrace) => Icon(
+                                          Icons.play_arrow_rounded,
+                                          color: const Color(0xFF00B7FF),
+                                          size: logoWidth * 0.4,
+                                        ),
                                   ),
                                 ),
                                 const SizedBox(height: 20),
@@ -248,12 +269,17 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
                           ),
                         ),
                       ),
-                    
+
                     // Scrollable Right Panel
                     Expanded(
                       flex: 7,
                       child: Padding(
-                        padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 24, 24, 16),
+                        padding: EdgeInsets.fromLTRB(
+                          isMobile ? 16 : 24,
+                          24,
+                          24,
+                          16,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -274,7 +300,7 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
                               ],
                             ),
                             const SizedBox(height: 24),
-                            
+
                             // Scrollable content area
                             Expanded(
                               child: SingleChildScrollView(
@@ -284,15 +310,23 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
                                   children: [
                                     if (_isScanning)
                                       Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 60),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 60,
+                                        ),
                                         child: Center(
                                           child: Column(
                                             children: [
-                                              const CircularProgressIndicator(color: Color(0xFF00B7FF)),
+                                              const CircularProgressIndicator(
+                                                color: Color(0xFF00B7FF),
+                                              ),
                                               const SizedBox(height: 24),
                                               const Text(
                                                 'SCANNING FOR MEDIA...',
-                                                style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                                                style: TextStyle(
+                                                  color: Colors.white70,
+                                                  fontWeight: FontWeight.bold,
+                                                  letterSpacing: 1.2,
+                                                ),
                                               ),
                                             ],
                                           ),
@@ -300,8 +334,12 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
                                       )
                                     else if (_recentMedia.isEmpty)
                                       Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 40),
-                                        child: _EmptyLibraryPlaceholder(onScan: _scanStorage),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 40,
+                                        ),
+                                        child: _EmptyLibraryPlaceholder(
+                                          onScan: _scanStorage,
+                                        ),
                                       )
                                     else ...[
                                       // Category Cards
@@ -312,40 +350,65 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
                                             Expanded(
                                               child: _CategoryCard(
                                                 title: 'VIDEOS',
-                                                subtitle: 'Movies, TV Shows, Home Videos',
-                                                icon: Icons.video_library_rounded,
-                                                gradient: const [Color(0xFF00B7FF), Color(0xFF0066FF)],
-                                                onTap: () => _openFilePicker(FileType.video),
+                                                subtitle:
+                                                    'Movies, TV Shows, Home Videos',
+                                                icon:
+                                                    Icons.video_library_rounded,
+                                                gradient: const [
+                                                  Color(0xFF00B7FF),
+                                                  Color(0xFF0066FF),
+                                                ],
+                                                onTap: () => _openFilePicker(
+                                                  FileType.video,
+                                                ),
                                               ),
                                             ),
                                             const SizedBox(width: 12),
                                             Expanded(
                                               child: _CategoryCard(
                                                 title: 'MUSIC',
-                                                subtitle: 'Albums, Artists, Playlists',
+                                                subtitle:
+                                                    'Albums, Artists, Playlists',
                                                 icon: Icons.music_note_rounded,
-                                                gradient: const [Color(0xFFC12CFF), Color(0xFF8A00FF)],
-                                                onTap: () => _openFilePicker(FileType.audio),
+                                                gradient: const [
+                                                  Color(0xFFC12CFF),
+                                                  Color(0xFF8A00FF),
+                                                ],
+                                                onTap: () => _openFilePicker(
+                                                  FileType.audio,
+                                                ),
                                               ),
                                             ),
                                             const SizedBox(width: 12),
                                             Expanded(
                                               child: _CategoryCard(
                                                 title: 'PHOTOS',
-                                                subtitle: 'Pictures, Screenshots, Camera',
+                                                subtitle:
+                                                    'Pictures, Screenshots, Camera',
                                                 icon: Icons.image_rounded,
-                                                gradient: const [Color(0xFFFF2D55), Color(0xFFFF3B30)],
-                                                onTap: () => _openFilePicker(FileType.image),
+                                                gradient: const [
+                                                  Color(0xFFFF2D55),
+                                                  Color(0xFFFF3B30),
+                                                ],
+                                                onTap: () => _openFilePicker(
+                                                  FileType.image,
+                                                ),
                                               ),
                                             ),
                                             const SizedBox(width: 12),
                                             Expanded(
                                               child: _CategoryCard(
                                                 title: 'FOLDERS',
-                                                subtitle: 'Browse Device Storage',
+                                                subtitle:
+                                                    'Browse Device Storage',
                                                 icon: Icons.folder_rounded,
-                                                gradient: const [Color(0xFF4CD964), Color(0xFF28CD41)],
-                                                onTap: () => _openFilePicker(FileType.any),
+                                                gradient: const [
+                                                  Color(0xFF4CD964),
+                                                  Color(0xFF28CD41),
+                                                ],
+                                                onTap: () => _openFilePicker(
+                                                  FileType.any,
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -367,7 +430,8 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
                                         child: ListView.separated(
                                           scrollDirection: Axis.horizontal,
                                           itemCount: _recentMedia.length,
-                                          separatorBuilder: (_, _) => const SizedBox(width: 16),
+                                          separatorBuilder: (_, _) =>
+                                              const SizedBox(width: 16),
                                           itemBuilder: (context, index) {
                                             final file = _recentMedia[index];
                                             return _RecentMediaCard(
@@ -379,9 +443,12 @@ class _LocalMediaLibraryScreenState extends State<LocalMediaLibraryScreen> {
                                       ),
                                       const SizedBox(height: 32),
                                     ],
-                                    
+
                                     // Storage Panel (Stays at bottom of scroll content)
-                                    _StoragePanel(used: _usedStorage, total: _totalStorage),
+                                    _StoragePanel(
+                                      used: _usedStorage,
+                                      total: _totalStorage,
+                                    ),
                                     const SizedBox(height: 24),
                                   ],
                                 ),
@@ -417,20 +484,35 @@ class _EmptyLibraryPlaceholder extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFF0F1423).withValues(alpha: 0.5),
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF00B7FF).withValues(alpha: 0.2)),
+              border: Border.all(
+                color: const Color(0xFF00B7FF).withValues(alpha: 0.2),
+              ),
             ),
-            child: Icon(Icons.auto_awesome_motion_rounded, size: 64, color: const Color(0xFF00B7FF).withValues(alpha: 0.4)),
+            child: Icon(
+              Icons.auto_awesome_motion_rounded,
+              size: 64,
+              color: const Color(0xFF00B7FF).withValues(alpha: 0.4),
+            ),
           ),
           const SizedBox(height: 24),
           const Text(
             'No Media Found',
-            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.0,
+            ),
           ),
           const SizedBox(height: 8),
           const Text(
             'Scan your device storage to build your media library.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white38, fontSize: 14, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: Colors.white38,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 32),
           SizedBox(
@@ -478,11 +560,19 @@ class _HeaderClockState extends State<_HeaderClock> {
       children: [
         Text(
           DateFormat('hh:mm a').format(_now),
-          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         Text(
           DateFormat('MMM d, yyyy').format(_now),
-          style: const TextStyle(color: Color(0xFFC12CFF), fontSize: 13, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Color(0xFFC12CFF),
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
@@ -520,7 +610,9 @@ class _CategoryCardState extends State<_CategoryCard> {
         SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
       },
       actions: {
-        ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => widget.onTap()),
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onTap(),
+        ),
       },
       child: GestureDetector(
         onTap: widget.onTap,
@@ -536,12 +628,14 @@ class _CategoryCardState extends State<_CategoryCard> {
                 color: _isFocused ? const Color(0xFF00B7FF) : Colors.white10,
                 width: _isFocused ? 2.5 : 1,
               ),
-              boxShadow: _isFocused ? [
-                BoxShadow(
-                  color: const Color(0xFF00B7FF).withValues(alpha: 0.3),
-                  blurRadius: 20,
-                )
-              ] : [],
+              boxShadow: _isFocused
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF00B7FF).withValues(alpha: 0.3),
+                        blurRadius: 20,
+                      ),
+                    ]
+                  : [],
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -557,7 +651,11 @@ class _CategoryCardState extends State<_CategoryCard> {
                 const SizedBox(height: 12),
                 Text(
                   widget.title,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -565,7 +663,11 @@ class _CategoryCardState extends State<_CategoryCard> {
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                    color: Colors.white38,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -593,12 +695,17 @@ class _RecentMediaCardState extends State<_RecentMediaCard> {
     final String fileName = widget.file.path.split(Platform.pathSeparator).last;
     final String extension = fileName.split('.').last.toUpperCase();
     final int sizeBytes = widget.file.lengthSync();
-    final String sizeStr = '${(sizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    final String sizeStr =
+        '${(sizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
 
     IconData typeIcon = Icons.insert_drive_file_rounded;
     bool isImage = false;
-    if (['MP4', 'MKV', 'MOV', 'AVI', 'WEBM'].contains(extension)) typeIcon = Icons.play_circle_fill_rounded;
-    if (['MP3', 'FLAC', 'WAV'].contains(extension)) typeIcon = Icons.music_note_rounded;
+    if (['MP4', 'MKV', 'MOV', 'AVI', 'WEBM'].contains(extension)) {
+      typeIcon = Icons.play_circle_fill_rounded;
+    }
+    if (['MP3', 'FLAC', 'WAV'].contains(extension)) {
+      typeIcon = Icons.music_note_rounded;
+    }
     if (['JPG', 'PNG', 'WEBP'].contains(extension)) {
       typeIcon = Icons.image_rounded;
       isImage = true;
@@ -611,7 +718,9 @@ class _RecentMediaCardState extends State<_RecentMediaCard> {
         SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
       },
       actions: {
-        ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => widget.onTap()),
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onTap(),
+        ),
       },
       child: GestureDetector(
         onTap: widget.onTap,
@@ -621,12 +730,23 @@ class _RecentMediaCardState extends State<_RecentMediaCard> {
           child: Container(
             width: 240,
             decoration: BoxDecoration(
-              color: const Color(0xFF0F1423).withValues(alpha: 0.7),
+              color: _isFocused
+                  ? const Color(0xFF25113D).withValues(alpha: 0.95)
+                  : const Color(0xFF0F1423).withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: _isFocused ? const Color(0xFFC12CFF) : Colors.white10,
-                width: _isFocused ? 2.5 : 1,
+                color: _isFocused ? const Color(0xFF00B7FF) : Colors.white10,
+                width: _isFocused ? 4 : 1,
               ),
+              boxShadow: _isFocused
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFFC12CFF).withValues(alpha: 0.5),
+                        blurRadius: 18,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                  : null,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -635,15 +755,34 @@ class _RecentMediaCardState extends State<_RecentMediaCard> {
                   child: Stack(
                     children: [
                       ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
                         child: Container(
                           width: double.infinity,
-                          decoration: const BoxDecoration(color: Colors.black26),
-                          child: isImage 
-                            ? Image.file(widget.file, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Icon(typeIcon, size: 48, color: Colors.white10))
-                            : Center(
-                                child: Icon(typeIcon, size: 48, color: const Color(0xFFC12CFF).withValues(alpha: 0.5)),
-                              ),
+                          decoration: const BoxDecoration(
+                            color: Colors.black26,
+                          ),
+                          child: isImage
+                              ? Image.file(
+                                  widget.file,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Icon(
+                                        typeIcon,
+                                        size: 48,
+                                        color: Colors.white10,
+                                      ),
+                                )
+                              : Center(
+                                  child: Icon(
+                                    typeIcon,
+                                    size: 48,
+                                    color: const Color(
+                                      0xFFC12CFF,
+                                    ).withValues(alpha: 0.5),
+                                  ),
+                                ),
                         ),
                       ),
                       if (!isImage)
@@ -652,8 +791,38 @@ class _RecentMediaCardState extends State<_RecentMediaCard> {
                           bottom: 10,
                           child: Container(
                             padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle),
-                            child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+                            decoration: const BoxDecoration(
+                              color: Colors.black45,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.play_arrow_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      if (_isFocused)
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFC12CFF),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: const Text(
+                              'SELECTED',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
                           ),
                         ),
                     ],
@@ -668,21 +837,39 @@ class _RecentMediaCardState extends State<_RecentMediaCard> {
                         fileName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
                           Text(
                             sizeStr,
-                            style: const TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              color: Colors.white38,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(width: 6),
-                          const Text('•', style: TextStyle(color: Colors.white10, fontSize: 11)),
+                          const Text(
+                            '•',
+                            style: TextStyle(
+                              color: Colors.white10,
+                              fontSize: 11,
+                            ),
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             extension,
-                            style: const TextStyle(color: Color(0xFF00B7FF), fontSize: 10, fontWeight: FontWeight.w900),
+                            style: const TextStyle(
+                              color: Color(0xFF00B7FF),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ],
                       ),
@@ -716,11 +903,20 @@ class _StoragePanel extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.folder_open_rounded, color: Color(0xFFC12CFF), size: 24),
+          const Icon(
+            Icons.folder_open_rounded,
+            color: Color(0xFFC12CFF),
+            size: 24,
+          ),
           const SizedBox(width: 16),
           const Text(
             'INTERNAL STORAGE',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.5),
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 14,
+              letterSpacing: 0.5,
+            ),
           ),
           const SizedBox(width: 24),
           Expanded(
@@ -735,7 +931,9 @@ class _StoragePanel extends StatelessWidget {
                 widthFactor: percent,
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)]),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
+                    ),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -745,10 +943,18 @@ class _StoragePanel extends StatelessWidget {
           const SizedBox(width: 24),
           Text(
             '${used.toInt()} GB / ${total.toInt()} GB',
-            style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 13),
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(width: 12),
-          const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: Colors.white24,
+            size: 16,
+          ),
         ],
       ),
     );
@@ -788,7 +994,9 @@ class _SideButtonState extends State<_SideButton> {
         SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
       },
       actions: {
-        ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => widget.onTap()),
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onTap(),
+        ),
       },
       child: GestureDetector(
         onTap: widget.onTap,
@@ -802,31 +1010,39 @@ class _SideButtonState extends State<_SideButton> {
             width: double.infinity,
             height: widget.height,
             decoration: BoxDecoration(
-              color: _isActive ? Colors.white.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.05),
+              color: _isActive
+                  ? Colors.white.withValues(alpha: 0.15)
+                  : Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: _isActive ? const Color(0xFF00B7FF) : Colors.white10,
                 width: _isActive ? 3.0 : 1,
               ),
-              boxShadow: _isActive ? [
-                BoxShadow(
-                  color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
-                  blurRadius: 24,
-                  spreadRadius: 2,
-                ),
-                BoxShadow(
-                  color: const Color(0xFF00B7FF).withValues(alpha: 0.3),
-                  blurRadius: 18,
-                  spreadRadius: 1,
-                )
-              ] : [],
+              boxShadow: _isActive
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
+                        blurRadius: 24,
+                        spreadRadius: 2,
+                      ),
+                      BoxShadow(
+                        color: const Color(0xFF00B7FF).withValues(alpha: 0.3),
+                        blurRadius: 18,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : [],
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(widget.icon, color: _isActive ? const Color(0xFF00B7FF) : Colors.white70, size: 24),
+                Icon(
+                  widget.icon,
+                  color: _isActive ? const Color(0xFF00B7FF) : Colors.white70,
+                  size: 24,
+                ),
                 const SizedBox(width: 12),
                 Flexible(
                   child: FittedBox(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../utils/firestick_performance.dart';
 
 class FocusWrapper extends StatefulWidget {
   final Widget child;
@@ -38,10 +39,10 @@ class _FocusWrapperState extends State<FocusWrapper> {
         });
       },
       onKeyEvent: (node, event) {
-        if (event is KeyDownEvent && 
-            (event.logicalKey == LogicalKeyboardKey.enter || 
-             event.logicalKey == LogicalKeyboardKey.select ||
-             event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.enter ||
+                event.logicalKey == LogicalKeyboardKey.select ||
+                event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
           widget.onPressed?.call();
           return KeyEventResult.handled;
         }
@@ -50,14 +51,16 @@ class _FocusWrapperState extends State<FocusWrapper> {
       child: GestureDetector(
         onTap: widget.onPressed,
         child: AnimatedScale(
-          scale: _isFocused ? widget.scale : 1.0,
-          duration: const Duration(milliseconds: 200),
+          scale: _isFocused ? perfScale(widget.scale) : 1.0,
+          duration: perfDuration(const Duration(milliseconds: 200)),
           curve: Curves.easeInOut,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+            duration: perfDuration(const Duration(milliseconds: 200)),
             decoration: BoxDecoration(
               borderRadius: widget.borderRadius,
-              boxShadow: _isFocused && widget.showGlow
+              boxShadow: firestickPerformanceMode
+                  ? null
+                  : _isFocused && widget.showGlow
                   ? [
                       BoxShadow(
                         color: colorScheme.primary.withValues(alpha: 0.4),

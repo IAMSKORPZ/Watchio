@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../utils/responsive_helper.dart';
+import '../../../utils/firestick_performance.dart';
 import '../../../core/theme/theme_extensions.dart';
 
 class HomeBottomButton extends StatefulWidget {
@@ -38,8 +39,8 @@ class _HomeBottomButtonState extends State<HomeBottomButton> {
     return FocusableActionDetector(
       onFocusChange: (val) => setState(() => _isFocused = val),
       child: AnimatedScale(
-        scale: _isFocused ? 1.05 : 1.0,
-        duration: const Duration(milliseconds: 200),
+        scale: _isFocused ? perfScale(1.05) : 1.0,
+        duration: perfDuration(const Duration(milliseconds: 200)),
         curve: Curves.easeOutCubic,
         child: InkWell(
           onTap: widget.onTap,
@@ -57,7 +58,9 @@ class _HomeBottomButtonState extends State<HomeBottomButton> {
                     : Colors.transparent, // No colored borders in normal state
                 width: 2.0,
               ),
-              boxShadow: _isFocused
+              boxShadow: firestickPerformanceMode
+                  ? null
+                  : _isFocused
                   ? [
                       BoxShadow(
                         color: widget.accentColor.withValues(alpha: 0.4),
@@ -70,7 +73,10 @@ class _HomeBottomButtonState extends State<HomeBottomButton> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                filter: ImageFilter.blur(
+                  sigmaX: perfBlur(10),
+                  sigmaY: perfBlur(10),
+                ),
                 child: Container(
                   // Ensure inner container also expands
                   width: double.infinity,

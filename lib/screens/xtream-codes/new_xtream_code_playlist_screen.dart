@@ -48,11 +48,7 @@ class NewXtreamCodePlaylistScreenState
     _passwordController.addListener(_validateForm);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _playlistFocus.requestFocus();
-        _nameController.selection = TextSelection(
-          baseOffset: 0,
-          extentOffset: _nameController.text.length,
-        );
+        FocusScope.of(context).requestFocus(_usernameFocus);
       }
     });
   }
@@ -286,82 +282,97 @@ class NewXtreamCodePlaylistScreenState
                                         ),
                                       ),
                                       SizedBox(height: spacing),
-                                      _XTextField(
-                                        controller: _nameController,
-                                        focusNode: _playlistFocus,
-                                        label: 'Playlist Name',
-                                        icon: Icons.list_rounded,
-                                        height: fieldHeight,
-                                        textInputAction: TextInputAction.next,
-                                        onSubmitted: (_) {
-                                          if (mounted) {
-                                            FocusScope.of(
-                                              context,
-                                            ).requestFocus(_usernameFocus);
-                                          }
-                                        },
-                                      ),
-                                      SizedBox(height: spacing),
-                                      _XTextField(
-                                        controller: _usernameController,
-                                        focusNode: _usernameFocus,
-                                        label: 'Username',
-                                        icon: Icons.person_outline_rounded,
-                                        height: fieldHeight,
-                                        textInputAction: TextInputAction.next,
-                                        onSubmitted: (_) {
-                                          if (mounted) {
-                                            FocusScope.of(
-                                              context,
-                                            ).requestFocus(_passwordFocus);
-                                          }
-                                        },
-                                      ),
-                                      SizedBox(height: spacing),
-                                      _XTextField(
-                                        controller: _passwordController,
-                                        focusNode: _passwordFocus,
-                                        label: 'Password',
-                                        icon: Icons.lock_outline_rounded,
-                                        isPassword: true,
-                                        obscure: _obscurePassword,
-                                        height: fieldHeight,
-                                        textInputAction: TextInputAction.next,
-                                        onSubmitted: (_) {
-                                          if (mounted) {
-                                            FocusScope.of(
-                                              context,
-                                            ).requestFocus(_urlFocus);
-                                          }
-                                        },
-                                        onToggleObscure: () => setState(
-                                          () => _obscurePassword =
-                                              !_obscurePassword,
+                                      FocusTraversalOrder(
+                                        order: const NumericFocusOrder(1),
+                                        child: _XTextField(
+                                          controller: _nameController,
+                                          focusNode: _playlistFocus,
+                                          label: 'Playlist Name',
+                                          icon: Icons.list_rounded,
+                                          height: fieldHeight,
+                                          textInputAction: TextInputAction.next,
+                                          onSubmitted: (_) {
+                                            if (mounted) {
+                                              FocusScope.of(
+                                                context,
+                                              ).requestFocus(_usernameFocus);
+                                            }
+                                          },
                                         ),
                                       ),
                                       SizedBox(height: spacing),
-                                      _XTextField(
-                                        controller: _urlController,
-                                        focusNode: _urlFocus,
-                                        label: 'http://url_here.com:port',
-                                        icon: Icons.link_rounded,
-                                        height: fieldHeight,
-                                        hint: 'http://example.com:8080',
-                                        textInputAction: TextInputAction.done,
-                                        onSubmitted: (_) {
-                                          if (mounted) _savePlaylist();
-                                        },
+                                      FocusTraversalOrder(
+                                        order: const NumericFocusOrder(2),
+                                        child: _XTextField(
+                                          controller: _usernameController,
+                                          focusNode: _usernameFocus,
+                                          label: 'Username',
+                                          icon: Icons.person_outline_rounded,
+                                          height: fieldHeight,
+                                          textInputAction: TextInputAction.next,
+                                          onSubmitted: (_) {
+                                            if (mounted) {
+                                              FocusScope.of(
+                                                context,
+                                              ).requestFocus(_passwordFocus);
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                      SizedBox(height: spacing),
+                                      FocusTraversalOrder(
+                                        order: const NumericFocusOrder(3),
+                                        child: _XTextField(
+                                          controller: _passwordController,
+                                          focusNode: _passwordFocus,
+                                          label: 'Password',
+                                          icon: Icons.lock_outline_rounded,
+                                          isPassword: true,
+                                          obscure: _obscurePassword,
+                                          height: fieldHeight,
+                                          textInputAction: TextInputAction.next,
+                                          onSubmitted: (_) {
+                                            if (mounted) {
+                                              FocusScope.of(
+                                                context,
+                                              ).requestFocus(_urlFocus);
+                                            }
+                                          },
+                                          onToggleObscure: () => setState(
+                                            () => _obscurePassword =
+                                                !_obscurePassword,
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(height: spacing),
+                                      FocusTraversalOrder(
+                                        order: const NumericFocusOrder(4),
+                                        child: _XTextField(
+                                          controller: _urlController,
+                                          focusNode: _urlFocus,
+                                          label: 'http://url_here.com:port',
+                                          icon: Icons.link_rounded,
+                                          height: fieldHeight,
+                                          hint: 'http://example.com:8080',
+                                          textInputAction: TextInputAction.done,
+                                          onSubmitted: (_) {
+                                            if (mounted) _savePlaylist();
+                                          },
+                                        ),
                                       ),
                                       const SizedBox(height: 12),
-                                      _AddPlaylistButton(
-                                        focusNode: _submitFocus,
-                                        isLoading: controller.isLoading,
-                                        height: buttonHeight,
-                                        onTap: controller.isLoading
-                                            ? null
-                                            : (_isFormValid
-                                                  ? _savePlaylist
-                                                  : null),
+                                      FocusTraversalOrder(
+                                        order: const NumericFocusOrder(5),
+                                        child: _AddPlaylistButton(
+                                          focusNode: _submitFocus,
+                                          isLoading: controller.isLoading,
+                                          height: buttonHeight,
+                                          onTap: controller.isLoading
+                                              ? null
+                                              : (_isFormValid
+                                                    ? _savePlaylist
+                                                    : null),
+                                        ),
                                       ),
                                       if (isMobile) ...[
                                         const SizedBox(height: 12),
@@ -622,47 +633,69 @@ class _XTextFieldState extends State<_XTextField> {
     }
   }
 
-  void _openKeyboard() {
+  Future<void> _openEditor() async {
     widget.focusNode.requestFocus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && widget.focusNode.hasFocus) {
-        SystemChannels.textInput.invokeMethod<void>('TextInput.show');
-      }
-    });
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => _TextEntryDialog(
+        title: widget.label,
+        controller: widget.controller,
+        obscure: widget.obscure,
+        isPassword: widget.isPassword,
+        textInputAction: widget.textInputAction,
+      ),
+    );
+    if (!mounted) return;
+    widget.focusNode.requestFocus();
+    if (result != null && widget.textInputAction == TextInputAction.next) {
+      widget.onSubmitted?.call(result);
+    } else if (result != null &&
+        widget.textInputAction == TextInputAction.done) {
+      widget.onSubmitted?.call(result);
+    }
+  }
+
+  String get _displayText {
+    final text = widget.controller.text;
+    if (text.isEmpty) return widget.hint ?? widget.label;
+    if (widget.obscure) return '•' * text.length;
+    return text;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Shortcuts(
-      shortcuts: const <ShortcutActivator, Intent>{
-        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
-        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
-        SingleActivator(LogicalKeyboardKey.numpadEnter): ActivateIntent(),
+    return FocusableActionDetector(
+      focusNode: widget.focusNode,
+      onFocusChange: (value) => setState(() => _isFocused = value),
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            _openEditor();
+            return null;
+          },
+        ),
       },
-      child: Actions(
-        actions: <Type, Action<Intent>>{
-          ActivateIntent: CallbackAction<ActivateIntent>(
-            onInvoke: (_) {
-              _openKeyboard();
-              return null;
-            },
-          ),
-        },
+      child: GestureDetector(
+        onTap: _openEditor,
         child: AnimatedScale(
-          scale: _isFocused ? 1.01 : 1.0,
+          scale: _isFocused ? 1.01 : 1,
           duration: const Duration(milliseconds: 200),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+          child: Container(
             height: widget.height,
+            padding: EdgeInsets.all(_isFocused ? 3 : 1),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F1423).withValues(alpha: 0.75),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: _isFocused
-                    ? Colors.transparent
-                    : const Color(0xFF00B7FF).withValues(alpha: 0.3),
-                width: _isFocused ? 0 : 1,
-              ),
+              gradient: _isFocused
+                  ? const LinearGradient(
+                      colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
+                    )
+                  : null,
+              border: _isFocused
+                  ? null
+                  : Border.all(
+                      color: const Color(0xFF00B7FF).withValues(alpha: 0.3),
+                    ),
               boxShadow: _isFocused
                   ? [
                       BoxShadow(
@@ -670,85 +703,175 @@ class _XTextFieldState extends State<_XTextField> {
                         blurRadius: 15,
                         spreadRadius: 2,
                       ),
-                      BoxShadow(
-                        color: const Color(0xFF00B7FF).withValues(alpha: 0.2),
-                        blurRadius: 25,
-                        spreadRadius: 4,
-                      ),
                     ]
-                  : [],
+                  : null,
             ),
             child: Container(
-              decoration: _isFocused
-                  ? BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      border: const Border.fromBorderSide(
-                        BorderSide(width: 3.0, color: Colors.transparent),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F1423).withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Row(
+                children: [
+                  Icon(widget.icon, color: const Color(0xFFC12CFF), size: 22),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      _displayText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: widget.controller.text.isEmpty
+                            ? Colors.white.withValues(alpha: 0.45)
+                            : Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
                       ),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
-                      ),
-                    )
-                  : null,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                decoration: _isFocused
-                    ? BoxDecoration(
-                        color: const Color(0xFF0F1423),
-                        borderRadius: BorderRadius.circular(15),
-                      )
-                    : null,
-                child: Center(
-                  child: TextFormField(
-                    controller: widget.controller,
-                    focusNode: widget.focusNode,
-                    onTap: _openKeyboard,
-                    obscureText: widget.obscure,
-                    keyboardType: widget.isPassword
-                        ? TextInputType.visiblePassword
-                        : TextInputType.text,
-                    enableSuggestions: !widget.isPassword,
-                    autocorrect: false,
-                    cursorColor: const Color(0xFF00B7FF),
-                    textInputAction: widget.textInputAction,
-                    onFieldSubmitted: widget.onSubmitted,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
                     ),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      border: InputBorder.none,
+                  ),
+                  if (widget.isPassword)
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                       icon: Icon(
-                        widget.icon,
-                        color: const Color(0xFFC12CFF),
-                        size: 22,
+                        widget.obscure
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: Colors.white38,
+                        size: 20,
                       ),
-                      hintText: widget.label,
-                      hintStyle: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.4),
-                        fontSize: 15,
-                      ),
-                      suffixIcon: widget.isPassword
-                          ? IconButton(
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              icon: Icon(
-                                widget.obscure
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: Colors.white38,
-                                size: 20,
-                              ),
-                              onPressed: widget.onToggleObscure,
-                            )
-                          : null,
+                      onPressed: widget.onToggleObscure,
+                    )
+                  else
+                    const Icon(
+                      Icons.edit_rounded,
+                      color: Colors.white38,
+                      size: 20,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TextEntryDialog extends StatefulWidget {
+  final String title;
+  final TextEditingController controller;
+  final bool obscure;
+  final bool isPassword;
+  final TextInputAction textInputAction;
+
+  const _TextEntryDialog({
+    required this.title,
+    required this.controller,
+    required this.obscure,
+    required this.isPassword,
+    required this.textInputAction,
+  });
+
+  @override
+  State<_TextEntryDialog> createState() => _TextEntryDialogState();
+}
+
+class _TextEntryDialogState extends State<_TextEntryDialog> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.controller.text);
+    _focusNode = FocusNode();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _focusNode.requestFocus();
+      _controller.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _controller.text.length,
+      );
+      SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    widget.controller.text = _controller.text;
+    Navigator.of(context).pop(_controller.text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF111827),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 620),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 18),
+              TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                autofocus: true,
+                obscureText: widget.obscure,
+                keyboardType: widget.isPassword
+                    ? TextInputType.visiblePassword
+                    : TextInputType.text,
+                textInputAction: widget.textInputAction,
+                onSubmitted: (_) => _save(),
+                style: const TextStyle(color: Colors.white, fontSize: 20),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: const Color(0xFF0F1423),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: Color(0xFFC12CFF)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFC12CFF),
+                      width: 2,
                     ),
                   ),
                 ),
               ),
-            ),
+              const SizedBox(height: 22),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('CANCEL'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(onPressed: _save, child: const Text('DONE')),
+                ],
+              ),
+            ],
           ),
         ),
       ),

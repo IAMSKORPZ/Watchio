@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../utils/responsive_helper.dart';
+import '../../../utils/firestick_performance.dart';
 import '../../../core/theme/theme_extensions.dart';
 import '../../../core/theme/theme_manager.dart';
 import 'package:provider/provider.dart';
@@ -39,8 +40,10 @@ class _HomeTileState extends State<HomeTile> {
       autofocus: widget.autofocus,
       onFocusChange: (value) => setState(() => _isFocused = value),
       child: AnimatedScale(
-        scale: manager.animationsEnabled && _isFocused ? 1.05 : 1.0,
-        duration: Duration(milliseconds: manager.animationsEnabled ? 200 : 0),
+        scale: manager.animationsEnabled && _isFocused ? perfScale(1.05) : 1.0,
+        duration: manager.animationsEnabled
+            ? perfDuration(const Duration(milliseconds: 200))
+            : Duration.zero,
         curve: Curves.easeOutCubic,
         child: InkWell(
           onTap: widget.onTap,
@@ -57,20 +60,25 @@ class _HomeTileState extends State<HomeTile> {
                       ), // 2px consistent border (Requirement)
                 width: 2.0,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: widget.accentColor.withValues(
-                    alpha: _isFocused ? 0.4 : 0.08,
-                  ), // Reduced glow (Requirement)
-                  blurRadius: _isFocused ? 25 : 12,
-                  spreadRadius: _isFocused ? 2 : 0,
-                ),
-              ],
+              boxShadow: firestickPerformanceMode
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: widget.accentColor.withValues(
+                          alpha: _isFocused ? 0.4 : 0.08,
+                        ),
+                        blurRadius: _isFocused ? 25 : 12,
+                        spreadRadius: _isFocused ? 2 : 0,
+                      ),
+                    ],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(30),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                filter: ImageFilter.blur(
+                  sigmaX: perfBlur(20),
+                  sigmaY: perfBlur(20),
+                ),
                 child: Container(
                   width: double.infinity,
                   height: double.infinity,
