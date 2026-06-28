@@ -2,7 +2,6 @@ import 'package:another_iptv_player/models/playlist_model.dart';
 
 import 'package:another_iptv_player/screens/playlist_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../services/config_service.dart';
 import '../../repositories/user_preferences.dart';
@@ -18,7 +17,8 @@ class AppInitializerScreen extends StatefulWidget {
   State<AppInitializerScreen> createState() => _AppInitializerScreenState();
 }
 
-class _AppInitializerScreenState extends State<AppInitializerScreen> with SingleTickerProviderStateMixin {
+class _AppInitializerScreenState extends State<AppInitializerScreen>
+    with SingleTickerProviderStateMixin {
   bool _isLoading = true;
   Playlist? _lastPlaylist;
   late AnimationController _pulseController;
@@ -30,8 +30,6 @@ class _AppInitializerScreenState extends State<AppInitializerScreen> with Single
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    
-    _lockOrientation();
     _loadLastPlaylist();
   }
 
@@ -39,13 +37,6 @@ class _AppInitializerScreenState extends State<AppInitializerScreen> with Single
   void dispose() {
     _pulseController.dispose();
     super.dispose();
-  }
-
-  Future<void> _lockOrientation() async {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
   }
 
   Future<void> _loadLastPlaylist() async {
@@ -72,7 +63,7 @@ class _AppInitializerScreenState extends State<AppInitializerScreen> with Single
   @override
   Widget build(BuildContext context) {
     final configService = context.watch<ConfigService>();
-    
+
     if (_isLoading || configService.isLoading) {
       return Scaffold(
         backgroundColor: const Color(0xFF050816),
@@ -83,10 +74,7 @@ class _AppInitializerScreenState extends State<AppInitializerScreen> with Single
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                const Color(0xFF0F1423),
-                const Color(0xFF050816),
-              ],
+              colors: [const Color(0xFF0F1423), const Color(0xFF050816)],
             ),
           ),
           child: SafeArea(
@@ -98,19 +86,26 @@ class _AppInitializerScreenState extends State<AppInitializerScreen> with Single
                   // Logo with Ambient Glow
                   ScaleTransition(
                     scale: Tween<double>(begin: 0.95, end: 1.05).animate(
-                      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+                      CurvedAnimation(
+                        parent: _pulseController,
+                        curve: Curves.easeInOut,
+                      ),
                     ),
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFC12CFF).withValues(alpha: 0.15),
+                            color: const Color(
+                              0xFFC12CFF,
+                            ).withValues(alpha: 0.15),
                             blurRadius: 40,
                             spreadRadius: 10,
                           ),
                           BoxShadow(
-                            color: const Color(0xFF00B7FF).withValues(alpha: 0.1),
+                            color: const Color(
+                              0xFF00B7FF,
+                            ).withValues(alpha: 0.1),
                             blurRadius: 30,
                             spreadRadius: 5,
                           ),
@@ -120,8 +115,12 @@ class _AppInitializerScreenState extends State<AppInitializerScreen> with Single
                         'assets/images/App_Logo.png',
                         width: 180,
                         fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => 
-                          const Icon(Icons.play_arrow_rounded, color: Color(0xFF00B7FF), size: 100),
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(
+                              Icons.play_arrow_rounded,
+                              color: Color(0xFF00B7FF),
+                              size: 100,
+                            ),
                       ),
                     ),
                   ),
@@ -165,16 +164,25 @@ class _AppInitializerScreenState extends State<AppInitializerScreen> with Single
                                 builder: (context, child) {
                                   return FractionallySizedBox(
                                     alignment: Alignment.centerLeft,
-                                    widthFactor: 0.3 + (0.4 * _pulseController.value), // Animated dummy progress
+                                    widthFactor:
+                                        0.3 +
+                                        (0.4 *
+                                            _pulseController
+                                                .value), // Animated dummy progress
                                     child: Container(
                                       decoration: BoxDecoration(
                                         gradient: const LinearGradient(
-                                          colors: [Color(0xFFC12CFF), Color(0xFF00B7FF)],
+                                          colors: [
+                                            Color(0xFFC12CFF),
+                                            Color(0xFF00B7FF),
+                                          ],
                                         ),
                                         borderRadius: BorderRadius.circular(4),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: const Color(0xFF00B7FF).withValues(alpha: 0.4),
+                                            color: const Color(
+                                              0xFF00B7FF,
+                                            ).withValues(alpha: 0.4),
                                             blurRadius: 10,
                                             spreadRadius: 1,
                                           ),
@@ -217,7 +225,9 @@ class _AppInitializerScreenState extends State<AppInitializerScreen> with Single
           return XtreamCodeDataLoaderScreen(playlist: _lastPlaylist!);
         case PlaylistType.m3u:
           return M3uDataLoaderScreen(
-              playlist: _lastPlaylist!, m3uItems: const []);
+            playlist: _lastPlaylist!,
+            m3uItems: const [],
+          );
         case PlaylistType.stalker:
           // Fallback to Xtream loader if Stalker specific loader doesn't exist
           return XtreamCodeDataLoaderScreen(playlist: _lastPlaylist!);

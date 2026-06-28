@@ -9,6 +9,7 @@ class FocusWrapper extends StatefulWidget {
   final bool showGlow;
   final BorderRadius borderRadius;
   final bool autofocus;
+  final ValueChanged<bool>? onFocusChange;
 
   const FocusWrapper({
     super.key,
@@ -18,6 +19,7 @@ class FocusWrapper extends StatefulWidget {
     this.showGlow = true,
     this.borderRadius = const BorderRadius.all(Radius.circular(12)),
     this.autofocus = false,
+    this.onFocusChange,
   });
 
   @override
@@ -34,6 +36,7 @@ class _FocusWrapperState extends State<FocusWrapper> {
     return Focus(
       autofocus: widget.autofocus,
       onFocusChange: (hasFocus) {
+        widget.onFocusChange?.call(hasFocus);
         setState(() {
           _isFocused = hasFocus;
         });

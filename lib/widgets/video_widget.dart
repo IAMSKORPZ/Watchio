@@ -101,9 +101,7 @@ class _VideoWidgetState extends State<VideoWidget> {
             ),
             child: Material(
               color: Colors.black,
-              child: Video(
-                controller: widget.controller,
-              ),
+              child: Video(controller: widget.controller),
             ),
           ),
         );
@@ -124,9 +122,7 @@ class _VideoWidgetState extends State<VideoWidget> {
             ),
             child: Material(
               color: Colors.black,
-              child: Video(
-                controller: widget.controller,
-              ),
+              child: Video(controller: widget.controller),
             ),
           ),
         );
@@ -151,6 +147,9 @@ class _VideoWidgetState extends State<VideoWidget> {
           SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.mediaPlayPause): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.mediaRewind): _SeekBackIntent(),
+          SingleActivator(LogicalKeyboardKey.mediaFastForward):
+              _SeekForwardIntent(),
           SingleActivator(LogicalKeyboardKey.arrowLeft): _SeekBackIntent(),
           SingleActivator(LogicalKeyboardKey.arrowRight): _SeekForwardIntent(),
           SingleActivator(LogicalKeyboardKey.goBack): DismissIntent(),
@@ -169,14 +168,18 @@ class _VideoWidgetState extends State<VideoWidget> {
             _SeekBackIntent: CallbackAction<_SeekBackIntent>(
               onInvoke: (_) {
                 final player = widget.controller.player;
-                player.seek(player.state.position - const Duration(seconds: 10));
+                player.seek(
+                  player.state.position - const Duration(seconds: 10),
+                );
                 return null;
               },
             ),
             _SeekForwardIntent: CallbackAction<_SeekForwardIntent>(
               onInvoke: (_) {
                 final player = widget.controller.player;
-                player.seek(player.state.position + const Duration(seconds: 10));
+                player.seek(
+                  player.state.position + const Duration(seconds: 10),
+                );
                 return null;
               },
             ),

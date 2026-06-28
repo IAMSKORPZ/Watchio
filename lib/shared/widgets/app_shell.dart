@@ -103,6 +103,9 @@ class _AppShellState extends State<AppShell> {
                                   label: item.label,
                                   selected: widget.currentIndex == index,
                                   isCollapsed: _isSidebarCollapsed,
+                                  onFocusChange: (focused) => setState(
+                                    () => _isSidebarCollapsed = !focused,
+                                  ),
                                   onTap: () =>
                                       widget.onIndexChanged?.call(index),
                                 );

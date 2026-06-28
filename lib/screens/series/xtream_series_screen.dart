@@ -352,11 +352,15 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
   }
 
   IconData _getCategoryIcon(String categoryId) {
-    if (categoryId == IptvRepository.virtualAll) return Icons.grid_view_rounded;
-    if (categoryId == IptvRepository.virtualFavorites)
+    if (categoryId == IptvRepository.virtualAll) {
+      return Icons.grid_view_rounded;
+    }
+    if (categoryId == IptvRepository.virtualFavorites) {
       return Icons.favorite_rounded;
-    if (categoryId == IptvRepository.virtualHistory)
+    }
+    if (categoryId == IptvRepository.virtualHistory) {
       return Icons.history_rounded;
+    }
     return Icons.tv_outlined;
   }
 }
