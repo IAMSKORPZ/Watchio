@@ -1396,88 +1396,153 @@ class _ChannelListTile extends StatefulWidget {
 
 class _ChannelListTileState extends State<_ChannelListTile> {
   bool _isFocused = false;
+  EpgProgramWindow? _currentProgram;
+  final _epgService = EpgStorageService();
+
   @override
-  Widget build(BuildContext context) => FocusableActionDetector(
-    onFocusChange: (v) => setState(() => _isFocused = v),
-    shortcuts: const {
-      SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
-      SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
-      SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
-    },
-    actions: {
-      ActivateIntent: CallbackAction<ActivateIntent>(
-        onInvoke: (_) {
-          widget.onTap();
-          return null;
-        },
-      ),
-    },
-    child: InkWell(
-      onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(bottom: 4),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: _isFocused
-              ? const Color(0xFFC12CFF).withValues(alpha: 0.2)
-              : (widget.isPlaying
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : Colors.transparent),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
+  void initState() {
+    super.initState();
+    _fetchCurrentProgram();
+  }
+
+  @override
+  void didUpdateWidget(_ChannelListTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.item.id != oldWidget.item.id) {
+      _currentProgram = null;
+      _fetchCurrentProgram();
+    }
+  }
+
+  Future<void> _fetchCurrentProgram() async {
+    final liveStream = widget.item.liveStream;
+    final playlistId = liveStream?.playlistId;
+    final epgId = liveStream?.epgChannelId ?? '';
+
+    if (playlistId == null || epgId.isEmpty) return;
+
+    try {
+      final programs = await _epgService.getProgramsForWindow(
+        playlistId: playlistId,
+        epgChannelId: epgId,
+        start: DateTime.now(),
+        end: DateTime.now().add(const Duration(minutes: 5)),
+        limit: 1,
+      );
+      if (mounted) {
+        setState(() => _currentProgram = programs.firstOrNull);
+      }
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final program = _currentProgram;
+    final programText = program == null
+        ? null
+        : '${DateFormat('HH:mm').format(program.start)} ${program.title}';
+
+    return FocusableActionDetector(
+      onFocusChange: (v) => setState(() => _isFocused = v),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+      },
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            widget.onTap();
+            return null;
+          },
+        ),
+      },
+      child: InkWell(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.only(bottom: 4),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
             color: _isFocused
-                ? const Color(0xFFC12CFF).withValues(alpha: 0.5)
-                : (widget.isPlaying ? Colors.white10 : Colors.transparent),
+                ? const Color(0xFFC12CFF).withValues(alpha: 0.2)
+                : (widget.isPlaying
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.transparent),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _isFocused
+                  ? const Color(0xFFC12CFF).withValues(alpha: 0.5)
+                  : (widget.isPlaying ? Colors.white10 : Colors.transparent),
+            ),
+          ),
+          child: Row(
+            children: [
+              if (widget.item.imagePath.isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.network(
+                    widget.item.imagePath,
+                    width: 32,
+                    height: 32,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.live_tv,
+                      size: 16,
+                      color: Colors.white24,
+                    ),
+                  ),
+                )
+              else
+                const Icon(Icons.live_tv, size: 16, color: Colors.white24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.item.name,
+                      style: TextStyle(
+                        color: widget.isPlaying
+                            ? const Color(0xFF00B7FF)
+                            : Colors.white,
+                        fontWeight: widget.isPlaying
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        fontSize: 13,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (programText != null) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        programText,
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 11,
+                          height: 1.1,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (widget.isPlaying)
+                const Icon(
+                  Icons.play_arrow_rounded,
+                  color: Color(0xFF00B7FF),
+                  size: 14,
+                ),
+            ],
           ),
         ),
-        child: Row(
-          children: [
-            if (widget.item.imagePath.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: Image.network(
-                  widget.item.imagePath,
-                  width: 32,
-                  height: 32,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.live_tv,
-                    size: 16,
-                    color: Colors.white24,
-                  ),
-                ),
-              )
-            else
-              const Icon(Icons.live_tv, size: 16, color: Colors.white24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                widget.item.name,
-                style: TextStyle(
-                  color: widget.isPlaying
-                      ? const Color(0xFF00B7FF)
-                      : Colors.white,
-                  fontWeight: widget.isPlaying
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                  fontSize: 13,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (widget.isPlaying)
-              const Icon(
-                Icons.play_arrow_rounded,
-                color: Color(0xFF00B7FF),
-                size: 14,
-              ),
-          ],
-        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _CircleBtn extends StatefulWidget {
