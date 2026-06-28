@@ -47,6 +47,8 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
         listen: false,
       );
       if (controller.seriesCategories.isNotEmpty) {
+        final categories = controller.seriesCategories;
+        final initialCategory = _findReleasedCategory(categories);
         // Load counts in bulk
         final counts = await controller.getAllCategoryCounts(
           CategoryType.series,
@@ -54,8 +56,11 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
         if (mounted) {
           setState(() {
             _categoryCounts.addAll(counts);
-            _onCategorySelected(controller.seriesCategories.first);
+            _sortOrder = _isReleasedCategory(initialCategory)
+                ? 'recent'
+                : 'server';
           });
+          await _onCategorySelected(initialCategory);
         }
       }
     });
@@ -142,6 +147,24 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
       default:
         break;
     }
+  }
+
+  CategoryViewModel _findReleasedCategory(List<CategoryViewModel> categories) {
+    return categories.firstWhere(
+      (category) => _categoryNameHas(category, const ['HOLLYWOOD', 'RELEASED']),
+      orElse: () => categories.firstWhere(
+        (category) => _categoryNameHas(category, const ['RELEASED']),
+        orElse: () => categories.first,
+      ),
+    );
+  }
+
+  bool _isReleasedCategory(CategoryViewModel category) =>
+      _categoryNameHas(category, const ['RELEASED']);
+
+  bool _categoryNameHas(CategoryViewModel category, List<String> terms) {
+    final name = category.category.categoryName.toUpperCase();
+    return terms.every(name.contains);
   }
 
   Future<void> _showSortDialog() async {
@@ -298,6 +321,7 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
 
                                       return GridView.builder(
                                         controller: _scrollController,
+                                        cacheExtent: 900,
                                         gridDelegate:
                                             SliverGridDelegateWithFixedCrossAxisCount(
                                               crossAxisCount: crossAxisCount,
@@ -313,15 +337,19 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
                                         itemBuilder: (context, index) {
                                           if (index < _currentItems.length) {
                                             final item = _currentItems[index];
-                                            return PosterCard(
-                                              title: item.name,
-                                              imageUrl: item.imagePath,
-                                              rating: item.seriesStream?.rating,
-                                              onTap: () =>
-                                                  navigateByContentType(
-                                                    context,
-                                                    item,
-                                                  ),
+                                            return KeyedSubtree(
+                                              key: ValueKey(item.id),
+                                              child: PosterCard(
+                                                title: item.name,
+                                                imageUrl: item.imagePath,
+                                                rating:
+                                                    item.seriesStream?.rating,
+                                                onTap: () =>
+                                                    navigateByContentType(
+                                                      context,
+                                                      item,
+                                                    ),
+                                              ),
                                             );
                                           } else {
                                             return const Center(

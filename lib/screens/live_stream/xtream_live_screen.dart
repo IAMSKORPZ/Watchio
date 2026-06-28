@@ -382,36 +382,45 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
               ),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final option in const [
-                ('server', 'Server Order'),
-                ('recent', 'Recently Added'),
-                ('az', 'A–Z'),
-                ('za', 'Z–A'),
-                ('number', 'Channel Number ASC'),
-              ])
-                ListTile(
-                  dense: true,
-                  visualDensity: const VisualDensity(vertical: -3),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                  minTileHeight: 44,
-                  leading: Icon(
-                    pending == option.$1
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_off,
-                    color: pending == option.$1
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.white54,
-                  ),
-                  title: Text(
-                    option.$2,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  onTap: () => setDialogState(() => pending = option.$1),
-                ),
-            ],
+          content: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.46,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final option in const [
+                    ('server', 'Server Order'),
+                    ('recent', 'Recently Added'),
+                    ('az', 'A–Z'),
+                    ('za', 'Z–A'),
+                    ('number', 'Channel Number ASC'),
+                  ])
+                    ListTile(
+                      dense: true,
+                      visualDensity: const VisualDensity(vertical: -3),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                      minTileHeight: 40,
+                      leading: Icon(
+                        pending == option.$1
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_off,
+                        color: pending == option.$1
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.white54,
+                      ),
+                      title: Text(
+                        option.$2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      onTap: () => setDialogState(() => pending = option.$1),
+                    ),
+                ],
+              ),
+            ),
           ),
           actions: [
             TextButton(
@@ -1198,36 +1207,67 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                                 _previewController?.error == null)
                               Container(
                                 color: Colors.black.withValues(alpha: 0.72),
-                                child: Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Image.asset(
-                                        'assets/images/App_Logo.png',
-                                        width: 150,
-                                        fit: BoxFit.contain,
-                                      ),
-                                      const SizedBox(height: 2),
-                                      const SizedBox.square(
-                                        dimension: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Color(0xFFA855F7),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final showLabel =
+                                        constraints.maxHeight >= 105;
+                                    final spinnerSize =
+                                        constraints.maxHeight < 90
+                                        ? 16.0
+                                        : 20.0;
+
+                                    return Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8),
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: SizedBox(
+                                            width: constraints.maxWidth.clamp(
+                                              96.0,
+                                              190.0,
+                                            ),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Image.asset(
+                                                  'assets/images/App_Logo.png',
+                                                  width: constraints.maxWidth
+                                                      .clamp(90.0, 150.0),
+                                                  fit: BoxFit.contain,
+                                                ),
+                                                const SizedBox(height: 2),
+                                                SizedBox.square(
+                                                  dimension: spinnerSize,
+                                                  child:
+                                                      const CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: Color(
+                                                          0xFFA855F7,
+                                                        ),
+                                                      ),
+                                                ),
+                                                if (showLabel) ...[
+                                                  const SizedBox(height: 6),
+                                                  Text(
+                                                    'Loading ${_focusedChannel?.name ?? 'channel'}...',
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      color: Colors.white70,
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        'Loading ${_focusedChannel?.name ?? 'channel'}…',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    );
+                                  },
                                 ),
                               ),
 

@@ -48,27 +48,17 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
       );
       if (controller.movieCategories.isNotEmpty) {
         final categories = controller.movieCategories;
-        CategoryViewModel? initialCategory;
-        for (final category in categories) {
-          final name = category.category.categoryName.toUpperCase();
-          if (name.contains('JUST RELEASED') && name.contains('HOLLYWOOD')) {
-            initialCategory = category;
-            break;
-          }
-        }
-        initialCategory ??= categories.cast<CategoryViewModel?>().firstWhere(
-          (category) => category!.category.categoryName.toUpperCase().contains(
-            'JUST RELEASED',
-          ),
-          orElse: () => categories.first,
-        );
+        final initialCategory = _findReleasedCategory(categories);
         // Load counts in bulk
         final counts = await controller.getAllCategoryCounts(CategoryType.vod);
         if (mounted) {
           setState(() {
             _categoryCounts.addAll(counts);
+            _sortOrder = _isReleasedCategory(initialCategory)
+                ? 'recent'
+                : 'server';
           });
-          await _onCategorySelected(initialCategory!);
+          await _onCategorySelected(initialCategory);
         }
       }
     });
@@ -155,6 +145,24 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
       default:
         break;
     }
+  }
+
+  CategoryViewModel _findReleasedCategory(List<CategoryViewModel> categories) {
+    return categories.firstWhere(
+      (category) => _categoryNameHas(category, const ['HOLLYWOOD', 'RELEASED']),
+      orElse: () => categories.firstWhere(
+        (category) => _categoryNameHas(category, const ['RELEASED']),
+        orElse: () => categories.first,
+      ),
+    );
+  }
+
+  bool _isReleasedCategory(CategoryViewModel category) =>
+      _categoryNameHas(category, const ['RELEASED']);
+
+  bool _categoryNameHas(CategoryViewModel category, List<String> terms) {
+    final name = category.category.categoryName.toUpperCase();
+    return terms.every(name.contains);
   }
 
   Future<void> _showSortDialog() async {
@@ -307,6 +315,7 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
 
                                       return GridView.builder(
                                         controller: _scrollController,
+                                        cacheExtent: 900,
                                         gridDelegate:
                                             SliverGridDelegateWithFixedCrossAxisCount(
                                               crossAxisCount: crossAxisCount,
@@ -322,7 +331,9 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
                                         itemBuilder: (context, index) {
                                           if (index < _currentItems.length) {
                                             final item = _currentItems[index];
-                                            return PosterCard(
+                                            return KeyedSubtree(
+                                              key: ValueKey(item.id),
+                                              child: PosterCard(
                                               title: item.name,
                                               imageUrl: item.imagePath,
                                               rating: item.vodStream?.rating,
@@ -331,6 +342,7 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
                                                     context,
                                                     item,
                                                   ),
+                                              ),
                                             );
                                           } else {
                                             return const Center(
