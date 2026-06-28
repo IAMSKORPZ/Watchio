@@ -361,12 +361,15 @@ class _XtreamMoviesScreenState extends State<XtreamMoviesScreen> {
   }
 
   IconData _getCategoryIcon(String categoryId) {
-    if (categoryId == IptvRepository.virtualAll)
+    if (categoryId == IptvRepository.virtualAll) {
       return Icons.all_inclusive_rounded;
-    if (categoryId == IptvRepository.virtualFavorites)
+    }
+    if (categoryId == IptvRepository.virtualFavorites) {
       return Icons.favorite_rounded;
-    if (categoryId == IptvRepository.virtualHistory)
+    }
+    if (categoryId == IptvRepository.virtualHistory) {
       return Icons.history_rounded;
+    }
     return Icons.movie_outlined;
   }
 }

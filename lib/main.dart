@@ -25,10 +25,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
 
-  // Enable true fullscreen mode
+  // Watchio is a horizontal-first TV/video app across supported form factors.
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-
-  // Lock orientation to landscape
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,

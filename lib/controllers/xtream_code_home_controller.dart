@@ -177,8 +177,9 @@ class XtreamCodeHomeController extends ChangeNotifier {
                 .toList(),
           );
           if (!all) {
-            if (!await UserPreferences.getHiddenCategory(cat.categoryId))
+            if (!await UserPreferences.getHiddenCategory(cat.categoryId)) {
               _movieCategories.add(vm);
+            }
           } else {
             _movieCategories.add(vm);
           }
@@ -208,8 +209,9 @@ class XtreamCodeHomeController extends ChangeNotifier {
                 .toList(),
           );
           if (!all) {
-            if (!await UserPreferences.getHiddenCategory(cat.categoryId))
+            if (!await UserPreferences.getHiddenCategory(cat.categoryId)) {
               _seriesCategories.add(vm);
+            }
           } else {
             _seriesCategories.add(vm);
           }
