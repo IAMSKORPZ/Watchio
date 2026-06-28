@@ -24,10 +24,6 @@ Yes. Another IPTV Player does **not collect or store any personal data**. All yo
 Currently, the app is available on [list your platforms, e.g., Android, iOS, Windows, macOS, etc.]. Check our official website or GitHub for the latest updates.
 :::
 
-::: details How do I report a bug or request a feature?
-You can report issues or request features on our [GitHub repository](https://github.com/bsogulcan/another-iptv-player) or contact us at [bsogulcan@gmail.com].
-:::
-
 ::: details Is it legal to use Another IPTV Player?
 The app itself is legal software. However, **you are responsible for ensuring that your IPTV provider and the content you access are legal in your country**.
 :::

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -17,6 +18,7 @@ import '../../services/epg_storage_service.dart';
 import '../../services/playback_url_resolver.dart';
 import '../../shared/widgets/glass_panel.dart';
 import '../../shared/widgets/app_card.dart';
+import 'package:window_manager/window_manager.dart';
 
 class UnifiedPlayerScreen extends StatefulWidget {
   final ContentItem contentItem;
@@ -279,6 +281,16 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     });
   }
 
+  Future<void> _toggleDesktopFullscreen() async {
+    if (kIsWeb ||
+        !(defaultTargetPlatform == TargetPlatform.windows ||
+            defaultTargetPlatform == TargetPlatform.linux ||
+            defaultTargetPlatform == TargetPlatform.macOS)) {
+      return;
+    }
+    await windowManager.setFullScreen(!await windowManager.isFullScreen());
+  }
+
   void _showControlsTemporarily() {
     if (hasError) return;
     if (!_showControls) {
@@ -409,6 +421,7 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
           shortcuts: const {
             SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
             SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+            SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
             SingleActivator(LogicalKeyboardKey.space): _PlayPauseIntent(),
             SingleActivator(LogicalKeyboardKey.keyK): _PlayPauseIntent(),
             SingleActivator(LogicalKeyboardKey.keyJ): _SeekBackIntent(),
@@ -517,10 +530,14 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
                 children: [
                   // VIDEO LAYER (Always visible)
                   Positioned.fill(
-                    child: GestureDetector(
-                      onTap: _toggleControls,
-                      behavior: HitTestBehavior.opaque,
-                      child: _playerController.buildPlayerView(context),
+                    child: MouseRegion(
+                      onHover: (_) => _showControlsTemporarily(),
+                      child: GestureDetector(
+                        onTap: _toggleControls,
+                        onDoubleTap: _toggleDesktopFullscreen,
+                        behavior: HitTestBehavior.opaque,
+                        child: _playerController.buildPlayerView(context),
+                      ),
                     ),
                   ),
 
@@ -1382,6 +1399,11 @@ class _ChannelListTileState extends State<_ChannelListTile> {
   @override
   Widget build(BuildContext context) => FocusableActionDetector(
     onFocusChange: (v) => setState(() => _isFocused = v),
+    shortcuts: const {
+      SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+      SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+      SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+    },
     actions: {
       ActivateIntent: CallbackAction<ActivateIntent>(
         onInvoke: (_) {
@@ -1481,6 +1503,11 @@ class _CircleBtnState extends State<_CircleBtn> {
   @override
   Widget build(BuildContext context) => FocusableActionDetector(
     onFocusChange: (v) => setState(() => _isFocused = v),
+    shortcuts: const {
+      SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+      SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+      SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+    },
     actions: {
       ActivateIntent: CallbackAction<ActivateIntent>(
         onInvoke: (_) {
@@ -1538,6 +1565,11 @@ class _LargeControlBtnState extends State<_LargeControlBtn> {
   @override
   Widget build(BuildContext context) => FocusableActionDetector(
     onFocusChange: (v) => setState(() => _isFocused = v),
+    shortcuts: const {
+      SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+      SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+      SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+    },
     actions: {
       ActivateIntent: CallbackAction<ActivateIntent>(
         onInvoke: (_) {
@@ -1595,6 +1627,11 @@ class _ActionBtnState extends State<_ActionBtn> {
     padding: const EdgeInsets.symmetric(horizontal: 12),
     child: FocusableActionDetector(
       onFocusChange: (v) => setState(() => _isFocused = v),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {

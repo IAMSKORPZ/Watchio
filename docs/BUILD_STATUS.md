@@ -29,12 +29,12 @@ Result:
 - Windows build could not be verified on this machine.
 
 ## Missing Dependencies
-- Flutter SDK 3.9.2-compatible installation, per `pubspec.yaml`.
+- Flutter SDK 3.44.x stable / Dart 3.12.x is the current production baseline.
 - Android Gradle wrapper scripts: `android/gradlew` and `android/gradlew.bat`.
-- Windows build toolchain cannot be checked until Flutter is available.
+- Windows build toolchain is available locally and `flutter build windows` has passed.
 
 ## Deprecated Or Risky Packages
-- `media_kit`, `media_kit_video`, and `media_kit_libs_video` are pinned to Git `main`, which is unstable for production release builds.
+- `media_kit`, `media_kit_video`, and `media_kit_libs_video` are versioned pub dependencies, not Git `main` pins.
 - `drift_dev`, `sqlite3`, `path_provider`, `path`, and `meta` use `any`.
 - `file_picker` is pinned to `8.0.0+1`, likely old versus current Flutter ecosystem.
 - `get_it` is old at `7.2.0`.

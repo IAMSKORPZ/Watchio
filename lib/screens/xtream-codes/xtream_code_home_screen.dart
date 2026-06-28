@@ -23,7 +23,6 @@ import '../live_stream/xtream_live_screen.dart';
 import '../sports/sports_hub_screen.dart';
 import '../settings/watchio_settings_screen.dart';
 import '../trakt/trakt_screen.dart';
-import '../bug_report/bug_report_screen.dart';
 
 class XtreamCodeHomeScreen extends StatefulWidget {
   final Playlist playlist;
@@ -69,13 +68,6 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
   void dispose() {
     _controller.dispose();
     super.dispose();
-  }
-
-  void _openBugReport() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const BugReportScreen()),
-    );
   }
 
   void _showAnnouncements() {
@@ -134,7 +126,6 @@ class _XtreamCodeHomeScreenState extends State<XtreamCodeHomeScreen> {
                 onSearch: () => _navigateToSearch(ContentType.liveStream),
                 onSports: _showSportsHub,
                 onProfile: () => controller.onNavigationTap(5),
-                onAbout: _openBugReport,
                 onTrakt: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const TraktScreen()),

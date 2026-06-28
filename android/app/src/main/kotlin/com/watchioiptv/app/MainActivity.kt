@@ -11,12 +11,13 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
 class MainActivity : AudioServiceActivity() {
-    private val channelName = "watchio/update_installer"
+    private val updateInstallerChannel = "watchio/update_installer"
+    private val nativePlayerChannel = "watchio/native_player"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName).setMethodCallHandler { call, result ->
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, updateInstallerChannel).setMethodCallHandler { call, result ->
             when (call.method) {
                 "canInstallPackages" -> result.success(canInstallPackages())
                 "openUnknownSourcesSettings" -> {
@@ -36,6 +37,18 @@ class MainActivity : AudioServiceActivity() {
                         }
                     }
                 }
+                else -> result.notImplemented()
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, nativePlayerChannel).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "setBufferConfig",
+                "setLiveOffset",
+                "setPlaylistPreloadSeconds",
+                "attachMediaSession",
+                "selectAudioTrack",
+                "selectSubtitleTrack" -> result.success(null)
                 else -> result.notImplemented()
             }
         }

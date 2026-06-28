@@ -22,6 +22,7 @@ import '../../services/player/player_factory.dart';
 import '../../services/playback_url_resolver.dart';
 import '../../services/watch_history_service.dart';
 import '../../shared/widgets/glass_panel.dart';
+import '../../shared/widgets/watchio_focus_action.dart';
 import '../../shared/widgets/watchio_header.dart';
 import '../player/unified_player_screen.dart';
 import '../search_screen.dart';
@@ -63,6 +64,8 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   int _previewLoadRequestId = 0;
   bool _isReconnecting = false;
   Timer? _epgUpdateTimer;
+  Timer? _backHoldTimer;
+  bool _backHoldTriggered = false;
   int _epgRequestId = 0;
   int _epgRevision = EpgSourceService.revision.value;
 
@@ -230,6 +233,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     debugPrint('EPG timer cancelled');
     WidgetsBinding.instance.removeObserver(this);
     _homeController?.removeListener(_handleTabChange);
+    _backHoldTimer?.cancel();
     _previewDebounce?.cancel();
     _previewController?.removeListener(_onPreviewStateChanged);
     _previewController?.pause();
@@ -755,6 +759,32 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     });
   }
 
+  KeyEventResult _handleLiveKeyEvent(FocusNode node, KeyEvent event) {
+    final isBackKey =
+        event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape;
+
+    if (!isBackKey) return KeyEventResult.ignored;
+
+    if (event is KeyDownEvent && _backHoldTimer == null) {
+      _backHoldTriggered = false;
+      _backHoldTimer = Timer(const Duration(milliseconds: 650), () {
+        _backHoldTimer = null;
+        _backHoldTriggered = true;
+        if (mounted) _enterFullscreen();
+      });
+    } else if (event is KeyUpEvent) {
+      _backHoldTimer?.cancel();
+      _backHoldTimer = null;
+      if (!_backHoldTriggered) {
+        _homeController?.onNavigationTap(0);
+      }
+      _backHoldTriggered = false;
+    }
+
+    return KeyEventResult.handled;
+  }
+
   Future<void> _forceRefreshEpg() async {
     final playlist = widget.playlist ?? AppState.currentPlaylist;
     if (playlist == null) return;
@@ -821,104 +851,108 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     final themeManager = context.watch<ThemeManager>();
     final homeBg = config.backgrounds.home;
 
-    return Consumer<XtreamCodeHomeController>(
-      builder: (context, controller, child) {
-        return Container(
-          color: const Color(0xFF050812),
-          child: Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFF050812),
-              image: DecorationImage(
-                image: (themeManager.showBackgroundImage && homeBg.isNotEmpty)
-                    ? NetworkImage(homeBg)
-                    : const AssetImage('assets/images/background.png')
-                          as ImageProvider,
-                fit: BoxFit.cover,
-              ),
-            ),
+    return Focus(
+      autofocus: true,
+      onKeyEvent: _handleLiveKeyEvent,
+      child: Consumer<XtreamCodeHomeController>(
+        builder: (context, controller, child) {
+          return Container(
+            color: const Color(0xFF050812),
             child: Container(
+              width: double.infinity,
+              height: double.infinity,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    const Color(0xFF050812).withValues(alpha: 0.2),
-                    const Color(0xFF050812).withValues(alpha: 0.6),
-                    const Color(0xFF050812).withValues(alpha: 0.9),
+                color: const Color(0xFF050812),
+                image: DecorationImage(
+                  image: (themeManager.showBackgroundImage && homeBg.isNotEmpty)
+                      ? NetworkImage(homeBg)
+                      : const AssetImage('assets/images/background.png')
+                            as ImageProvider,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(0xFF050812).withValues(alpha: 0.2),
+                      const Color(0xFF050812).withValues(alpha: 0.6),
+                      const Color(0xFF050812).withValues(alpha: 0.9),
+                    ],
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    // HEADER
+                    WatchioHeader(
+                      isCompact: true,
+                      customLogoHeight: 90,
+                      sectionTitle: 'Live TV',
+                      onBack: () => controller.onNavigationTap(0),
+                      onSearch: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              SearchScreen(contentType: ContentType.liveStream),
+                        ),
+                      ),
+                      onSettings: () => controller.onNavigationTap(5),
+                      onSetup: _showSetupPlaceholder,
+                      onSort: _showSortDialog,
+                      onRefresh: () => controller.refreshAllData(context),
+                      onRefreshEpg: _forceRefreshEpg,
+                      onClearHistory:
+                          _selectedCategory?.category.categoryId ==
+                              IptvRepository.virtualHistory
+                          ? _clearLiveHistory
+                          : null,
+                    ),
+
+                    // MAIN CONTENT (3 Columns)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: Row(
+                          children: [
+                            // LEFT PANEL (22%) - Categories
+                            Expanded(
+                              flex: 24,
+                              child: GlassPanel(
+                                opacity: 0.1,
+                                blur: 20,
+                                gradient: contentPanelGradientOf(context),
+                                child: _buildCategoryPanel(controller),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+
+                            // CENTER PANEL (33%) - Channels
+                            Expanded(
+                              flex: 28,
+                              child: GlassPanel(
+                                opacity: 0.1,
+                                blur: 20,
+                                gradient: contentPanelGradientOf(context),
+                                child: _buildChannelPanel(),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+
+                            // RIGHT PANEL (45%) - Preview & EPG
+                            Expanded(flex: 48, child: _buildPreviewPanel()),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              child: Column(
-                children: [
-                  // HEADER
-                  WatchioHeader(
-                    isCompact: true,
-                    customLogoHeight: 90,
-                    sectionTitle: 'Live TV',
-                    onBack: () => controller.onNavigationTap(0),
-                    onSearch: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            SearchScreen(contentType: ContentType.liveStream),
-                      ),
-                    ),
-                    onSettings: () => controller.onNavigationTap(5),
-                    onSetup: _showSetupPlaceholder,
-                    onSort: _showSortDialog,
-                    onRefresh: () => controller.refreshAllData(context),
-                    onRefreshEpg: _forceRefreshEpg,
-                    onClearHistory:
-                        _selectedCategory?.category.categoryId ==
-                            IptvRepository.virtualHistory
-                        ? _clearLiveHistory
-                        : null,
-                  ),
-
-                  // MAIN CONTENT (3 Columns)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      child: Row(
-                        children: [
-                          // LEFT PANEL (22%) - Categories
-                          Expanded(
-                            flex: 24,
-                            child: GlassPanel(
-                              opacity: 0.1,
-                              blur: 20,
-                              gradient: contentPanelGradientOf(context),
-                              child: _buildCategoryPanel(controller),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-
-                          // CENTER PANEL (33%) - Channels
-                          Expanded(
-                            flex: 28,
-                            child: GlassPanel(
-                              opacity: 0.1,
-                              blur: 20,
-                              gradient: contentPanelGradientOf(context),
-                              child: _buildChannelPanel(),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-
-                          // RIGHT PANEL (45%) - Preview & EPG
-                          Expanded(flex: 48, child: _buildPreviewPanel()),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -1027,7 +1061,13 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                   index: index + 1,
                   isFocused: isFocused,
                   onFocus: () => _onChannelHighlighted(channel),
-                  onTap: () => _onChannelFocused(channel, immediate: true),
+                  onTap: () {
+                    if (isFocused && _hasPreviewStarted) {
+                      _enterFullscreen();
+                    } else {
+                      _onChannelFocused(channel, immediate: true);
+                    }
+                  },
                   epgRevision: _epgRevision,
                 );
               } else {
@@ -1064,8 +1104,11 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                   onFocusChange: (v) => setState(() => _previewFocused = v),
                   onKeyEvent: (node, event) {
                     if (event is KeyDownEvent &&
-                        (event.logicalKey == LogicalKeyboardKey.select ||
-                            event.logicalKey == LogicalKeyboardKey.enter)) {
+                        WatchioFocusAction.activationShortcuts.keys.any(
+                          (shortcut) =>
+                              shortcut is SingleActivator &&
+                              shortcut.trigger == event.logicalKey,
+                        )) {
                       _enterFullscreen();
                       return KeyEventResult.handled;
                     }
@@ -1271,17 +1314,6 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                                     ],
                                   ),
                                 ),
-                              ),
-                            ),
-
-                            // Fullscreen Icon Hint
-                            Positioned(
-                              top: 16,
-                              right: 16,
-                              child: Icon(
-                                Icons.fullscreen_rounded,
-                                color: Colors.white.withValues(alpha: 0.5),
-                                size: 28,
                               ),
                             ),
                           ],
@@ -1762,6 +1794,19 @@ class _CategoryItemState extends State<_CategoryItem> {
 
     return FocusableActionDetector(
       onFocusChange: (v) => setState(() => _isFocused = v),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+      },
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            widget.onTap();
+            return null;
+          },
+        ),
+      },
       child: AnimatedScale(
         scale: _isFocused ? 1.02 : 1.0,
         duration: const Duration(milliseconds: 200),
@@ -1898,6 +1943,19 @@ class _ChannelItemState extends State<_ChannelItem> {
       onFocusChange: (v) {
         setState(() => _uiFocused = v);
         if (v) widget.onFocus();
+      },
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+      },
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            widget.onTap();
+            return null;
+          },
+        ),
       },
       child: AnimatedScale(
         scale: _uiFocused ? 1.03 : 1.0,

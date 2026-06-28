@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../../../services/config_service.dart';
 import '../../../core/theme/theme_manager.dart';
+import '../../../shared/widgets/watchio_focus_action.dart';
 
 class WatchioSettingsScaffold extends StatefulWidget {
   final String title;
@@ -187,8 +188,9 @@ class _HeaderIconButtonState extends State<_HeaderIconButton> {
   bool _isFocused = false;
   @override
   Widget build(BuildContext context) {
-    return FocusableActionDetector(
+    return WatchioFocusAction(
       onFocusChange: (v) => setState(() => _isFocused = v),
+      onActivate: widget.onTap,
       child: InkWell(
         onTap: widget.onTap,
         borderRadius: BorderRadius.circular(12),
