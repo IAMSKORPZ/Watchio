@@ -70,9 +70,13 @@ class _M3UHomeScreenState extends State<M3UHomeScreen> {
                     onUpdate: () => controller.onNavigationTap(0),
                     onSettings: () => controller.onNavigationTap(2),
                     onSearch: () {},
-                    onSports: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SportsHubScreen())),
+                    onSports: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SportsHubScreen(),
+                      ),
+                    ),
                     onProfile: () => controller.onNavigationTap(2),
-                    onAbout: () {},
                     username: 'M3U User',
                     expiryDate: 'Lifetime',
                     version: _version,
@@ -82,7 +86,9 @@ class _M3UHomeScreenState extends State<M3UHomeScreen> {
                 ],
               ),
             ),
-            bottomNavigationBar: controller.currentIndex == 0 ? null : _buildBottomNavigationBar(context, controller),
+            bottomNavigationBar: controller.currentIndex == 0
+                ? null
+                : _buildBottomNavigationBar(context, controller),
           );
         },
       ),
@@ -113,9 +119,18 @@ class _M3UHomeScreenState extends State<M3UHomeScreen> {
       onTap: controller.onNavigationTap,
       type: BottomNavigationBarType.fixed,
       items: [
-        BottomNavigationBarItem(icon: const Icon(Icons.home), label: context.loc.home),
-        BottomNavigationBarItem(icon: const Icon(Icons.all_inbox), label: context.loc.all),
-        BottomNavigationBarItem(icon: const Icon(Icons.settings), label: context.loc.settings),
+        BottomNavigationBarItem(
+          icon: const Icon(Icons.home),
+          label: context.loc.home,
+        ),
+        BottomNavigationBarItem(
+          icon: const Icon(Icons.all_inbox),
+          label: context.loc.all,
+        ),
+        BottomNavigationBarItem(
+          icon: const Icon(Icons.settings),
+          label: context.loc.settings,
+        ),
       ],
     );
   }

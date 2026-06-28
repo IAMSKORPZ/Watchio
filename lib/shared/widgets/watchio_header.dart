@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'watchio_focus_action.dart';
 
 class WatchioHeader extends StatefulWidget {
   final VoidCallback onBack;
@@ -279,8 +280,9 @@ class _HeaderIconButtonState extends State<_HeaderIconButton> {
   bool _isFocused = false;
   @override
   Widget build(BuildContext context) {
-    return FocusableActionDetector(
+    return WatchioFocusAction(
       onFocusChange: (v) => setState(() => _isFocused = v),
+      onActivate: widget.onTap,
       child: InkWell(
         onTap: widget.onTap,
         borderRadius: BorderRadius.circular(12),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:another_iptv_player/shared/widgets/watchio_focus_action.dart';
 import '../utils/firestick_performance.dart';
 
 class TvFocusable extends StatefulWidget {
@@ -33,25 +33,13 @@ class _TvFocusableState extends State<TvFocusable> {
       padding: widget.margin,
       child: GestureDetector(
         onTap: widget.onPressed,
-        child: FocusableActionDetector(
+        child: WatchioFocusAction(
           autofocus: widget.autofocus,
           mouseCursor: widget.onPressed == null
               ? MouseCursor.defer
               : SystemMouseCursors.click,
-          shortcuts: const {
-            SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
-            SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
-            SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
-          },
-          onShowFocusHighlight: (focused) => setState(() => _focused = focused),
-          actions: {
-            ActivateIntent: CallbackAction<ActivateIntent>(
-              onInvoke: (_) {
-                widget.onPressed?.call();
-                return null;
-              },
-            ),
-          },
+          onActivate: widget.onPressed,
+          onFocusChange: (focused) => setState(() => _focused = focused),
           child: AnimatedScale(
             scale: _focused ? perfScale(1.045) : 1,
             duration: perfDuration(const Duration(milliseconds: 120)),

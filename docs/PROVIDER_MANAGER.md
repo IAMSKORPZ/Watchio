@@ -85,7 +85,7 @@ New provider types should be added behind `ProviderRepository`, not directly int
 - SharedPreferences storage is not the final scale target. It is a Phase 2 foundation until Isar/Drift migration is designed.
 
 ## Known Issues Found During Phase 2
-- Flutter CLI is unavailable in this environment, so runtime verification is blocked.
+- Flutter CLI is available locally; use normal Flutter analyze/build gates for verification.
 - Android Gradle wrapper scripts are missing.
 - Provider Manager add flow creates metadata and compatible playlist only; it does not import all content by design.
 - Existing legacy playlist creation screens still work and are bridged into Provider Manager after load.

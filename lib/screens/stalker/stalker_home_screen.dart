@@ -49,7 +49,6 @@ class _StalkerHomeScreenState extends State<StalkerHomeScreen> {
           onSearch: () {},
           onSports: () {},
           onProfile: () {},
-          onAbout: () {},
           username: 'Stalker User',
           expiryDate: 'N/A',
           version: '0.0.1',

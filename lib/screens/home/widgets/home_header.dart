@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../shared/widgets/watchio_focus_action.dart';
 import '../../../utils/responsive_helper.dart';
 
 class HomeHeader extends StatelessWidget {
   final VoidCallback onSearch;
   final VoidCallback onProfile;
-  final VoidCallback onAbout;
   final VoidCallback onSports;
   final VoidCallback? onAnnouncements;
 
@@ -13,7 +13,6 @@ class HomeHeader extends StatelessWidget {
     super.key,
     required this.onSearch,
     required this.onProfile,
-    required this.onAbout,
     required this.onSports,
     this.onAnnouncements,
   });
@@ -125,11 +124,6 @@ class HomeHeader extends StatelessWidget {
               iconSize: iconSize,
               onTap: onAnnouncements ?? () {},
             ),
-            _ToolbarItem(
-              icon: Icons.bug_report_outlined,
-              iconSize: iconSize,
-              onTap: onAbout,
-            ),
           ],
         ),
       ],
@@ -160,8 +154,9 @@ class _HeaderButtonState extends State<HeaderButton> {
 
   @override
   Widget build(BuildContext context) {
-    return FocusableActionDetector(
+    return WatchioFocusAction(
       onFocusChange: (val) => setState(() => _isFocused = val),
+      onActivate: widget.onTap,
       child: InkWell(
         onTap: widget.onTap,
         borderRadius: BorderRadius.circular(16),
@@ -249,8 +244,9 @@ class _ToolbarItemState extends State<_ToolbarItem> {
       padding: const EdgeInsets.symmetric(
         horizontal: 8,
       ), // Further increased spacing for polish
-      child: FocusableActionDetector(
+      child: WatchioFocusAction(
         onFocusChange: (val) => setState(() => _isFocused = val),
+        onActivate: widget.onTap,
         child: InkWell(
           onTap: widget.onTap,
           borderRadius: BorderRadius.circular(30),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:another_iptv_player/core/theme/theme_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:another_iptv_player/services/service_locator.dart';
@@ -20,10 +21,17 @@ import 'widgets/update_startup_check.dart';
 import 'l10n/app_localizations.dart';
 import 'package:media_kit/media_kit.dart';
 import 'l10n/supported_languages.dart';
+import 'package:window_manager/window_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.windows ||
+          defaultTargetPlatform == TargetPlatform.linux ||
+          defaultTargetPlatform == TargetPlatform.macOS)) {
+    await windowManager.ensureInitialized();
+  }
 
   // Watchio is a horizontal-first TV/video app across supported form factors.
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);

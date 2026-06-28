@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../utils/firestick_performance.dart';
+import 'watchio_focus_action.dart';
 
 class FocusWrapper extends StatefulWidget {
   final Widget child;
@@ -43,10 +44,11 @@ class _FocusWrapperState extends State<FocusWrapper> {
       },
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent &&
-            (event.logicalKey == LogicalKeyboardKey.enter ||
-                event.logicalKey == LogicalKeyboardKey.select ||
-                event.logicalKey == LogicalKeyboardKey.space ||
-                event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
+            WatchioFocusAction.activationShortcuts.keys.any(
+              (shortcut) =>
+                  shortcut is SingleActivator &&
+                  shortcut.trigger == event.logicalKey,
+            )) {
           widget.onPressed?.call();
           return KeyEventResult.handled;
         }

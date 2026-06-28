@@ -55,7 +55,7 @@
 - Flutter Windows runner exists.
 - Windows window title and executable metadata rebranded to BingieTV.
 - NSIS installer script exists and was rebranded.
-- Windows build could not be verified locally because Flutter CLI is unavailable.
+- Windows build is verified locally with Flutter 3.44.1 / Dart 3.12.1.
 
 ## TV Support
 - UI includes responsive layouts and TV-like content grids.
