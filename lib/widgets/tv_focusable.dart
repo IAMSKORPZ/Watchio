@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../utils/firestick_performance.dart';
 
 class TvFocusable extends StatefulWidget {
@@ -37,6 +38,11 @@ class _TvFocusableState extends State<TvFocusable> {
           mouseCursor: widget.onPressed == null
               ? MouseCursor.defer
               : SystemMouseCursors.click,
+          shortcuts: const {
+            SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+            SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+            SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+          },
           onShowFocusHighlight: (focused) => setState(() => _focused = focused),
           actions: {
             ActivateIntent: CallbackAction<ActivateIntent>(

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../utils/responsive_helper.dart';
 import '../../../utils/firestick_performance.dart';
@@ -38,6 +39,19 @@ class _HomeBottomButtonState extends State<HomeBottomButton> {
 
     return FocusableActionDetector(
       onFocusChange: (val) => setState(() => _isFocused = val),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+      },
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            widget.onTap();
+            return null;
+          },
+        ),
+      },
       child: AnimatedScale(
         scale: _isFocused ? perfScale(1.05) : 1.0,
         duration: perfDuration(const Duration(milliseconds: 200)),

@@ -45,6 +45,7 @@ class _FocusWrapperState extends State<FocusWrapper> {
         if (event is KeyDownEvent &&
             (event.logicalKey == LogicalKeyboardKey.enter ||
                 event.logicalKey == LogicalKeyboardKey.select ||
+                event.logicalKey == LogicalKeyboardKey.space ||
                 event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
           widget.onPressed?.call();
           return KeyEventResult.handled;

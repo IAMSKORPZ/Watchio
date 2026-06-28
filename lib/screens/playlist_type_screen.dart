@@ -24,7 +24,7 @@ class _PlaylistTypeScreenState extends State<PlaylistTypeScreen> {
   @override
   Widget build(BuildContext context) {
     final config = context.watch<ConfigService>().config;
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFF050816),
       body: LayoutBuilder(
@@ -79,7 +79,8 @@ class _PlaylistTypeScreenState extends State<PlaylistTypeScreen> {
               image: DecorationImage(
                 image: config.backgrounds.home.isNotEmpty
                     ? NetworkImage(config.backgrounds.home)
-                    : const AssetImage('assets/images/background.png') as ImageProvider,
+                    : const AssetImage('assets/images/background.png')
+                          as ImageProvider,
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(
                   Colors.black.withValues(alpha: 0.4),
@@ -92,7 +93,10 @@ class _PlaylistTypeScreenState extends State<PlaylistTypeScreen> {
                 children: [
                   // 1. Header
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -100,17 +104,19 @@ class _PlaylistTypeScreenState extends State<PlaylistTypeScreen> {
                           'assets/images/App_Logo.png',
                           height: logoHeight,
                           fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => 
-                            Icon(Icons.play_arrow_rounded, color: const Color(0xFF00B7FF), size: logoHeight * 0.7),
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.play_arrow_rounded,
+                            color: const Color(0xFF00B7FF),
+                            size: logoHeight * 0.7,
+                          ),
                         ),
                         const Spacer(),
                         const _LiveClock(),
                       ],
                     ),
                   ),
-                  
+
                   const Spacer(flex: 1), // Top breathing room
-                  
                   // 2. Title - Moved upward for better balance
                   Transform.translate(
                     offset: const Offset(0, -25),
@@ -125,9 +131,8 @@ class _PlaylistTypeScreenState extends State<PlaylistTypeScreen> {
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: titleGap), // Use the titleGap variable
-                  
                   // 3. Main Dashboard (Expanded & Centered)
                   Expanded(
                     flex: 10,
@@ -166,8 +171,10 @@ class _PlaylistTypeScreenState extends State<PlaylistTypeScreen> {
                       ),
                     ),
                   ),
-                  
-                  const Spacer(flex: 3), // Bottom Spacer - larger flex to push everything UP
+
+                  const Spacer(
+                    flex: 3,
+                  ), // Bottom Spacer - larger flex to push everything UP
                 ],
               ),
             ),
@@ -178,11 +185,19 @@ class _PlaylistTypeScreenState extends State<PlaylistTypeScreen> {
   }
 
   void _navToM3u(BuildContext context) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const NewM3uPlaylistScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const NewM3uPlaylistScreen()),
+    );
   }
 
   void _navToXtream(BuildContext context) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const NewXtreamCodePlaylistScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const NewXtreamCodePlaylistScreen(),
+      ),
+    );
   }
 
   void _showLocalDataMsg(BuildContext context) {
@@ -230,11 +245,19 @@ class _LiveClockState extends State<_LiveClock> {
       children: [
         Text(
           DateFormat('hh:mm a').format(_now),
-          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         Text(
           DateFormat('MMM d, yyyy').format(_now),
-          style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500),
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
@@ -273,10 +296,13 @@ class _TypeCardState extends State<_TypeCard> {
       onShowHoverHighlight: (val) => setState(() => _isHovered = val),
       shortcuts: const {
         SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
         SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
       },
       actions: {
-        ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => widget.onTap()),
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onTap(),
+        ),
       },
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
@@ -296,23 +322,25 @@ class _TypeCardState extends State<_TypeCard> {
                 color: const Color(0xFF0F1423).withValues(alpha: 0.75),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: active 
+                  color: active
                       ? const Color(0xFF00B7FF)
                       : const Color(0xFF00B7FF).withValues(alpha: 0.2),
                   width: active ? 3 : 1.5,
                 ),
-                boxShadow: active ? [
-                  BoxShadow(
-                    color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
-                    blurRadius: 24,
-                    spreadRadius: 2,
-                  ),
-                  BoxShadow(
-                    color: const Color(0xFF00B7FF).withValues(alpha: 0.3),
-                    blurRadius: 18,
-                    spreadRadius: 1,
-                  ),
-                ] : [],
+                boxShadow: active
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFFC12CFF).withValues(alpha: 0.4),
+                          blurRadius: 24,
+                          spreadRadius: 2,
+                        ),
+                        BoxShadow(
+                          color: const Color(0xFF00B7FF).withValues(alpha: 0.3),
+                          blurRadius: 18,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : [],
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -328,7 +356,7 @@ class _TypeCardState extends State<_TypeCard> {
                       child: Icon(widget.icon, size: 48, color: Colors.white),
                     ),
                   ),
-                  const SizedBox(height: 16), 
+                  const SizedBox(height: 16),
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Padding(

@@ -410,6 +410,9 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
             SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
             SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
             SingleActivator(LogicalKeyboardKey.space): _PlayPauseIntent(),
+            SingleActivator(LogicalKeyboardKey.keyK): _PlayPauseIntent(),
+            SingleActivator(LogicalKeyboardKey.keyJ): _SeekBackIntent(),
+            SingleActivator(LogicalKeyboardKey.keyL): _SeekForwardIntent(),
             SingleActivator(LogicalKeyboardKey.mediaPlayPause):
                 _PlayPauseIntent(),
             SingleActivator(LogicalKeyboardKey.mediaPlay): _PlayPauseIntent(),
