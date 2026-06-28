@@ -146,7 +146,11 @@ class _VideoWidgetState extends State<VideoWidget> {
         shortcuts: const {
           SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.keyK): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.mediaPlayPause): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.keyJ): _SeekBackIntent(),
+          SingleActivator(LogicalKeyboardKey.keyL): _SeekForwardIntent(),
           SingleActivator(LogicalKeyboardKey.mediaRewind): _SeekBackIntent(),
           SingleActivator(LogicalKeyboardKey.mediaFastForward):
               _SeekForwardIntent(),
