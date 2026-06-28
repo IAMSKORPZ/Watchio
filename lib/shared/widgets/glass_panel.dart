@@ -35,27 +35,31 @@ class GlassPanel extends StatelessWidget {
     final effectiveRadius = borderRadius == 16
         ? manager.tileRadius
         : borderRadius;
+    final effectiveBlur = perfBlur(blur);
+    final content = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: gradient == null
+            ? theme.glassColor.withValues(alpha: opacity)
+            : null,
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(effectiveRadius),
+        border: border ?? Border.all(color: theme.glassBorder),
+      ),
+      child: Material(type: MaterialType.transparency, child: child),
+    );
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(effectiveRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: perfBlur(blur),
-          sigmaY: perfBlur(blur),
-        ),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: gradient == null
-                ? theme.glassColor.withValues(alpha: opacity)
-                : null,
-            gradient: gradient,
-            borderRadius: BorderRadius.circular(effectiveRadius),
-            border: border ?? Border.all(color: theme.glassBorder),
-          ),
-          child: Material(type: MaterialType.transparency, child: child),
-        ),
-      ),
+      child: effectiveBlur <= 0
+          ? content
+          : BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: effectiveBlur,
+                sigmaY: effectiveBlur,
+              ),
+              child: content,
+            ),
     );
   }
 }
