@@ -15,6 +15,7 @@ import 'sections/appearance_page.dart';
 import 'sections/backup_restore_page.dart';
 import '../update/update_screen.dart';
 import 'dart:ui';
+import '../../utils/firestick_performance.dart';
 
 class WatchioSettingsScreen extends StatelessWidget {
   const WatchioSettingsScreen({super.key});
@@ -140,9 +141,9 @@ class _SettingsTileState extends State<SettingsTile> {
           onFocusChange: (value) => setState(() => _isFocused = value),
           child: AnimatedScale(
             scale: themeManager.animationsEnabled && _isFocused ? 1.05 : 1.0,
-            duration: Duration(
-              milliseconds: themeManager.animationsEnabled ? 200 : 0,
-            ),
+            duration: themeManager.animationsEnabled
+                ? perfDuration(const Duration(milliseconds: 200))
+                : Duration.zero,
             curve: Curves.easeOutCubic,
             child: InkWell(
               onTap: widget.onTap,
@@ -157,19 +158,24 @@ class _SettingsTileState extends State<SettingsTile> {
                         : Colors.white.withValues(alpha: 0.1),
                     width: 2.5,
                   ),
-                  boxShadow: [
-                    if (_isFocused)
-                      BoxShadow(
-                        color: accentColor.withValues(alpha: 0.4),
-                        blurRadius: 30,
-                        spreadRadius: 2,
-                      ),
-                  ],
+                  boxShadow: firestickPerformanceMode
+                      ? null
+                      : [
+                          if (_isFocused)
+                            BoxShadow(
+                              color: accentColor.withValues(alpha: 0.4),
+                              blurRadius: 30,
+                              spreadRadius: 2,
+                            ),
+                        ],
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(30),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    filter: ImageFilter.blur(
+                      sigmaX: perfBlur(20),
+                      sigmaY: perfBlur(20),
+                    ),
                     child: Container(
                       decoration: BoxDecoration(gradient: panelGradient),
                       child: Padding(

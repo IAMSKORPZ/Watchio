@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../core/theme/theme_extensions.dart';
 import '../../core/theme/theme_manager.dart';
+import '../../utils/firestick_performance.dart';
 import 'package:provider/provider.dart';
 
 LinearGradient contentPanelGradientOf(BuildContext context) =>
@@ -38,7 +39,10 @@ class GlassPanel extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(effectiveRadius),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        filter: ImageFilter.blur(
+          sigmaX: perfBlur(blur),
+          sigmaY: perfBlur(blur),
+        ),
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
