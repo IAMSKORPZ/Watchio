@@ -10,7 +10,7 @@ import '../../repositories/user_preferences.dart';
 class MediaKitPlayerController extends AppPlayerController {
   late Player _player;
   late VideoController _videoController;
-  
+
   bool _isInitialized = false;
   bool _isPlaying = false;
   bool _isBuffering = false;
@@ -23,6 +23,8 @@ class MediaKitPlayerController extends AppPlayerController {
   bool _disposed = false;
   int _requestId = 0;
   Timer? _retryTimer;
+  DateTime _lastPositionNotify = DateTime.fromMillisecondsSinceEpoch(0);
+  Duration _lastNotifiedPosition = Duration.zero;
 
   StreamSubscription? _posSub;
   StreamSubscription? _durSub;
@@ -62,7 +64,7 @@ class MediaKitPlayerController extends AppPlayerController {
     debugPrint('MediaKit: Player Created');
     final hardwareDecoding = await UserPreferences.getHardwareDecoding();
     _player = Player();
-    
+
     if (hardwareDecoding && !kIsWeb) {
       try {
         final dynamic platform = _player.platform;
@@ -75,26 +77,34 @@ class MediaKitPlayerController extends AppPlayerController {
     }
 
     _videoController = VideoController(_player);
-    
+
     _posSub = _player.stream.position.listen((p) {
       if (_disposed) return;
       _position = p;
-      notifyListeners();
+      final now = DateTime.now();
+      final movedBy = (p - _lastNotifiedPosition).abs();
+      if (now.difference(_lastPositionNotify) >=
+              const Duration(milliseconds: 750) ||
+          movedBy >= const Duration(seconds: 2)) {
+        _lastPositionNotify = now;
+        _lastNotifiedPosition = p;
+        notifyListeners();
+      }
     });
-    
+
     _durSub = _player.stream.duration.listen((d) {
       if (_disposed) return;
       _duration = d;
       notifyListeners();
     });
-    
+
     _playSub = _player.stream.playing.listen((p) {
       if (_disposed) return;
       _isPlaying = p;
       if (p) debugPrint('MediaKit: Playback Started');
       notifyListeners();
     });
-    
+
     _buffSub = _player.stream.buffering.listen((b) {
       if (_disposed) return;
       _isBuffering = b;
@@ -128,11 +138,10 @@ class MediaKitPlayerController extends AppPlayerController {
     if (_disposed || requestId != _requestId) return;
 
     try {
-      await _player.open(
-        Media(item.url, httpHeaders: item.headers), 
-        play: true
-      ).timeout(const Duration(seconds: 15));
-      
+      await _player
+          .open(Media(item.url, httpHeaders: item.headers), play: true)
+          .timeout(const Duration(seconds: 15));
+
       if (_disposed || requestId != _requestId) return;
 
       if (item.startPosition > Duration.zero) {
@@ -140,7 +149,9 @@ class MediaKitPlayerController extends AppPlayerController {
       }
     } catch (e) {
       if (_disposed || requestId != _requestId) {
-        debugPrint('MediaKit: Ignoring error from stale request or disposed controller');
+        debugPrint(
+          'MediaKit: Ignoring error from stale request or disposed controller',
+        );
         return;
       }
 
@@ -210,7 +221,10 @@ class MediaKitPlayerController extends AppPlayerController {
         final dynamic platform = _player.platform;
         if (platform.toString().contains('NativePlayer')) {
           if (ratio != null) {
-            await platform.setProperty('video-aspect-override', ratio.toString());
+            await platform.setProperty(
+              'video-aspect-override',
+              ratio.toString(),
+            );
           } else {
             await platform.setProperty('video-aspect-override', '-1');
           }
@@ -225,7 +239,9 @@ class MediaKitPlayerController extends AppPlayerController {
   @override
   Future<List<String>> getAudioTracks() async {
     if (_disposed) return [];
-    return _player.state.tracks.audio.map((t) => t.title ?? t.language ?? 'Audio track').toList();
+    return _player.state.tracks.audio
+        .map((t) => t.title ?? t.language ?? 'Audio track')
+        .toList();
   }
 
   @override
@@ -237,7 +253,9 @@ class MediaKitPlayerController extends AppPlayerController {
   @override
   Future<List<String>> getSubtitleTracks() async {
     if (_disposed) return [];
-    return _player.state.tracks.subtitle.map((t) => t.title ?? t.language ?? 'Subtitle').toList();
+    return _player.state.tracks.subtitle
+        .map((t) => t.title ?? t.language ?? 'Subtitle')
+        .toList();
   }
 
   @override
@@ -251,7 +269,9 @@ class MediaKitPlayerController extends AppPlayerController {
     if (_disposed) return const SizedBox.shrink();
     return Video(
       controller: _videoController,
-      fill: _aspectRatio != null || fit != null ? Colors.black : Colors.transparent,
+      fill: _aspectRatio != null || fit != null
+          ? Colors.black
+          : Colors.transparent,
       fit: fit ?? (_aspectRatio != null ? BoxFit.fill : BoxFit.contain),
     );
   }

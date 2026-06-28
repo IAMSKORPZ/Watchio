@@ -52,6 +52,7 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   double _brightness = 0.5;
   bool _showSideSliders = false;
   Timer? _sideSlidersTimer;
+  int _lastHistorySaveSecond = -1;
 
   @override
   void initState() {
@@ -231,8 +232,11 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
       setState(() {});
     }
     // Save history periodically for VOD, or once for Live to mark as "Recent"
+    final currentSecond = _playerController.position.inSeconds;
     if (_playerController.isPlaying &&
-        _playerController.position.inSeconds % 10 == 0) {
+        currentSecond % 10 == 0 &&
+        currentSecond != _lastHistorySaveSecond) {
+      _lastHistorySaveSecond = currentSecond;
       _saveHistory();
     }
   }

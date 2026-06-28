@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/xtream_code_home_controller.dart';
 import '../../core/theme/theme_manager.dart';
@@ -321,7 +322,8 @@ class _XtreamSeriesScreenState extends State<XtreamSeriesScreen> {
 
                                       return GridView.builder(
                                         controller: _scrollController,
-                                        cacheExtent: 900,
+                                        scrollCacheExtent:
+                                            const ScrollCacheExtent.pixels(900),
                                         gridDelegate:
                                             SliverGridDelegateWithFixedCrossAxisCount(
                                               crossAxisCount: crossAxisCount,

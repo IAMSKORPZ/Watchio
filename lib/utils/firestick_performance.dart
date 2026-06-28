@@ -5,8 +5,8 @@ const bool _firestickPerformanceOverride = bool.fromEnvironment(
 );
 
 bool get firestickPerformanceMode =>
-    _firestickPerformanceOverride &&
-    defaultTargetPlatform == TargetPlatform.android;
+    defaultTargetPlatform == TargetPlatform.android ||
+    _firestickPerformanceOverride;
 
 Duration perfDuration(Duration normal) =>
     firestickPerformanceMode ? Duration.zero : normal;
