@@ -106,13 +106,7 @@ class EpgSourceService {
   }
 
   static Future<void> refreshOnStartup(Playlist playlist) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!(prefs.getBool('epg_auto_refresh') ?? true)) return;
-    try {
-      await EpgSourceService().discoverAndImport(playlist: playlist);
-    } catch (_) {
-      // Keep cached EPG and never block startup when provider EPG is offline.
-    }
+    unawaited(refreshIfDue(playlist));
   }
 
   Future<bool> _isXmlTv(String url) async {

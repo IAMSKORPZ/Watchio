@@ -6,7 +6,7 @@ import '../../models/playback_item.dart';
 
 class ExoPlayerController extends AppPlayerController {
   VideoPlayerController? _controller;
-  
+
   bool _isInitialized = false;
   bool _isPlaying = false;
   bool _isBuffering = false;
@@ -17,16 +17,19 @@ class ExoPlayerController extends AppPlayerController {
   double? _aspectRatio;
   int _retryCount = 0;
   static const int _maxRetries = 3;
-  
+
   bool _disposed = false;
   int _requestId = 0;
   Timer? _retryTimer;
+  DateTime _lastPositionNotify = DateTime.fromMillisecondsSinceEpoch(0);
+  Duration _lastNotifiedPosition = Duration.zero;
 
   @override
   void notifyListeners() {
     if (_disposed) return;
     super.notifyListeners();
   }
+
   @override
   bool get isInitialized => _isInitialized;
   @override
@@ -66,7 +69,9 @@ class ExoPlayerController extends AppPlayerController {
 
   Future<void> _setupController(PlaybackItem item, int requestId) async {
     if (_disposed || requestId != _requestId) {
-      debugPrint('ExoPlayer: Ignoring setup for stale request or disposed controller');
+      debugPrint(
+        'ExoPlayer: Ignoring setup for stale request or disposed controller',
+      );
       return;
     }
 
@@ -82,7 +87,9 @@ class ExoPlayerController extends AppPlayerController {
 
     final uri = Uri.tryParse(item.url);
     if (uri == null || !uri.hasScheme || !uri.scheme.startsWith('http')) {
-      debugPrint('ExoPlayer: Playback Error -> Invalid stream URL: ${item.url}');
+      debugPrint(
+        'ExoPlayer: Playback Error -> Invalid stream URL: ${item.url}',
+      );
       _error = 'Invalid stream URL';
       notifyListeners();
       return;
@@ -101,29 +108,35 @@ class ExoPlayerController extends AppPlayerController {
       await _controller!.initialize().timeout(
         const Duration(seconds: 15),
         onTimeout: () {
-          debugPrint('ExoPlayer: TimeoutException -> Connection timed out after 15s');
+          debugPrint(
+            'ExoPlayer: TimeoutException -> Connection timed out after 15s',
+          );
           throw TimeoutException('Connection timed out');
         },
       );
-      
+
       if (_disposed || requestId != _requestId) {
-        debugPrint('ExoPlayer: Ignoring successful init - request changed or disposed');
+        debugPrint(
+          'ExoPlayer: Ignoring successful init - request changed or disposed',
+        );
         return;
       }
 
       debugPrint('ExoPlayer: Playback Started');
       _duration = _controller!.value.duration;
-      
+
       if (item.startPosition > Duration.zero) {
         await _controller!.seekTo(item.startPosition);
       }
-      
+
       if (!_disposed && requestId == _requestId) {
         await _controller!.play();
       }
     } catch (e) {
       if (_disposed || requestId != _requestId) {
-        debugPrint('ExoPlayer: Ignoring error from old request or disposed controller: $e');
+        debugPrint(
+          'ExoPlayer: Ignoring error from old request or disposed controller: $e',
+        );
         return;
       }
 
@@ -136,7 +149,9 @@ class ExoPlayerController extends AppPlayerController {
           if (!_disposed && requestId == _requestId) {
             _setupController(item, requestId);
           } else {
-            debugPrint('ExoPlayer: Retry cancelled - stale request or disposed');
+            debugPrint(
+              'ExoPlayer: Retry cancelled - stale request or disposed',
+            );
           }
         });
       } else {
@@ -150,23 +165,39 @@ class ExoPlayerController extends AppPlayerController {
 
   void _updateState() {
     if (_disposed || _controller == null) return;
-    
+
     final value = _controller!.value;
-    
+
     if (value.hasError) {
       debugPrint('ExoPlayer Controller Error: ${value.errorDescription}');
       _error = value.errorDescription;
     }
 
     if (value.isBuffering != _isBuffering) {
-      debugPrint('ExoPlayer: Buffer State -> ${value.isBuffering ? "Buffering" : "Ready"}');
+      debugPrint(
+        'ExoPlayer: Buffer State -> ${value.isBuffering ? "Buffering" : "Ready"}',
+      );
     }
+
+    final playingChanged = _isPlaying != value.isPlaying;
+    final bufferingChanged = _isBuffering != value.isBuffering;
 
     _isPlaying = value.isPlaying;
     _isBuffering = value.isBuffering;
     _position = value.position;
-    
-    notifyListeners();
+
+    final now = DateTime.now();
+    final movedBy = (_position - _lastNotifiedPosition).abs();
+    final shouldNotifyPosition =
+        now.difference(_lastPositionNotify) >=
+            const Duration(milliseconds: 750) ||
+        movedBy >= const Duration(seconds: 2);
+
+    if (playingChanged || bufferingChanged || shouldNotifyPosition) {
+      _lastPositionNotify = now;
+      _lastNotifiedPosition = _position;
+      notifyListeners();
+    }
   }
 
   @override
@@ -233,9 +264,9 @@ class ExoPlayerController extends AppPlayerController {
     if (_controller == null || !_controller!.value.isInitialized) {
       return const SizedBox.shrink();
     }
-    
+
     Widget player = VideoPlayer(_controller!);
-    
+
     if (fit != null) {
       return SizedBox.expand(
         child: FittedBox(
@@ -251,10 +282,7 @@ class ExoPlayerController extends AppPlayerController {
     }
 
     if (_aspectRatio != null) {
-      player = AspectRatio(
-        aspectRatio: _aspectRatio!,
-        child: player,
-      );
+      player = AspectRatio(aspectRatio: _aspectRatio!, child: player);
     } else {
       player = AspectRatio(
         aspectRatio: _controller!.value.aspectRatio,
