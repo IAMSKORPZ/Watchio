@@ -10,7 +10,9 @@ class EpgStorageService {
     : database = database ?? getIt<AppDatabase>();
 
   Future<void> ensureSchema() async {
-    debugPrint('EPG Storage: Using milliseconds for timestamps');
+    if (kDebugMode) {
+      debugPrint('EPG Storage: Using milliseconds for timestamps');
+    }
     await database.customStatement('''
 CREATE TABLE IF NOT EXISTS epg_channels(
   playlist_id TEXT NOT NULL,
@@ -70,9 +72,11 @@ LIMIT ?
         )
         .get();
 
-    debugPrint(
-      'EPG Storage: Found ${rows.length} programs for $epgChannelId using milliseconds',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        'EPG Storage: Found ${rows.length} programs for $epgChannelId using milliseconds',
+      );
+    }
 
     return rows
         .map(
@@ -103,9 +107,11 @@ LIMIT ?
     await ensureSchema();
 
     final normalized = normalizeName(displayName);
-    debugPrint(
-      'EPG Storage: Searching by normalized name: "$normalized" (Original: "$displayName")',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        'EPG Storage: Searching by normalized name: "$normalized" (Original: "$displayName")',
+      );
+    }
 
     // Try exact match on display_name first
     var channelRows = await database
@@ -221,7 +227,9 @@ LIMIT 1
       'DELETE FROM epg_programs WHERE playlist_id = ?',
       [playlistId],
     );
-    debugPrint('EPG Storage: Cleared EPG data for playlist $playlistId');
+    if (kDebugMode) {
+      debugPrint('EPG Storage: Cleared EPG data for playlist $playlistId');
+    }
   }
 }
 

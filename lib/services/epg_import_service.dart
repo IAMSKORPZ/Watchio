@@ -27,7 +27,9 @@ class EpgImportService {
     final maskedUrl = url
         .replaceFirst(RegExp(r'password=[^&]+'), 'password=***')
         .replaceFirst(RegExp(r'username=[^&]+'), 'username=***');
-    debugPrint('EPG XMLTV download started: $maskedUrl');
+    if (kDebugMode) {
+      debugPrint('EPG XMLTV download started: $maskedUrl');
+    }
 
     final response = await http.Client().send(
       http.Request('GET', Uri.parse(url)),
@@ -36,15 +38,11 @@ class EpgImportService {
       throw Exception('EPG import failed: HTTP ${response.statusCode}');
     }
 
-    final contentLength = response.contentLength;
-    debugPrint('EPG XMLTV response status: ${response.statusCode}');
-    debugPrint('EPG XMLTV response content length: $contentLength');
-
-    // For debugging small responses
-    if (contentLength != null && contentLength < 10000) {
-      // It's a small response, let's see what it contains
-      // Note: reading from stream here will consume it, so we need to be careful.
-      // Instead, let's just log the first chunk in _importLines.
+    if (kDebugMode) {
+      debugPrint('EPG XMLTV response status: ${response.statusCode}');
+      debugPrint(
+        'EPG XMLTV response content length: ${response.contentLength}',
+      );
     }
 
     // We use a stream for memory efficiency
@@ -115,7 +113,11 @@ INSERT OR REPLACE INTO epg_programs(
           );
         }
       });
-      debugPrint('EPG: committed batch of ${batchToInsert.length} programmes');
+      if (kDebugMode) {
+        debugPrint(
+          'EPG: committed batch of ${batchToInsert.length} programmes',
+        );
+      }
     }
 
     await for (final rawLine in lines) {
@@ -125,7 +127,9 @@ INSERT OR REPLACE INTO epg_programs(
 
       if (isFirstChunk) {
         final preview = line.length > 500 ? line.substring(0, 500) : line;
-        debugPrint('EPG XMLTV response start: $preview');
+        if (kDebugMode) {
+          debugPrint('EPG XMLTV response start: $preview');
+        }
         isFirstChunk = false;
       }
 
@@ -203,9 +207,11 @@ INSERT OR REPLACE INTO epg_programs(
     }
 
     await flushPrograms();
-    debugPrint(
-      'EPG full import complete. Channels: $channelsFound, Programmes: $programsFound, Skipped: $programsSkipped',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        'EPG full import complete. Channels: $channelsFound, Programmes: $programsFound, Skipped: $programsSkipped',
+      );
+    }
 
     final done = ImportProgressModel(
       currentItem: '$channelsFound channels, $programsFound programmes',

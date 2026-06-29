@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -500,14 +501,17 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   Future<void> _fetchEpg(ContentItem channel) async {
     final requestId = ++_epgRequestId;
     final now = DateTime.now();
-    debugPrint('--- EPG AUDIT START ---');
-    debugPrint('Channel Name: ${channel.name}');
-    debugPrint('Stream ID: ${channel.id}');
-    debugPrint('tvg_id: ${channel.m3uItem?.tvgId}');
-    debugPrint('epg_channel_id: ${channel.liveStream?.epgChannelId}');
-    debugPrint('Category ID: ${channel.liveStream?.categoryId}');
-    final normalized = _epgService.normalizeName(channel.name);
-    debugPrint('Normalized Name: $normalized');
+    final audit = kDebugMode;
+    if (audit) {
+      debugPrint('--- EPG AUDIT START ---');
+      debugPrint('Channel Name: ${channel.name}');
+      debugPrint('Stream ID: ${channel.id}');
+      debugPrint('tvg_id: ${channel.m3uItem?.tvgId}');
+      debugPrint('epg_channel_id: ${channel.liveStream?.epgChannelId}');
+      debugPrint('Category ID: ${channel.liveStream?.categoryId}');
+      final normalized = _epgService.normalizeName(channel.name);
+      debugPrint('Normalized Name: $normalized');
+    }
 
     final liveStream = channel.liveStream;
     final m3uItem = channel.m3uItem;
@@ -519,17 +523,19 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     }
 
     if (playlistId == null) {
-      debugPrint('EPG Audit: No playlist ID found');
+      if (audit) debugPrint('EPG Audit: No playlist ID found');
       if (mounted && requestId == _epgRequestId) {
         setState(() => _epgPrograms = []);
       }
       return;
     }
 
-    final channelCount = await _epgService.getChannelCount(playlistId);
-    final programCount = await _epgService.getProgramCount(playlistId);
-    debugPrint('Total EPG Channels in DB: $channelCount');
-    debugPrint('Total EPG Programmes in DB: $programCount');
+    if (audit) {
+      final channelCount = await _epgService.getChannelCount(playlistId);
+      final programCount = await _epgService.getProgramCount(playlistId);
+      debugPrint('Total EPG Channels in DB: $channelCount');
+      debugPrint('Total EPG Programmes in DB: $programCount');
+    }
 
     // Identifiers to try in order: tvg-id, epg_channel_id, stream_id, name
     final searchStrategies = [
@@ -559,14 +565,16 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
         if (programs.isNotEmpty) {
           matchedId = id;
           matchedStrategy = strategy['label'];
-          debugPrint('EPG Match Found using $matchedStrategy: $matchedId');
+          if (audit) {
+            debugPrint('EPG Match Found using $matchedStrategy: $matchedId');
+          }
           break;
         }
       }
 
       // Fallback: Name matching if still empty
       if (programs.isEmpty) {
-        debugPrint('EPG: Trying name-based matching fallback...');
+        if (audit) debugPrint('EPG: Trying name-based matching fallback...');
         programs = await _epgService.getProgramsByChannelName(
           playlistId: playlistId,
           displayName: channel.name,
@@ -575,53 +583,55 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
           limit: 3,
         );
         if (programs.isNotEmpty) {
-          debugPrint('EPG Match Found using Normalized Name');
+          if (audit) debugPrint('EPG Match Found using Normalized Name');
           matchedStrategy = 'normalized_name';
         }
       }
 
-      debugPrint(
-        'EPG Matching Status: ${programs.isNotEmpty ? "SUCCESS" : "FAILED"}',
-      );
-      debugPrint('Lookup Timestamp (Local): $now');
-      debugPrint('Lookup Timestamp (UTC): ${now.toUtc()}');
-
-      if (programs.isEmpty) {
-        debugPrint('EPG audit: No programmes found for this channel');
-      } else {
-        debugPrint('Number of programmes found: ${programs.length}');
-        final current = programs.firstWhere(
-          (p) =>
-              (p.start.isBefore(now) || p.start.isAtSameMomentAs(now)) &&
-              p.end.isAfter(now),
-          orElse: () => programs.first,
-        );
-
-        bool isAiringNow =
-            (current.start.isBefore(now) ||
-                current.start.isAtSameMomentAs(now)) &&
-            current.end.isAfter(now);
-
+      if (audit) {
         debugPrint(
-          'Current Programme: ${current.title} (${current.start} - ${current.end})',
+          'EPG Matching Status: ${programs.isNotEmpty ? "SUCCESS" : "FAILED"}',
         );
-        if (programs.length > 1) {
-          debugPrint('Next Programme: ${programs[1].title}');
-        }
+        debugPrint('Lookup Timestamp (Local): $now');
+        debugPrint('Lookup Timestamp (UTC): ${now.toUtc()}');
 
-        if (!isAiringNow) {
-          debugPrint(
-            'EPG channel matched but no current programme at this time (Current time: $now)',
+        if (programs.isEmpty) {
+          debugPrint('EPG audit: No programmes found for this channel');
+        } else {
+          debugPrint('Number of programmes found: ${programs.length}');
+          final current = programs.firstWhere(
+            (p) =>
+                (p.start.isBefore(now) || p.start.isAtSameMomentAs(now)) &&
+                p.end.isAfter(now),
+            orElse: () => programs.first,
           );
+
+          bool isAiringNow =
+              (current.start.isBefore(now) ||
+                  current.start.isAtSameMomentAs(now)) &&
+              current.end.isAfter(now);
+
+          debugPrint(
+            'Current Programme: ${current.title} (${current.start} - ${current.end})',
+          );
+          if (programs.length > 1) {
+            debugPrint('Next Programme: ${programs[1].title}');
+          }
+
+          if (!isAiringNow) {
+            debugPrint(
+              'EPG channel matched but no current programme at this time (Current time: $now)',
+            );
+          }
         }
+        debugPrint('--- EPG AUDIT END ---');
       }
-      debugPrint('--- EPG AUDIT END ---');
 
       if (mounted && requestId == _epgRequestId) {
         setState(() => _epgPrograms = programs);
       }
     } catch (e) {
-      debugPrint('EPG Error: $e');
+      if (audit) debugPrint('EPG Error: $e');
       if (mounted && requestId == _epgRequestId) {
         setState(() => _epgPrograms = []);
       }

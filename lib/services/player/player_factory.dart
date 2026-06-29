@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../models/player_engine.dart';
 import 'app_player_controller.dart';
 import 'media_kit_player_controller.dart';
@@ -5,6 +6,10 @@ import 'exoplayer_controller.dart';
 
 class PlayerFactory {
   static AppPlayerController create(PlayerEngine engine) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return ExoPlayerController();
+    }
+
     switch (engine) {
       case PlayerEngine.exoPlayer:
         return ExoPlayerController();
