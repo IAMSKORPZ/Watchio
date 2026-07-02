@@ -1716,13 +1716,13 @@ class AppDatabase extends _$AppDatabase {
     await (delete(favorites)..where((f) => f.id.equals(id))).go();
   }
 
-  Future<void> deleteFavoriteByContent(
+  Future<int> deleteFavoriteByContent(
     String playlistId,
     String streamId,
     ContentType contentType,
     String? episodeId,
   ) async {
-    await (delete(favorites)..where(
+    return (delete(favorites)..where(
           (f) =>
               f.playlistId.equals(playlistId) &
               f.streamId.equals(streamId) &
