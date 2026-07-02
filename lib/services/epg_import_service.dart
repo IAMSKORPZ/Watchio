@@ -299,10 +299,12 @@ INSERT OR REPLACE INTO epg_channels(
   }
 
   DateTime? _parseXmlTvTime(String value) {
-    final match = RegExp(r'^(\d{14})').firstMatch(value);
+    final match = RegExp(
+      r'^(\d{14})(?:\s*([+-])(\d{2})(\d{2}))?',
+    ).firstMatch(value);
     if (match == null) return null;
     final raw = match.group(1)!;
-    return DateTime.utc(
+    final utc = DateTime.utc(
       int.parse(raw.substring(0, 4)),
       int.parse(raw.substring(4, 6)),
       int.parse(raw.substring(6, 8)),
@@ -310,10 +312,20 @@ INSERT OR REPLACE INTO epg_channels(
       int.parse(raw.substring(10, 12)),
       int.parse(raw.substring(12, 14)),
     );
+    final sign = match.group(2);
+    if (sign == null) return utc;
+    final hours = int.parse(match.group(3)!);
+    final minutes = int.parse(match.group(4)!);
+    final offset = Duration(hours: hours, minutes: minutes);
+    return sign == '+' ? utc.subtract(offset) : utc.add(offset);
   }
 
   String? _attr(String xml, String name) {
-    return RegExp('$name="([^"]*)"').firstMatch(xml)?.group(1);
+    final match = RegExp(
+      '\\b${RegExp.escape(name)}\\s*=\\s*("([^"]*)"|\'([^\']*)\')',
+      caseSensitive: false,
+    ).firstMatch(xml);
+    return match?.group(2) ?? match?.group(3);
   }
 
   String? _tag(String xml, String name) {

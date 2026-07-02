@@ -128,6 +128,25 @@ LIMIT ?
     // For now, let's fetch all channel names for this playlist and match in memory if needed,
     // or just try common variations.
     if (channelRows.isEmpty) {
+      channelRows = await database
+          .customSelect(
+            '''
+SELECT epg_channel_id
+FROM epg_channels
+WHERE playlist_id = ?
+  AND (epg_channel_id = ? COLLATE NOCASE OR display_name = ? COLLATE NOCASE)
+LIMIT 1
+''',
+            variables: [
+              Variable.withString(playlistId),
+              Variable.withString(displayName),
+              Variable.withString(displayName),
+            ],
+          )
+          .get();
+    }
+
+    if (channelRows.isEmpty) {
       // Match compact names such as "UK | 4 SEVEN" to "4seven" or
       // "Channel 4Seven" without loading the full guide into memory.
       final compact = normalized.replaceAll(' ', '');
@@ -196,6 +215,28 @@ LIMIT 1
     normalized = normalized.replaceAll(RegExp(r'\s+'), ' ');
 
     return normalized.trim().toLowerCase();
+  }
+
+  Future<List<EpgProgramWindow>> getProgramsByChannelKeys({
+    required String playlistId,
+    required Iterable<String?> keys,
+    required DateTime start,
+    required DateTime end,
+    int limit = 200,
+  }) async {
+    for (final key in keys) {
+      final trimmed = key?.trim();
+      if (trimmed == null || trimmed.isEmpty) continue;
+      final programs = await getProgramsByChannelName(
+        playlistId: playlistId,
+        displayName: trimmed,
+        start: start,
+        end: end,
+        limit: limit,
+      );
+      if (programs.isNotEmpty) return programs;
+    }
+    return [];
   }
 
   Future<int> getChannelCount(String playlistId) async {

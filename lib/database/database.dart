@@ -1716,6 +1716,30 @@ class AppDatabase extends _$AppDatabase {
     await (delete(favorites)..where((f) => f.id.equals(id))).go();
   }
 
+  Future<void> deleteFavoriteByContent(
+    String playlistId,
+    String streamId,
+    ContentType contentType,
+    String? episodeId,
+  ) async {
+    await (delete(favorites)..where(
+          (f) =>
+              f.playlistId.equals(playlistId) &
+              f.streamId.equals(streamId) &
+              f.contentType.equals(contentType.index) &
+              (episodeId == null
+                  ? f.episodeId.isNull()
+                  : f.episodeId.equals(episodeId)),
+        ))
+        .go();
+  }
+
+  Future<void> deleteFavoritesByPlaylist(String playlistId) async {
+    await (delete(
+      favorites,
+    )..where((f) => f.playlistId.equals(playlistId))).go();
+  }
+
   Future<List<Favorite>> getAllFavorites() async {
     final favoritesData = await select(favorites).get();
     return favoritesData.map((data) => Favorite.fromDrift(data)).toList();
@@ -1766,10 +1790,11 @@ class AppDatabase extends _$AppDatabase {
 
   // Favori sayısını getir
   Future<int> getFavoriteCount(String playlistId) async {
-    final query = select(favorites)
-      ..where((f) => f.playlistId.equals(playlistId));
-    final result = await query.get();
-    return result.length;
+    final countExp = favorites.id.count();
+    final query = selectOnly(favorites)
+      ..addColumns([countExp])
+      ..where(favorites.playlistId.equals(playlistId));
+    return (await query.getSingle()).read(countExp) ?? 0;
   }
 
   // İçerik tipine göre favori sayısını getir
@@ -1777,14 +1802,14 @@ class AppDatabase extends _$AppDatabase {
     String playlistId,
     ContentType contentType,
   ) async {
-    final query = select(favorites)
+    final countExp = favorites.id.count();
+    final query = selectOnly(favorites)
+      ..addColumns([countExp])
       ..where(
-        (f) =>
-            f.playlistId.equals(playlistId) &
-            f.contentType.equals(contentType.index),
+        favorites.playlistId.equals(playlistId) &
+            favorites.contentType.equals(contentType.index),
       );
-    final result = await query.get();
-    return result.length;
+    return (await query.getSingle()).read(countExp) ?? 0;
   }
 
   Future<List<WatchHistoriesData>> getWatchHistoriesByContentType(
