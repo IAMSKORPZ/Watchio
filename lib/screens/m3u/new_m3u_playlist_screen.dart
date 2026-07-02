@@ -807,6 +807,10 @@ class _XTextFieldState extends State<_XTextField> {
     return FocusableActionDetector(
       focusNode: widget.focusNode,
       onFocusChange: (value) => setState(() => _isFocused = value),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {

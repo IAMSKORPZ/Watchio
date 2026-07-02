@@ -6,7 +6,6 @@ import 'package:uuid/uuid.dart';
 import '../models/m3u_item.dart';
 
 class M3uParser {
-
   static Future<List<M3uItem>> parseM3uFile(Map<String, String> params) async {
     return await M3uParser.parseFile(params['id']!, params['filePath']!);
   }
@@ -96,14 +95,40 @@ class M3uParser {
           'tvg-logo': _extractAttribute(metadataPart, 'tvg-logo'),
           'tvg-url': _extractAttribute(metadataPart, 'tvg-url'),
           'tvg-rec': _extractAttribute(metadataPart, 'tvg-rec'),
-          'tvg-shift': _extractAttribute(metadataPart, 'tvg-shift'),
+          'tvg-shift': _firstNonBlank(
+            _extractAttribute(metadataPart, 'tvg-shift'),
+            _extractAttribute(metadataPart, 'timeshift'),
+          ),
           'group-title': _extractAttribute(metadataPart, 'group-title'),
           'user-agent': _extractAttribute(metadataPart, 'user-agent'),
+          'http-user-agent': _extractAttribute(metadataPart, 'http-user-agent'),
+          'referrer': _firstNonBlank(
+            _extractAttribute(metadataPart, 'referrer'),
+            _extractAttribute(metadataPart, 'http-referrer'),
+          ),
+          'catchup': _extractAttribute(metadataPart, 'catchup'),
+          'catchup-source': _extractAttribute(metadataPart, 'catchup-source'),
+          'catchup-days': _extractAttribute(metadataPart, 'catchup-days'),
+          'tvg-chno': _firstNonBlank(
+            _extractAttribute(metadataPart, 'tvg-chno'),
+            _extractAttribute(metadataPart, 'channel-number'),
+          ),
         };
       } else if (line.startsWith('#EXTGRP:')) {
         currentMeta['group-name'] = line.substring(8).trim();
       } else if (line.isNotEmpty && !line.startsWith('#')) {
         final url = line;
+        final name = _firstNonBlank(
+          currentName,
+          currentMeta['tvg-name'],
+          currentMeta['tvg-id'],
+          _filenameFromUrl(url),
+        );
+        final groupTitle = _firstNonBlank(
+          currentMeta['group-title'],
+          currentMeta['group-name'],
+          'Diğer',
+        );
 
         items.add(
           M3uItem(
@@ -111,17 +136,20 @@ class M3uParser {
             playlistId: playlistId,
             url: url,
             contentType: _detectContentType(url),
-            name: currentName,
+            name: name,
             tvgId: currentMeta['tvg-id'],
             tvgName: currentMeta['tvg-name'],
             tvgLogo: currentMeta['tvg-logo'],
             tvgUrl: currentMeta['tvg-url'],
             tvgRec: currentMeta['tvg-rec'],
             tvgShift: currentMeta['tvg-shift'],
-            groupTitle: currentMeta['group-title'],
+            groupTitle: groupTitle,
             groupName: currentMeta['group-name'],
-            userAgent: currentMeta['user-agent'],
-            referrer: null,
+            userAgent: _firstNonBlank(
+              currentMeta['user-agent'],
+              currentMeta['http-user-agent'],
+            ),
+            referrer: currentMeta['referrer'],
           ),
         );
 
@@ -134,9 +162,34 @@ class M3uParser {
   }
 
   static String? _extractAttribute(String line, String attribute) {
-    final regex = RegExp('$attribute="(.*?)"');
+    final regex = RegExp(
+      '\\b${RegExp.escape(attribute)}\\s*=\\s*("([^"]*)"|\'([^\']*)\'|([^\\s,]+))',
+      caseSensitive: false,
+    );
     final match = regex.firstMatch(line);
-    return match?.group(1);
+    final value = match?.group(2) ?? match?.group(3) ?? match?.group(4);
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  static String? _firstNonBlank(
+    String? first, [
+    String? second,
+    String? third,
+    String? fourth,
+  ]) {
+    for (final value in [first, second, third, fourth]) {
+      final trimmed = value?.trim();
+      if (trimmed != null && trimmed.isNotEmpty) return trimmed;
+    }
+    return null;
+  }
+
+  static String? _filenameFromUrl(String url) {
+    final path = url.split(RegExp(r'[#?]')).first;
+    final parts = path.split('/').where((part) => part.trim().isNotEmpty);
+    if (parts.isEmpty) return null;
+    return parts.last.trim();
   }
 
   static ContentType _detectContentType(String url) {

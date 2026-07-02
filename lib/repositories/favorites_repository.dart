@@ -49,17 +49,12 @@ class FavoritesRepository {
     String? episodeId,
   }) async {
     final playlistId = AppState.currentPlaylist!.id;
-
-    final favorites = await _database.getFavoritesByPlaylist(playlistId);
-    final favorite = favorites.firstWhere(
-      (f) =>
-          f.streamId == streamId &&
-          f.contentType == contentType &&
-          f.episodeId == episodeId,
-      orElse: () => throw Exception('Favori bulunamadı'),
+    await _database.deleteFavoriteByContent(
+      playlistId,
+      streamId,
+      contentType,
+      episodeId,
     );
-
-    await _database.deleteFavorite(favorite.id);
   }
 
   Future<bool> isFavorite(
@@ -119,14 +114,11 @@ class FavoritesRepository {
       playlistId,
       contentItem.id,
       contentItem.contentType,
-      null
+      null,
     );
 
     if (isCurrentlyFavorite) {
-      await removeFavorite(
-        contentItem.id,
-        contentItem.contentType
-      );
+      await removeFavorite(contentItem.id, contentItem.contentType);
       return false;
     } else {
       await addFavorite(contentItem);
@@ -140,11 +132,7 @@ class FavoritesRepository {
 
   Future<void> clearAllFavorites() async {
     final playlistId = AppState.currentPlaylist!.id;
-    final favorites = await _database.getFavoritesByPlaylist(playlistId);
-
-    for (final favorite in favorites) {
-      await _database.deleteFavorite(favorite.id);
-    }
+    await _database.deleteFavoritesByPlaylist(playlistId);
   }
 
   Future<ContentItem?> getContentItemFromFavorite(Favorite favorite) async {

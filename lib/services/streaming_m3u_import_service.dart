@@ -32,8 +32,9 @@ class StreamingM3uImportService {
     this.batchSize = defaultBatchSize,
     ImportRecoveryService? recoveryService,
     SearchRepository? searchRepository,
-  })  : recoveryService = recoveryService ?? ImportRecoveryService(),
-        searchRepository = searchRepository ?? SearchRepository(database: database);
+  }) : recoveryService = recoveryService ?? ImportRecoveryService(),
+       searchRepository =
+           searchRepository ?? SearchRepository(database: database);
 
   Future<ImportProgressModel> importFile({
     required String playlistId,
@@ -124,30 +125,46 @@ class StreamingM3uImportService {
 
         if (line.startsWith('#EXTINF')) {
           final commaIndex = line.indexOf(',');
-          final metadataPart =
-              commaIndex != -1 ? line.substring(0, commaIndex) : line;
-          currentName =
-              commaIndex != -1 ? line.substring(commaIndex + 1).trim() : null;
+          final metadataPart = commaIndex != -1
+              ? line.substring(0, commaIndex)
+              : line;
+          currentName = commaIndex != -1
+              ? line.substring(commaIndex + 1).trim()
+              : null;
           currentMeta = _readMeta(metadataPart);
         } else if (line.startsWith('#EXTGRP:')) {
           currentMeta['group-name'] = line.substring(8).trim();
         } else if (line.isNotEmpty && !line.startsWith('#')) {
+          final itemName = _firstNonBlank(
+            currentName,
+            currentMeta['tvg-name'],
+            currentMeta['tvg-id'],
+            _filenameFromUrl(line),
+          );
+          final groupTitle = _firstNonBlank(
+            currentMeta['group-title'],
+            currentMeta['group-name'],
+            'not_categorized',
+          );
           final item = M3uItem(
             id: _uuid.v4(),
             playlistId: playlistId,
             url: line,
             contentType: M3uParser.detectContentType(line),
-            name: currentName,
+            name: itemName,
             tvgId: currentMeta['tvg-id'],
             tvgName: currentMeta['tvg-name'],
             tvgLogo: currentMeta['tvg-logo'],
             tvgUrl: currentMeta['tvg-url'],
             tvgRec: currentMeta['tvg-rec'],
             tvgShift: currentMeta['tvg-shift'],
-            groupTitle: currentMeta['group-title'],
+            groupTitle: groupTitle,
             groupName: currentMeta['group-name'],
-            userAgent: currentMeta['user-agent'],
-            referrer: null,
+            userAgent: _firstNonBlank(
+              currentMeta['user-agent'],
+              currentMeta['http-user-agent'],
+            ),
+            referrer: currentMeta['referrer'],
           );
           final key = CategoryWithContentType(
             categoryName: item.groupTitle ?? 'not_categorized',
@@ -210,15 +227,56 @@ class StreamingM3uImportService {
       'tvg-logo': _extractAttribute(line, 'tvg-logo'),
       'tvg-url': _extractAttribute(line, 'tvg-url'),
       'tvg-rec': _extractAttribute(line, 'tvg-rec'),
-      'tvg-shift': _extractAttribute(line, 'tvg-shift'),
+      'tvg-shift': _firstNonBlank(
+        _extractAttribute(line, 'tvg-shift'),
+        _extractAttribute(line, 'timeshift'),
+      ),
       'group-title': _extractAttribute(line, 'group-title'),
       'user-agent': _extractAttribute(line, 'user-agent'),
+      'http-user-agent': _extractAttribute(line, 'http-user-agent'),
+      'referrer': _firstNonBlank(
+        _extractAttribute(line, 'referrer'),
+        _extractAttribute(line, 'http-referrer'),
+      ),
+      'catchup': _extractAttribute(line, 'catchup'),
+      'catchup-source': _extractAttribute(line, 'catchup-source'),
+      'catchup-days': _extractAttribute(line, 'catchup-days'),
+      'tvg-chno': _firstNonBlank(
+        _extractAttribute(line, 'tvg-chno'),
+        _extractAttribute(line, 'channel-number'),
+      ),
     };
   }
 
   String? _extractAttribute(String line, String attribute) {
-    final regex = RegExp('$attribute="(.*?)"');
-    return regex.firstMatch(line)?.group(1);
+    final regex = RegExp(
+      '\\b${RegExp.escape(attribute)}\\s*=\\s*("([^"]*)"|\'([^\']*)\'|([^\\s,]+))',
+      caseSensitive: false,
+    );
+    final match = regex.firstMatch(line);
+    final value = match?.group(2) ?? match?.group(3) ?? match?.group(4);
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  String? _firstNonBlank(
+    String? first, [
+    String? second,
+    String? third,
+    String? fourth,
+  ]) {
+    for (final value in [first, second, third, fourth]) {
+      final trimmed = value?.trim();
+      if (trimmed != null && trimmed.isNotEmpty) return trimmed;
+    }
+    return null;
+  }
+
+  String? _filenameFromUrl(String url) {
+    final path = url.split(RegExp(r'[#?]')).first;
+    final parts = path.split('/').where((part) => part.trim().isNotEmpty);
+    if (parts.isEmpty) return null;
+    return parts.last.trim();
   }
 
   Future<void> _writeCategories(
@@ -272,7 +330,11 @@ class StreamingM3uImportService {
       );
     }).toList();
 
-    await database.insertM3uSeries(series.map((item) => item.toCompanion()).toList());
-    await database.insertM3uEpisodes(episodes.map((item) => item.toCompanion()).toList());
+    await database.insertM3uSeries(
+      series.map((item) => item.toCompanion()).toList(),
+    );
+    await database.insertM3uEpisodes(
+      episodes.map((item) => item.toCompanion()).toList(),
+    );
   }
 }
