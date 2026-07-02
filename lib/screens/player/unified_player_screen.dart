@@ -53,6 +53,7 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
   bool _showSideSliders = false;
   Timer? _sideSlidersTimer;
   int _lastHistorySaveSecond = -1;
+  String? _lastOverlayState;
 
   @override
   void initState() {
@@ -388,7 +389,37 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
     _showControlsTemporarily();
   }
 
-  bool get hasError => _playerController.error != null;
+  bool get hasError =>
+      _playerController.error != null && !_playerController.isPlaying;
+  bool get hasFatalPlaybackError => hasError;
+
+  String get _overlayState {
+    if (hasFatalPlaybackError) return 'failed';
+    if (_playerController.isBuffering) return 'buffering';
+    if (_playerController.isPlaying &&
+        !_playerController.hasRenderedFirstFrame &&
+        !_playerController.hasVideoTrack) {
+      return 'buffering-video';
+    }
+    if (!_playerController.isPlaying &&
+        _playerController.error == null &&
+        !_playerController.hasRenderedFirstFrame) {
+      return 'connecting';
+    }
+    return 'ready';
+  }
+
+  void _logOverlayState() {
+    final state = _overlayState;
+    if (_lastOverlayState == state) return;
+    debugPrint(
+      'UnifiedPlayer Overlay: ${_lastOverlayState ?? "none"} -> $state '
+      '(playing=${_playerController.isPlaying}, buffering=${_playerController.isBuffering}, '
+      'audio=${_playerController.hasAudioTrack}, video=${_playerController.hasVideoTrack}, '
+      'firstFrame=${_playerController.hasRenderedFirstFrame}, error=${_playerController.error ?? "none"})',
+    );
+    _lastOverlayState = state;
+  }
 
   @override
   void dispose() {
@@ -406,6 +437,7 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _logOverlayState();
     return Scaffold(
       backgroundColor: Colors.black,
       body: PopScope(
@@ -545,27 +577,46 @@ class _UnifiedPlayerScreenState extends State<UnifiedPlayerScreen> {
                     ),
                   ),
 
-                  if (_playerController.isBuffering && !hasError)
-                    const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFC12CFF),
+                  if (_overlayState == 'connecting' ||
+                      _overlayState == 'buffering' ||
+                      _overlayState == 'buffering-video')
+                    Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(
+                            color: Color(0xFFC12CFF),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _overlayState == 'connecting'
+                                ? 'Connecting...'
+                                : 'Buffering Video...',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
-                  if (hasError) _buildErrorOverlay(),
+                  if (hasFatalPlaybackError) _buildErrorOverlay(),
 
                   // Sidebar Sliders - TiviMate style: only when adjusting
-                  if (_showSideSliders && !hasError) ...[
+                  if (_showSideSliders && !hasFatalPlaybackError) ...[
                     _buildSideSlider(true), // Brightness
                     _buildSideSlider(false), // Volume
                   ],
 
                   // CONTROLS LAYER (Overlay with fade)
                   AnimatedOpacity(
-                    opacity: (_showControls && !hasError) ? 1.0 : 0.0,
+                    opacity: (_showControls && !hasFatalPlaybackError)
+                        ? 1.0
+                        : 0.0,
                     duration: const Duration(milliseconds: 300),
                     child: IgnorePointer(
-                      ignoring: !_showControls || hasError,
+                      ignoring: !_showControls || hasFatalPlaybackError,
                       child: Stack(
                         children: [
                           // Background Dark Overlay

@@ -9,6 +9,9 @@ abstract class AppPlayerController extends ChangeNotifier {
   Duration get duration;
   String? get error;
   double? get aspectRatio;
+  bool get hasAudioTrack;
+  bool get hasVideoTrack;
+  bool get hasRenderedFirstFrame;
 
   PlaybackItem? get currentItem;
 
@@ -20,7 +23,7 @@ abstract class AppPlayerController extends ChangeNotifier {
   Future<void> setDataSource(PlaybackItem item);
   Future<void> setVolume(double volume);
   Future<void> setAspectRatio(double? ratio);
-  
+
   // Track selection
   Future<List<String>> getAudioTracks();
   Future<void> setAudioTrack(int index);

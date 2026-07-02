@@ -69,6 +69,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   bool _backHoldTriggered = false;
   int _epgRequestId = 0;
   int _epgRevision = EpgSourceService.revision.value;
+  String? _lastPreviewOverlayState;
 
   @override
   void initState() {
@@ -147,7 +148,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
   void _onPreviewStateChanged() {
     if (!mounted) return;
 
-    if (_previewController?.error != null) {
+    if (_previewController?.error != null && !_isPreviewAudioPlaying) {
       debugPrint(
         'XtreamLiveScreen: Playback Error -> ${_previewController?.error}',
       );
@@ -167,6 +168,43 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
     }
 
     setState(() {});
+  }
+
+  bool get _isPreviewAudioPlaying => _previewController?.isPlaying ?? false;
+
+  bool get _hasFatalPreviewError =>
+      _previewController?.error != null && !_isPreviewAudioPlaying;
+
+  String get _previewOverlayState {
+    final controller = _previewController;
+    if (controller == null) return _hasPreviewStarted ? 'connecting' : 'idle';
+    if (_hasFatalPreviewError) return 'failed';
+    if (controller.isBuffering) return 'buffering';
+    if (controller.isPlaying &&
+        !controller.hasRenderedFirstFrame &&
+        !controller.hasVideoTrack) {
+      return 'buffering-video';
+    }
+    if (_hasPreviewStarted &&
+        !controller.isPlaying &&
+        controller.error == null &&
+        !controller.hasRenderedFirstFrame) {
+      return 'connecting';
+    }
+    return 'ready';
+  }
+
+  void _logPreviewOverlayState() {
+    final state = _previewOverlayState;
+    if (_lastPreviewOverlayState == state) return;
+    final controller = _previewController;
+    debugPrint(
+      'XtreamLiveScreen Overlay: ${_lastPreviewOverlayState ?? "none"} -> $state '
+      '(playing=${controller?.isPlaying ?? false}, buffering=${controller?.isBuffering ?? false}, '
+      'audio=${controller?.hasAudioTrack ?? false}, video=${controller?.hasVideoTrack ?? false}, '
+      'firstFrame=${controller?.hasRenderedFirstFrame ?? false}, error=${controller?.error ?? "none"})',
+    );
+    _lastPreviewOverlayState = state;
   }
 
   Future<void> _handleReconnect() async {
@@ -866,6 +904,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
 
   @override
   Widget build(BuildContext context) {
+    _logPreviewOverlayState();
     final config = context.watch<ConfigService>().config;
     final themeManager = context.watch<ThemeManager>();
     final homeBg = config.backgrounds.home;
@@ -1203,18 +1242,15 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                               ),
 
                             // Loading indicator for preview
-                            if (_previewController?.isBuffering ?? false)
+                            if (_previewOverlayState == 'buffering')
                               const Center(
                                 child: CircularProgressIndicator(
                                   color: Color(0xFFC12CFF),
                                 ),
                               ),
 
-                            if (_hasPreviewStarted &&
-                                (_previewController == null ||
-                                    (_previewController?.isBuffering ??
-                                        false)) &&
-                                _previewController?.error == null)
+                            if (_previewOverlayState == 'connecting' ||
+                                _previewOverlayState == 'buffering-video')
                               Container(
                                 color: Colors.black.withValues(alpha: 0.72),
                                 child: LayoutBuilder(
@@ -1259,7 +1295,10 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                                                 if (showLabel) ...[
                                                   const SizedBox(height: 6),
                                                   Text(
-                                                    'Loading ${_focusedChannel?.name ?? 'channel'}...',
+                                                    _previewOverlayState ==
+                                                            'connecting'
+                                                        ? 'Connecting...'
+                                                        : 'Buffering Video...',
                                                     maxLines: 1,
                                                     overflow:
                                                         TextOverflow.ellipsis,
@@ -1282,7 +1321,7 @@ class _XtreamLiveScreenState extends State<XtreamLiveScreen>
                               ),
 
                             // Error message for preview
-                            if (_previewController?.error != null)
+                            if (_hasFatalPreviewError)
                               Container(
                                 color: Colors.black.withValues(alpha: 0.9),
                                 padding: const EdgeInsets.all(8),
