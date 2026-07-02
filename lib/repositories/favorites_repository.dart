@@ -49,12 +49,15 @@ class FavoritesRepository {
     String? episodeId,
   }) async {
     final playlistId = AppState.currentPlaylist!.id;
-    await _database.deleteFavoriteByContent(
+    final deleted = await _database.deleteFavoriteByContent(
       playlistId,
       streamId,
       contentType,
       episodeId,
     );
+    if (deleted == 0) {
+      throw Exception('Favori bulunamadı');
+    }
   }
 
   Future<bool> isFavorite(

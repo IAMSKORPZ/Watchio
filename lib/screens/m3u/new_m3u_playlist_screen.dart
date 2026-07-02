@@ -610,6 +610,10 @@ class _SourceTypeCardState extends State<_SourceTypeCard> {
     final active = widget.isSelected || _isFocused;
     return FocusableActionDetector(
       onFocusChange: (val) => setState(() => _isFocused = val),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) => widget.onTap(),
@@ -677,6 +681,10 @@ class _FilePickerCardState extends State<_FilePickerCard> {
   Widget build(BuildContext context) {
     return FocusableActionDetector(
       onFocusChange: (val) => setState(() => _isFocused = val),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) => widget.onTap(),
