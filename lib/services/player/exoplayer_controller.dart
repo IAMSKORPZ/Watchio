@@ -15,6 +15,14 @@ class ExoPlayerController extends AppPlayerController {
   String? _error;
   PlaybackItem? _currentItem;
   double? _aspectRatio;
+  bool _hasAudioTrack = false;
+  bool _hasVideoTrack = false;
+  bool _hasRenderedFirstFrame = false;
+  bool? _lastLoggedPlaying;
+  bool? _lastLoggedBuffering;
+  bool? _lastLoggedAudio;
+  bool? _lastLoggedVideo;
+  bool? _lastLoggedFirstFrame;
   int _retryCount = 0;
   static const int _maxRetries = 3;
 
@@ -46,6 +54,12 @@ class ExoPlayerController extends AppPlayerController {
   PlaybackItem? get currentItem => _currentItem;
   @override
   double? get aspectRatio => _aspectRatio;
+  @override
+  bool get hasAudioTrack => _hasAudioTrack;
+  @override
+  bool get hasVideoTrack => _hasVideoTrack;
+  @override
+  bool get hasRenderedFirstFrame => _hasRenderedFirstFrame;
 
   @override
   Future<void> initialize() async {
@@ -62,6 +76,9 @@ class ExoPlayerController extends AppPlayerController {
     debugPrint('ExoPlayer: Player Opened -> ${item.title} (Req: $_requestId)');
     _error = null;
     _currentItem = item;
+    _hasAudioTrack = false;
+    _hasVideoTrack = false;
+    _hasRenderedFirstFrame = false;
     _retryCount = 0;
     _retryTimer?.cancel();
     await _setupController(item, _requestId);
@@ -124,6 +141,7 @@ class ExoPlayerController extends AppPlayerController {
 
       debugPrint('ExoPlayer: Playback Started');
       _duration = _controller!.value.duration;
+      _logState('initialized');
 
       if (item.startPosition > Duration.zero) {
         await _controller!.seekTo(item.startPosition);
@@ -168,9 +186,23 @@ class ExoPlayerController extends AppPlayerController {
 
     final value = _controller!.value;
 
+    _hasVideoTrack = value.size.width > 0 && value.size.height > 0;
+    _hasAudioTrack = value.isInitialized;
+    if (!_hasRenderedFirstFrame && _hasVideoTrack && value.isPlaying) {
+      _hasRenderedFirstFrame = true;
+      debugPrint('ExoPlayer: First video frame rendered');
+    }
+
     if (value.hasError) {
-      debugPrint('ExoPlayer Controller Error: ${value.errorDescription}');
-      _error = value.errorDescription;
+      if (value.isPlaying) {
+        debugPrint(
+          'ExoPlayer: Suppressing error while audio/playback active -> ${value.errorDescription}',
+        );
+        _error = null;
+      } else {
+        debugPrint('ExoPlayer Controller Error: ${value.errorDescription}');
+        _error = value.errorDescription;
+      }
     }
 
     if (value.isBuffering != _isBuffering) {
@@ -181,10 +213,14 @@ class ExoPlayerController extends AppPlayerController {
 
     final playingChanged = _isPlaying != value.isPlaying;
     final bufferingChanged = _isBuffering != value.isBuffering;
+    final errorChanged =
+        (value.hasError && !value.isPlaying) ||
+        (_error != null && value.isPlaying);
 
     _isPlaying = value.isPlaying;
     _isBuffering = value.isBuffering;
     _position = value.position;
+    _logState('listener');
 
     final now = DateTime.now();
     final movedBy = (_position - _lastNotifiedPosition).abs();
@@ -193,7 +229,10 @@ class ExoPlayerController extends AppPlayerController {
             const Duration(milliseconds: 750) ||
         movedBy >= const Duration(seconds: 2);
 
-    if (playingChanged || bufferingChanged || shouldNotifyPosition) {
+    if (playingChanged ||
+        bufferingChanged ||
+        errorChanged ||
+        shouldNotifyPosition) {
       _lastPositionNotify = now;
       _lastNotifiedPosition = _position;
       notifyListeners();
@@ -213,6 +252,9 @@ class ExoPlayerController extends AppPlayerController {
     _retryTimer?.cancel();
     _error = null;
     _currentItem = null;
+    _hasAudioTrack = false;
+    _hasVideoTrack = false;
+    _hasRenderedFirstFrame = false;
     if (_controller != null) {
       _controller!.removeListener(_updateState);
       final oldController = _controller;
@@ -255,6 +297,23 @@ class ExoPlayerController extends AppPlayerController {
 
   @override
   Future<List<String>> getSubtitleTracks() async => ['None'];
+
+  void _logState(String source) {
+    if (_lastLoggedPlaying != _isPlaying ||
+        _lastLoggedBuffering != _isBuffering ||
+        _lastLoggedAudio != _hasAudioTrack ||
+        _lastLoggedVideo != _hasVideoTrack ||
+        _lastLoggedFirstFrame != _hasRenderedFirstFrame) {
+      debugPrint(
+        'ExoPlayer State[$source]: playing=$_isPlaying buffering=$_isBuffering audio=$_hasAudioTrack video=$_hasVideoTrack firstFrame=$_hasRenderedFirstFrame position=${_position.inMilliseconds}ms error=${_error ?? "none"}',
+      );
+      _lastLoggedPlaying = _isPlaying;
+      _lastLoggedBuffering = _isBuffering;
+      _lastLoggedAudio = _hasAudioTrack;
+      _lastLoggedVideo = _hasVideoTrack;
+      _lastLoggedFirstFrame = _hasRenderedFirstFrame;
+    }
+  }
 
   @override
   Future<void> setSubtitleTrack(int index) async {}

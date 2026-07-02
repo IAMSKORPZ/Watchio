@@ -19,6 +19,14 @@ class MediaKitPlayerController extends AppPlayerController {
   String? _error;
   PlaybackItem? _currentItem;
   double? _aspectRatio;
+  bool _hasAudioTrack = false;
+  bool _hasVideoTrack = false;
+  bool _hasRenderedFirstFrame = false;
+  bool? _lastLoggedPlaying;
+  bool? _lastLoggedBuffering;
+  bool? _lastLoggedAudio;
+  bool? _lastLoggedVideo;
+  bool? _lastLoggedFirstFrame;
 
   bool _disposed = false;
   int _requestId = 0;
@@ -51,6 +59,12 @@ class MediaKitPlayerController extends AppPlayerController {
   PlaybackItem? get currentItem => _currentItem;
   @override
   double? get aspectRatio => _aspectRatio;
+  @override
+  bool get hasAudioTrack => _hasAudioTrack;
+  @override
+  bool get hasVideoTrack => _hasVideoTrack;
+  @override
+  bool get hasRenderedFirstFrame => _hasRenderedFirstFrame;
 
   @override
   void notifyListeners() {
@@ -95,6 +109,7 @@ class MediaKitPlayerController extends AppPlayerController {
     _durSub = _player.stream.duration.listen((d) {
       if (_disposed) return;
       _duration = d;
+      _refreshTrackState('duration');
       notifyListeners();
     });
 
@@ -102,19 +117,30 @@ class MediaKitPlayerController extends AppPlayerController {
       if (_disposed) return;
       _isPlaying = p;
       if (p) debugPrint('MediaKit: Playback Started');
+      _refreshTrackState('playing');
       notifyListeners();
     });
 
     _buffSub = _player.stream.buffering.listen((b) {
       if (_disposed) return;
       _isBuffering = b;
+      debugPrint('MediaKit: Buffer State -> ${b ? "Buffering" : "Ready"}');
+      _refreshTrackState('buffering');
       notifyListeners();
     });
 
     _errSub = _player.stream.error.listen((e) {
       if (_disposed) return;
-      debugPrint('MediaKit Stream Error: $e');
-      _error = e;
+      if (_isPlaying) {
+        debugPrint(
+          'MediaKit: Suppressing error while audio/playback active -> $e',
+        );
+        _error = null;
+      } else {
+        debugPrint('MediaKit Stream Error: $e');
+        _error = e;
+      }
+      _refreshTrackState('error');
       notifyListeners();
     });
 
@@ -129,6 +155,9 @@ class MediaKitPlayerController extends AppPlayerController {
     debugPrint('MediaKit: Player Opened -> ${item.title} (Req: $_requestId)');
     _error = null;
     _currentItem = item;
+    _hasAudioTrack = false;
+    _hasVideoTrack = false;
+    _hasRenderedFirstFrame = false;
     _retryCount = 0;
     _retryTimer?.cancel();
     await _openMedia(item, _requestId);
@@ -147,6 +176,7 @@ class MediaKitPlayerController extends AppPlayerController {
       if (item.startPosition > Duration.zero) {
         await _player.seek(item.startPosition);
       }
+      _refreshTrackState('open');
     } catch (e) {
       if (_disposed || requestId != _requestId) {
         debugPrint(
@@ -170,7 +200,15 @@ class MediaKitPlayerController extends AppPlayerController {
       } else {
         debugPrint('Playback failed after max retries');
         debugPrint('Retry stopped - max retries reached');
-        _error = 'Playback Error: $e';
+        if (_isPlaying) {
+          debugPrint(
+            'MediaKit: Suppressing open error while playback active -> $e',
+          );
+          _error = null;
+        } else {
+          _error = 'Playback Error: $e';
+        }
+        _refreshTrackState('open-error');
         notifyListeners();
       }
     }
@@ -189,6 +227,9 @@ class MediaKitPlayerController extends AppPlayerController {
     _retryTimer?.cancel();
     _error = null;
     _currentItem = null;
+    _hasAudioTrack = false;
+    _hasVideoTrack = false;
+    _hasRenderedFirstFrame = false;
     await _player.stop();
     notifyListeners();
   }
@@ -262,6 +303,37 @@ class MediaKitPlayerController extends AppPlayerController {
   Future<void> setSubtitleTrack(int index) async {
     if (_disposed) return;
     await _player.setSubtitleTrack(_player.state.tracks.subtitle[index]);
+  }
+
+  void _refreshTrackState(String source) {
+    if (_disposed) return;
+    final tracks = _player.state.tracks;
+    _hasAudioTrack = tracks.audio.isNotEmpty;
+    _hasVideoTrack = tracks.video.isNotEmpty;
+    if (!_hasRenderedFirstFrame && _hasVideoTrack && _isPlaying) {
+      _hasRenderedFirstFrame = true;
+      debugPrint('MediaKit: First video frame rendered');
+    }
+
+    if (_lastLoggedPlaying != _isPlaying ||
+        _lastLoggedBuffering != _isBuffering ||
+        _lastLoggedAudio != _hasAudioTrack ||
+        _lastLoggedVideo != _hasVideoTrack ||
+        _lastLoggedFirstFrame != _hasRenderedFirstFrame) {
+      debugPrint(
+        'MediaKit State[$source]: playing=$_isPlaying buffering=$_isBuffering audio=$_hasAudioTrack video=$_hasVideoTrack firstFrame=$_hasRenderedFirstFrame position=${_position.inMilliseconds}ms error=${_error ?? "none"}',
+      );
+      if (_hasAudioTrack || _hasVideoTrack) {
+        debugPrint(
+          'MediaKit: Tracks audio=${tracks.audio.length} video=${tracks.video.length} subtitle=${tracks.subtitle.length}',
+        );
+      }
+      _lastLoggedPlaying = _isPlaying;
+      _lastLoggedBuffering = _isBuffering;
+      _lastLoggedAudio = _hasAudioTrack;
+      _lastLoggedVideo = _hasVideoTrack;
+      _lastLoggedFirstFrame = _hasRenderedFirstFrame;
+    }
   }
 
   @override
