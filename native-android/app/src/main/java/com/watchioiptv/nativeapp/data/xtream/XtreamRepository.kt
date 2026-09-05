@@ -1,6 +1,7 @@
 package com.watchioiptv.nativeapp.data.xtream
 
 import androidx.room.withTransaction
+import com.watchioiptv.nativeapp.core.diagnostics.QuickLoginBootstrapTrace
 import com.watchioiptv.nativeapp.core.database.WatchioDatabase
 import com.watchioiptv.nativeapp.core.database.toDomain
 import com.watchioiptv.nativeapp.core.database.toEntity
@@ -151,42 +152,54 @@ class XtreamRepository(
         try {
             _state.value = XtreamImportState.Importing(stage, displayName)
             val api = api(serverUrl)
-            val auth = api.playerInfo(username, password).toAuthInfo()
+            var started = QuickLoginBootstrapTrace.now()
+            QuickLoginBootstrapTrace.mark("quicklogin_auth_started")
+            val auth = timedRequest("player_api_authentication") { api.playerInfo(username, password) }.toAuthInfo()
             if (!auth.authenticated) {
                 throw IllegalArgumentException("Incorrect username or password.")
             }
+            QuickLoginBootstrapTrace.mark("quicklogin_auth_completed", started)
 
             stage = XtreamImportStage.LoadingLiveCategories
             _state.value = XtreamImportState.Importing(stage, displayName)
-            val liveCategories = api.liveCategories(username, password)
+            started = QuickLoginBootstrapTrace.now()
+            QuickLoginBootstrapTrace.mark("quicklogin_live_sync_started")
+            val liveCategories = timedRequest("live_categories") { api.liveCategories(username, password) }
                 .mapIndexedNotNull { index, dto -> dto.toDomain(providerId, ContentType.Live, index) }
 
             stage = XtreamImportStage.LoadingLiveStreams
             _state.value = XtreamImportState.Importing(stage, displayName)
-            val live = api.liveStreams(username, password)
+            val live = timedRequest("live_streams") { api.liveStreams(username, password) }
                 .mapIndexedNotNull { index, dto -> dto.toDomain(providerId, index) }
             _state.value = XtreamImportState.Importing(stage, displayName, liveCount = live.size)
+            QuickLoginBootstrapTrace.mark("quicklogin_live_sync_completed", started, "category_count=${liveCategories.size} item_count=${live.size}")
 
             stage = XtreamImportStage.LoadingVodCategories
             _state.value = XtreamImportState.Importing(stage, displayName, liveCount = live.size)
-            val vodCategories = api.vodCategories(username, password)
+            started = QuickLoginBootstrapTrace.now()
+            QuickLoginBootstrapTrace.mark("quicklogin_movies_sync_started")
+            val vodCategories = timedRequest("vod_categories") { api.vodCategories(username, password) }
                 .mapIndexedNotNull { index, dto -> dto.toDomain(providerId, ContentType.Movie, index) }
 
             stage = XtreamImportStage.LoadingVodStreams
             _state.value = XtreamImportState.Importing(stage, displayName, liveCount = live.size)
-            val movies = api.vodStreams(username, password)
+            val movies = timedRequest("vod_streams") { api.vodStreams(username, password) }
                 .mapIndexedNotNull { index, dto -> dto.toDomain(providerId, index) }
             _state.value = XtreamImportState.Importing(stage, displayName, live.size, movies.size)
+            QuickLoginBootstrapTrace.mark("quicklogin_movies_sync_completed", started, "category_count=${vodCategories.size} item_count=${movies.size}")
 
             stage = XtreamImportStage.LoadingSeriesCategories
             _state.value = XtreamImportState.Importing(stage, displayName, live.size, movies.size)
-            val seriesCategories = api.seriesCategories(username, password)
+            started = QuickLoginBootstrapTrace.now()
+            QuickLoginBootstrapTrace.mark("quicklogin_series_sync_started")
+            val seriesCategories = timedRequest("series_categories") { api.seriesCategories(username, password) }
                 .mapIndexedNotNull { index, dto -> dto.toDomain(providerId, ContentType.Series, index) }
 
             stage = XtreamImportStage.LoadingSeries
             _state.value = XtreamImportState.Importing(stage, displayName, live.size, movies.size)
-            val series = api.series(username, password)
+            val series = timedRequest("series_list") { api.series(username, password) }
                 .mapIndexedNotNull { index, dto -> dto.toDomain(providerId, index) }
+            QuickLoginBootstrapTrace.mark("quicklogin_series_sync_completed", started, "category_count=${seriesCategories.size} item_count=${series.size}")
 
             stage = XtreamImportStage.Saving
             _state.value = XtreamImportState.Importing(stage, displayName, live.size, movies.size, series.size)
@@ -202,20 +215,29 @@ class XtreamRepository(
                 enabled = true,
             )
             if (saveProviderBeforeImport) {
+                started = QuickLoginBootstrapTrace.now()
+                QuickLoginBootstrapTrace.mark("quicklogin_credentials_save_started")
                 credentialStore.saveXtreamCredentials(providerId.value, XtreamCredentials(username, password))
+                QuickLoginBootstrapTrace.mark("quicklogin_credentials_save_completed", started)
             }
+            started = QuickLoginBootstrapTrace.now()
+            QuickLoginBootstrapTrace.mark("quicklogin_provider_save_started")
             database.withTransaction {
-                database.providerDao().upsert(provider.toEntity())
-                database.categoryDao().replaceCategories(providerId.value, ContentType.Live.persisted, liveCategories.map { it.toEntity() })
-                database.categoryDao().replaceCategories(providerId.value, ContentType.Movie.persisted, vodCategories.map { it.toEntity() })
-                database.categoryDao().replaceCategories(providerId.value, ContentType.Series.persisted, seriesCategories.map { it.toEntity() })
-                database.liveStreamDao().replaceLiveStreams(providerId.value, live.map { it.toEntity(now) })
-                database.vodDao().replaceMovies(providerId.value, movies.map { it.toEntity(now) })
-                database.seriesDao().replaceSeries(providerId.value, series.map { it.toEntity(now) })
+                timedRoom("provider_upsert", 1) { database.providerDao().upsert(provider.toEntity()) }
+                timedRoom("live_categories_replace", liveCategories.size) { database.categoryDao().replaceCategories(providerId.value, ContentType.Live.persisted, liveCategories.map { it.toEntity() }) }
+                timedRoom("movie_categories_replace", vodCategories.size) { database.categoryDao().replaceCategories(providerId.value, ContentType.Movie.persisted, vodCategories.map { it.toEntity() }) }
+                timedRoom("series_categories_replace", seriesCategories.size) { database.categoryDao().replaceCategories(providerId.value, ContentType.Series.persisted, seriesCategories.map { it.toEntity() }) }
+                timedRoom("live_replace", live.size) { database.liveStreamDao().replaceLiveStreams(providerId.value, live.map { it.toEntity(now) }) }
+                timedRoom("movies_replace", movies.size) { database.vodDao().replaceMovies(providerId.value, movies.map { it.toEntity(now) }) }
+                timedRoom("series_replace", series.size) { database.seriesDao().replaceSeries(providerId.value, series.map { it.toEntity(now) }) }
             }
+            QuickLoginBootstrapTrace.mark("quicklogin_provider_save_completed", started, "category_count=${liveCategories.size + vodCategories.size + seriesCategories.size} live_count=${live.size} movie_count=${movies.size} series_count=${series.size}")
             onMoviesUpdated?.invoke(providerId)
             onSeriesUpdated?.invoke(providerId)
+            started = QuickLoginBootstrapTrace.now()
+            QuickLoginBootstrapTrace.mark("quicklogin_provider_select_started")
             settingsRepository.setSelectedProviderId(providerId)
+            QuickLoginBootstrapTrace.mark("quicklogin_provider_select_completed", started)
             settingsRepository.setProviderExpiryEpochMs(providerId, auth.expiration?.toLongOrNull()?.let { it * 1_000L })
             settingsRepository.persistAccountMetadata(providerId, auth)
             settingsRepository.setDeviceModeOnboardingCompleted(true)
@@ -253,6 +275,27 @@ class XtreamRepository(
     private fun api(serverUrl: String): XtreamApi =
         retrofitFactory(serverUrl.toHttpUrl().newBuilder().addPathSegment("").build().toString())
             .create(XtreamApi::class.java)
+
+    private suspend fun <T> timedRequest(type: String, block: suspend () -> T): T {
+        val started = QuickLoginBootstrapTrace.now()
+        QuickLoginBootstrapTrace.mark("quicklogin_network_request_started", metadata = "request_type=$type")
+        return runCatching { block() }
+            .onSuccess { result ->
+                val count = (result as? Collection<*>)?.size?.let { " item_count=$it" }.orEmpty()
+                QuickLoginBootstrapTrace.mark("quicklogin_network_request_completed", started, "request_type=$type success=true$count")
+            }
+            .onFailure {
+                QuickLoginBootstrapTrace.mark("quicklogin_network_request_completed", started, "request_type=$type success=false")
+            }
+            .getOrThrow()
+    }
+
+    private suspend fun <T> timedRoom(operation: String, rowCount: Int, block: suspend () -> T): T {
+        val started = QuickLoginBootstrapTrace.now()
+        return block().also {
+            QuickLoginBootstrapTrace.mark("quicklogin_room_operation_completed", started, "operation=$operation row_count=$rowCount")
+        }
+    }
 
     private fun Throwable.safeMessage(): String = when (this) {
         is DuplicateXtreamProviderException -> "Provider appears to already exist."

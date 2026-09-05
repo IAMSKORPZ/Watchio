@@ -2,6 +2,7 @@ package com.watchioiptv.nativeapp.feature.provider
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.watchioiptv.nativeapp.core.diagnostics.QuickLoginBootstrapTrace
 import com.watchioiptv.nativeapp.core.pairing.QuickLoginCredentials
 import com.watchioiptv.nativeapp.core.pairing.QuickLoginReceiver
 import com.watchioiptv.nativeapp.core.pairing.QuickLoginScanParser
@@ -134,9 +135,11 @@ class QuickLoginViewModel(
     }
 
     private fun receiveCredentials(credentials: QuickLoginCredentials) {
+        QuickLoginBootstrapTrace.start()
         viewModelScope.launch {
             _state.value = _state.value.copy(isBusy = true, invitation = null, expiresAtEpochMs = null, status = "Connecting provider…", errorMessage = null)
             runCatching {
+                QuickLoginBootstrapTrace.mark("quicklogin_sync_started")
                 xtreamRepository.addProvider(
                     XtreamCredentialsInput(
                         displayName = credentials.providerName,
@@ -146,6 +149,7 @@ class QuickLoginViewModel(
                     ),
                 )
             }.onSuccess {
+                QuickLoginBootstrapTrace.mark("quicklogin_initial_sync_completed", metadata = "epg_triggered=false series_episode_startup_count=0")
                 _state.value = _state.value.copy(isBusy = false, received = true, status = "Quick Login complete.")
             }.onFailure { error ->
                 _state.value = _state.value.copy(isBusy = false, errorMessage = error.message ?: "Unable to import provider.")

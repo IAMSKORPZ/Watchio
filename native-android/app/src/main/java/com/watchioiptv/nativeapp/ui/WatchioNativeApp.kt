@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.SystemClock
+import com.watchioiptv.nativeapp.core.diagnostics.QuickLoginBootstrapTrace
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -272,6 +273,9 @@ fun WatchioNativeApp(
                     },
                 )
                 val state by homeViewModel.state.collectAsStateWithLifecycle()
+                LaunchedEffect(state.providersLoaded, state.providerId, state.liveCount, state.movieCount, state.seriesCount) {
+                    if (state.providersLoaded && state.providerId != null) QuickLoginBootstrapTrace.finishUiReady()
+                }
                 LaunchedEffect(state.providersLoaded, state.providerType) {
                     if (state.providersLoaded && state.providerType != ProviderType.Xtream) {
                         navController.navigate("providers/xtream/add") {
