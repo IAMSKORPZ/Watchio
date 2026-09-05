@@ -34,28 +34,37 @@ class QuickLoginReceiver(
     private var receiverJob: Job? = null
 
     fun start(): QuickLoginInvitation {
-        close()
-        val host = hostProvider() ?: throw IllegalStateException("Connect TV to Wi-Fi before using Quick Login.")
-        val server = serverFactory().apply { soTimeout = PairingTimeoutMs.toInt() }
-        socket = server
-        val session = QuickLoginSession.create(host, server.localPort, System.currentTimeMillis())
+        close("restart_before_start")
         stage("receiver_started")
+        val host = hostProvider() ?: throw IllegalStateException("Connect TV to Wi-Fi before using Quick Login.")
+        val server = serverFactory()
+        stage("receiver_socket_created")
+        server.soTimeout = PairingTimeoutMs.toInt()
+        socket = server
+        stage("receiver_socket_bound address=${server.inetAddress.hostAddress} port=${server.localPort}")
+        stage("receiver_listening")
+        val session = QuickLoginSession.create(host, server.localPort, System.currentTimeMillis())
+        stage("qr_endpoint_created address=$host port=${server.localPort}")
         receiverJob = scope.launch(Dispatchers.IO) { accept(server, session) }
         return session.invitation
     }
 
-    fun close() {
+    fun close(reason: String = "lifecycle_close") {
+        val wasActive = receiverJob != null || socket != null
         receiverJob?.cancel()
         receiverJob = null
         socket?.close()
         socket = null
+        if (wasActive) stage("receiver_stopped reason=$reason")
     }
 
     private fun accept(server: ServerSocket, session: QuickLoginSession) {
         try {
             while (!server.isClosed) {
+                stage("receiver_accept_waiting")
                 server.accept().use { client ->
                     client.soTimeout = ioTimeoutMs
+                    stage("receiver_client_accepted address=${client.inetAddress.hostAddress}")
                     stage("receiver_accept")
                     if (!isAllowedPeer(client.inetAddress)) {
                         client.respond(400)
@@ -73,20 +82,22 @@ class QuickLoginReceiver(
                     }
                     client.respond(202)
                     stage("response_sent")
-                    close()
+                    close("credentials_received")
                     onCredentials(credentials)
                     return
                 }
             }
         } catch (error: SocketTimeoutException) {
+            stage("receiver_accept_failed type=${error.javaClass.simpleName} message=${error.safeMessage()}")
             if (!server.isClosed) {
-                close()
+                close("accept_timeout")
                 onError("Quick Login code expired. Start a new code.")
             }
         } catch (error: Exception) {
+            stage("receiver_accept_failed type=${error.javaClass.simpleName} message=${error.safeMessage()}")
             session.close()
             if (!server.isClosed) {
-                close()
+                close("accept_error")
                 onError("Quick Login connection failed.")
             }
         }
@@ -112,6 +123,7 @@ object QuickLoginSender {
         require(isAllowedDestination(address)) { "QR code must belong to a TV on your local Wi-Fi." }
         stage("destination_validated")
         val host = if (invitation.host.contains(':')) "[${invitation.host}]" else invitation.host
+        stage("sender_destination address=${invitation.host} port=${invitation.port}")
         val body = QuickLoginCrypto.encodeEnvelope(QuickLoginCrypto.encrypt(invitation, credentials)).toByteArray(Charsets.UTF_8)
         stage("payload_encrypted")
         val connection = (URL("http://$host:${invitation.port}/pair").openConnection() as java.net.HttpURLConnection).apply {
@@ -134,8 +146,10 @@ object QuickLoginSender {
             stage("response_received")
             require(responseCode == 202) { "TV did not accept Quick Login. Scan a new QR code." }
         } catch (error: SocketTimeoutException) {
+            stage("connect_failed type=${error.javaClass.simpleName} message=${error.safeMessage()}")
             throw IllegalStateException("Couldn't connect to TV. Make sure both devices are on the same Wi-Fi.")
         } catch (error: IOException) {
+            stage("connect_failed type=${error.javaClass.simpleName} message=${error.safeMessage()}")
             throw IllegalStateException("Couldn't connect to TV. Make sure both devices are on the same Wi-Fi.")
         } finally {
             connection.disconnect()
@@ -177,10 +191,19 @@ private fun stage(name: String) {
     println("$QuickLoginLogTag:$name")
 }
 
-private fun localIpv4Address(): String? = NetworkInterface.getNetworkInterfaces().toList()
+private fun localIpv4Address(): String? {
+    val selected = NetworkInterface.getNetworkInterfaces().toList()
     .filter { it.isUp && !it.isLoopback }
-    .flatMap { it.inetAddresses.toList() }
-    .firstOrNull { it.isLocalNetworkAddress() }
-    ?.hostAddress
+        .flatMap { networkInterface ->
+            networkInterface.inetAddresses.toList().map { address -> networkInterface to address }
+        }
+        .firstOrNull { (_, address) -> address.isLocalNetworkAddress() }
+        ?: return null
+    stage("receiver_interface_selected name=${selected.first.name}")
+    stage("receiver_ip_selected address=${selected.second.hostAddress}")
+    return selected.second.hostAddress
+}
+
+private fun Throwable.safeMessage(): String = message.orEmpty().replace('\r', ' ').replace('\n', ' ').take(200)
 
 private fun InetAddress.isLocalNetworkAddress(): Boolean = isSiteLocalAddress || isLinkLocalAddress
