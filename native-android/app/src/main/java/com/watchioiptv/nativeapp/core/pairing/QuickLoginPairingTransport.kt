@@ -9,6 +9,7 @@ import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
 import java.net.InetAddress
+import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.net.ServerSocket
 import java.net.Socket
@@ -192,16 +193,67 @@ private fun stage(name: String) {
 }
 
 private fun localIpv4Address(): String? {
-    val selected = NetworkInterface.getNetworkInterfaces().toList()
-    .filter { it.isUp && !it.isLoopback }
+    val selected = selectLanAddress(NetworkInterface.getNetworkInterfaces().toList()
         .flatMap { networkInterface ->
-            networkInterface.inetAddresses.toList().map { address -> networkInterface to address }
+            networkInterface.inetAddresses.toList().map { address ->
+                LanAddressCandidate(
+                    interfaceName = networkInterface.name,
+                    isUp = networkInterface.isUp,
+                    isLoopbackInterface = networkInterface.isLoopback,
+                    isVirtual = networkInterface.isVirtual,
+                    address = address,
+                )
+            }
         }
-        .firstOrNull { (_, address) -> address.isLocalNetworkAddress() }
-        ?: return null
-    stage("receiver_interface_selected name=${selected.first.name}")
-    stage("receiver_ip_selected address=${selected.second.hostAddress}")
-    return selected.second.hostAddress
+    ) ?: return null
+    stage("receiver_interface_selected name=${selected.interfaceName}")
+    stage("receiver_ip_selected address=${selected.address.hostAddress}")
+    return selected.address.hostAddress
+}
+
+internal data class LanAddressCandidate(
+    val interfaceName: String,
+    val isUp: Boolean,
+    val isLoopbackInterface: Boolean,
+    val isVirtual: Boolean,
+    val address: InetAddress,
+)
+
+internal fun selectLanAddress(candidates: List<LanAddressCandidate>): LanAddressCandidate? = candidates
+    .asSequence()
+    .filter { it.isUsableIpv4() }
+    .sortedWith(
+        compareByDescending<LanAddressCandidate> { it.address.isPrivateIpv4() }
+            .thenByDescending { it.physicalInterfacePriority() }
+            .thenBy { it.interfaceName }
+            .thenBy { it.address.hostAddress },
+    )
+    .firstOrNull()
+
+private fun LanAddressCandidate.isUsableIpv4(): Boolean =
+    isUp &&
+        !isLoopbackInterface &&
+        !isVirtual &&
+        !interfaceName.startsWith("dummy", ignoreCase = true) &&
+        address is Inet4Address &&
+        !address.isLoopbackAddress &&
+        !address.isLinkLocalAddress &&
+        !address.isMulticastAddress &&
+        !address.isAnyLocalAddress
+
+private fun LanAddressCandidate.physicalInterfacePriority(): Int = when {
+    interfaceName.startsWith("wlan", ignoreCase = true) -> 3
+    interfaceName.startsWith("eth", ignoreCase = true) -> 2
+    interfaceName.startsWith("ethernet", ignoreCase = true) -> 2
+    else -> 1
+}
+
+private fun InetAddress.isPrivateIpv4(): Boolean {
+    if (this !is Inet4Address) return false
+    val octets = address.map { it.toInt() and 0xff }
+    return octets[0] == 10 ||
+        (octets[0] == 172 && octets[1] in 16..31) ||
+        (octets[0] == 192 && octets[1] == 168)
 }
 
 private fun Throwable.safeMessage(): String = message.orEmpty().replace('\r', ' ').replace('\n', ' ').take(200)
