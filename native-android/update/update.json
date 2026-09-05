@@ -1,20 +1,18 @@
 {
   "schemaVersion": 1,
   "channel": "dev",
-  "versionCode": 10,
-  "versionName": "0.1.0-dev.9-debug",
+  "versionCode": 11,
+  "versionName": "0.1.0-dev.10-debug",
   "minimumSupportedVersionCode": 1,
   "mandatory": false,
-  "publishedAt": "2026-09-03T22:16:57.865202Z",
+  "publishedAt": "2026-09-05T20:03:33.979632Z",
   "releaseNotes": [
-    "Watchio Quick Login diagnostics",
-    "- Added safe sender stage diagnostics",
-    "- No credentials or QR contents logged"
+    "Reset Watchio development signing to dedicated DEV identity."
   ],
-  "githubRelease": "https://github.com/IAMSKORPZ/Watchio-IPTV/releases/tag/v0.1.0-dev.9",
+  "githubRelease": "https://github.com/IAMSKORPZ/Watchio-IPTV/releases/tag/v0.1.0-dev.10",
   "apk": {
-    "fileName": "watchio-dev-0.1.0-dev.9-debug.apk",
-    "downloadUrl": "https://github.com/IAMSKORPZ/Watchio-IPTV/releases/download/v0.1.0-dev.9/watchio-dev-0.1.0-dev.9-debug.apk",
-    "sha256": "09460dc50ef6fb18d26550c0a818623d63671a298bd5ed01829a4d9b8b1b280d"
+    "fileName": "watchio-dev-0.1.0-dev.10-debug.apk",
+    "downloadUrl": "https://github.com/IAMSKORPZ/Watchio-IPTV/releases/download/v0.1.0-dev.10/watchio-dev-0.1.0-dev.10-debug.apk",
+    "sha256": "7e72b9d1bd2db54f7e2c6976e8b1d9c9be5d8872e8a266fd5cddecff7245dba5"
   }
 }
