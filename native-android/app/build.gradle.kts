@@ -1,9 +1,38 @@
+import java.io.FileInputStream
+import java.io.File
+import java.security.KeyStore
+import java.security.MessageDigest
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+}
+
+data class WatchioSigningIdentity(
+    val name: String,
+    val prefix: String,
+)
+
+fun normalizeFingerprint(value: String): String = value.replace(":", "").trim().lowercase()
+
+fun verifySigningIdentity(identity: WatchioSigningIdentity, values: Map<String, String>) {
+    val path = values.getValue("${identity.prefix}_KEYSTORE_PATH")
+    val storePassword = values.getValue("${identity.prefix}_KEYSTORE_PASSWORD")
+    val alias = values.getValue("${identity.prefix}_KEY_ALIAS")
+    val expected = normalizeFingerprint(values.getValue("${identity.prefix}_CERT_SHA256"))
+    val keyStore = KeyStore.getInstance("JKS")
+    FileInputStream(File(path)).use { keyStore.load(it, storePassword.toCharArray()) }
+    val certificate = keyStore.getCertificate(alias)
+        ?: throw GradleException("${identity.name} signing alias '$alias' not found")
+    val actual = MessageDigest.getInstance("SHA-256")
+        .digest(certificate.encoded)
+        .joinToString("") { "%02x".format(it) }
+    if (actual != expected) {
+        throw GradleException("${identity.name} signing certificate mismatch: got $actual expected $expected")
+    }
 }
 
 android {
@@ -28,22 +57,56 @@ android {
         buildConfig = true
     }
 
+    val requestedTasks = gradle.startParameter.taskNames.joinToString(" ").lowercase()
+    val requestsAllBuilds = gradle.startParameter.taskNames.any {
+        it.substringAfterLast(':').lowercase() in setOf("assemble", "build")
+    }
+    val identities = listOf(
+        WatchioSigningIdentity("DEV", "WATCHIO_DEV"),
+        WatchioSigningIdentity("PUBLIC", "WATCHIO_PUBLIC"),
+    )
+    val required = mapOf(
+        "WATCHIO_DEV" to (requestsAllBuilds || ("debug" in requestedTasks && "uitest" !in requestedTasks)),
+        "WATCHIO_PUBLIC" to (requestsAllBuilds || "release" in requestedTasks),
+    )
+    val signingValues = identities.associate { identity ->
+        val names = listOf(
+            "${identity.prefix}_KEYSTORE_PATH",
+            "${identity.prefix}_KEYSTORE_PASSWORD",
+            "${identity.prefix}_KEY_ALIAS",
+            "${identity.prefix}_KEY_PASSWORD",
+            "${identity.prefix}_CERT_SHA256",
+        )
+        val values = names.associateWith { providers.environmentVariable(it).orNull.orEmpty() }
+        if (required.getValue(identity.prefix)) {
+            val missing = values.filterValues { it.isBlank() }.keys
+            if (missing.isNotEmpty()) {
+                throw GradleException("Missing ${identity.name} signing configuration: ${missing.joinToString()}")
+            }
+            verifySigningIdentity(identity, values)
+        } else if (values.values.none { it.isBlank() }) {
+            verifySigningIdentity(identity, values)
+        }
+        identity.prefix to values
+    }.toMap()
+
     signingConfigs {
-        val devKeystorePath = providers.environmentVariable("WATCHIO_DEV_KEYSTORE_PATH")
-        val devKeystorePassword = providers.environmentVariable("WATCHIO_DEV_KEYSTORE_PASSWORD")
-        val devKeyAlias = providers.environmentVariable("WATCHIO_DEV_KEY_ALIAS")
-        val devKeyPassword = providers.environmentVariable("WATCHIO_DEV_KEY_PASSWORD")
-        if (
-            devKeystorePath.isPresent &&
-            devKeystorePassword.isPresent &&
-            devKeyAlias.isPresent &&
-            devKeyPassword.isPresent
-        ) {
-            getByName("debug") {
-                storeFile = file(devKeystorePath.get())
-                storePassword = devKeystorePassword.get()
-                keyAlias = devKeyAlias.get()
-                keyPassword = devKeyPassword.get()
+        create("watchioDev") {
+            val values = signingValues.getValue("WATCHIO_DEV")
+            if (values.values.none { it.isBlank() }) {
+                storeFile = file(values.getValue("WATCHIO_DEV_KEYSTORE_PATH"))
+                storePassword = values.getValue("WATCHIO_DEV_KEYSTORE_PASSWORD")
+                keyAlias = values.getValue("WATCHIO_DEV_KEY_ALIAS")
+                keyPassword = values.getValue("WATCHIO_DEV_KEY_PASSWORD")
+            }
+        }
+        create("watchioPublic") {
+            val values = signingValues.getValue("WATCHIO_PUBLIC")
+            if (values.values.none { it.isBlank() }) {
+                storeFile = file(values.getValue("WATCHIO_PUBLIC_KEYSTORE_PATH"))
+                storePassword = values.getValue("WATCHIO_PUBLIC_KEYSTORE_PASSWORD")
+                keyAlias = values.getValue("WATCHIO_PUBLIC_KEY_ALIAS")
+                keyPassword = values.getValue("WATCHIO_PUBLIC_KEY_PASSWORD")
             }
         }
     }
@@ -57,11 +120,21 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             isDebuggable = true
+            signingConfig = signingConfigs.getByName("watchioDev")
+        }
+        create("local") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".local"
+            versionNameSuffix = "-local"
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("debug")
+            resValue("string", "app_name", "Watchio Local")
         }
         create("uitest") {
-            initWith(getByName("debug"))
+            initWith(getByName("local"))
             applicationIdSuffix = ".uitest"
             versionNameSuffix = "-uitest"
+            signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("debug")
             resValue("string", "app_name", "Watchio Test")
         }
@@ -72,6 +145,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            signingConfig = signingConfigs.getByName("watchioPublic")
         }
     }
 

@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      EXPECTED_CERT_SHA256: ${{ vars.WATCHIO_DEV_CERT_SHA256 }}
+      WATCHIO_DEV_CERT_SHA256: ${{ vars.WATCHIO_DEV_CERT_SHA256 }}
       WATCHIO_DEV_KEYSTORE_BASE64: ${{ secrets.WATCHIO_DEV_KEYSTORE_BASE64 }}
       WATCHIO_DEV_KEYSTORE_PASSWORD: ${{ secrets.WATCHIO_DEV_KEYSTORE_PASSWORD }}
       WATCHIO_DEV_KEY_ALIAS: ${{ secrets.WATCHIO_DEV_KEY_ALIAS }}
@@ -118,7 +118,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$EXPECTED_CERT_SHA256" || { echo "Missing repo variable WATCHIO_DEV_CERT_SHA256" >&2; exit 1; }
+          test -n "$WATCHIO_DEV_CERT_SHA256" || { echo "Missing repo variable WATCHIO_DEV_CERT_SHA256" >&2; exit 1; }
           test -n "$WATCHIO_DEV_KEYSTORE_BASE64" || { echo "Missing secret WATCHIO_DEV_KEYSTORE_BASE64" >&2; exit 1; }
           test -n "$WATCHIO_DEV_KEYSTORE_PASSWORD" || { echo "Missing secret WATCHIO_DEV_KEYSTORE_PASSWORD" >&2; exit 1; }
           test -n "$WATCHIO_DEV_KEY_ALIAS" || { echo "Missing secret WATCHIO_DEV_KEY_ALIAS" >&2; exit 1; }
@@ -156,7 +156,7 @@ jobs:
           BUILD_TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
           "$BUILD_TOOLS/aapt" dump badging "$APK" | grep "package: name='com.watchioiptv.nativeapp.debug' versionCode='$WATCHIO_VERSION_CODE' versionName='$WATCHIO_DEBUG_VERSION_NAME'"
           CERT="$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | python3 -c "import sys, re; text=sys.stdin.read(); m=re.search(r'certificate SHA-256 digest:\s*([a-fA-F0-9]+)', text); print(m.group(1).lower() if m else '')")"
-          EXPECTED="$(echo "$EXPECTED_CERT_SHA256" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          EXPECTED="$(echo "$WATCHIO_DEV_CERT_SHA256" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
           if [[ "$CERT" != "$EXPECTED" ]]; then
             echo "Signing certificate mismatch. Got '$CERT' expected '$EXPECTED'" >&2
             exit 1

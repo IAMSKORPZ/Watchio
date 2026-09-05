@@ -26,7 +26,7 @@ concurrency:
 jobs:
   release-from-dev:
     name: Run dev release workflow
-    uses: IAMSKORPZ/Watchio-IPTV/.github/workflows/dev-release.yml@main
+    uses: ./.github/workflows/dev-release.yml
     with:
       versionName: ${{ inputs.versionName }}
       versionCode: ${{ inputs.versionCode }}

@@ -1,0 +1,132 @@
+name: Public Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionName:
+        description: "Semantic version, for example 0.1.0"
+        required: true
+        type: string
+      versionCode:
+        description: "Positive Android versionCode"
+        required: true
+        type: string
+      releaseNotes:
+        description: "Plain-text public release notes"
+        required: true
+        type: string
+      sourceRef:
+        description: "Verified public release source"
+        required: true
+        default: main
+        type: string
+      dryRun:
+        description: "Build and verify without publishing"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: watchio-public-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      WATCHIO_PUBLIC_CERT_SHA256: ${{ vars.WATCHIO_PUBLIC_CERT_SHA256 }}
+      WATCHIO_PUBLIC_KEYSTORE_BASE64: ${{ secrets.WATCHIO_PUBLIC_KEYSTORE_BASE64 }}
+      WATCHIO_PUBLIC_KEYSTORE_PASSWORD: ${{ secrets.WATCHIO_PUBLIC_KEYSTORE_PASSWORD }}
+      WATCHIO_PUBLIC_KEY_ALIAS: ${{ secrets.WATCHIO_PUBLIC_KEY_ALIAS }}
+      WATCHIO_PUBLIC_KEY_PASSWORD: ${{ secrets.WATCHIO_PUBLIC_KEY_PASSWORD }}
+    steps:
+      - name: Checkout public source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sourceRef }}
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Validate inputs and signing configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ '${{ inputs.versionName }}' =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Public versionName must be semantic X.Y.Z" >&2; exit 1; }
+          [[ '${{ inputs.versionCode }}' =~ ^[1-9][0-9]*$ ]] || { echo "versionCode must be a positive integer" >&2; exit 1; }
+          test -n "$WATCHIO_PUBLIC_CERT_SHA256" || { echo "Missing repo variable WATCHIO_PUBLIC_CERT_SHA256" >&2; exit 1; }
+          test -n "$WATCHIO_PUBLIC_KEYSTORE_BASE64" || { echo "Missing secret WATCHIO_PUBLIC_KEYSTORE_BASE64" >&2; exit 1; }
+          test -n "$WATCHIO_PUBLIC_KEYSTORE_PASSWORD" || { echo "Missing secret WATCHIO_PUBLIC_KEYSTORE_PASSWORD" >&2; exit 1; }
+          test -n "$WATCHIO_PUBLIC_KEY_ALIAS" || { echo "Missing secret WATCHIO_PUBLIC_KEY_ALIAS" >&2; exit 1; }
+          test -n "$WATCHIO_PUBLIC_KEY_PASSWORD" || { echo "Missing secret WATCHIO_PUBLIC_KEY_PASSWORD" >&2; exit 1; }
+          TAG="v${{ inputs.versionName }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists" >&2
+            exit 1
+          fi
+          echo "$WATCHIO_PUBLIC_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/watchio-public.jks"
+          {
+            echo "WATCHIO_PUBLIC_KEYSTORE_PATH=$RUNNER_TEMP/watchio-public.jks"
+            echo "WATCHIO_VERSION_NAME=${{ inputs.versionName }}"
+            echo "WATCHIO_VERSION_CODE=${{ inputs.versionCode }}"
+            echo "WATCHIO_TAG=$TAG"
+          } >> "$GITHUB_ENV"
+
+      - name: Apply requested app version
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          path = Path('native-android/app/build.gradle.kts')
+          text = path.read_text(encoding='utf-8')
+          text = re.sub(r'versionCode = \d+', f"versionCode = {os.environ['WATCHIO_VERSION_CODE']}", text)
+          text = re.sub(r'versionName = "[^"]+"', f"versionName = \"{os.environ['WATCHIO_VERSION_NAME']}\"", text, count=1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Build public APK
+        working-directory: native-android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew test lintRelease assembleRelease
+
+      - name: Verify public package and certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="native-android/app/build/outputs/apk/release/app-release.apk"
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          "$BUILD_TOOLS/aapt" dump badging "$APK" | grep "package: name='com.watchioiptv.nativeapp' versionCode='$WATCHIO_VERSION_CODE' versionName='$WATCHIO_VERSION_NAME'"
+          CERT="$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | python3 -c "import sys,re; m=re.search(r'certificate SHA-256 digest:\\s*([a-fA-F0-9]+)',sys.stdin.read()); print(m.group(1).lower() if m else '')")"
+          EXPECTED="$(echo "$WATCHIO_PUBLIC_CERT_SHA256" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          test "$CERT" = "$EXPECTED" || { echo "PUBLIC signing certificate mismatch" >&2; exit 1; }
+          sha256sum "$APK" > native-android/app/build/outputs/apk/release/SHA256SUMS.txt
+
+      - name: Upload dry-run artifact
+        if: ${{ inputs.dryRun }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: watchio-public-${{ inputs.versionName }}-dry-run
+          path: |
+            native-android/app/build/outputs/apk/release/app-release.apk
+            native-android/app/build/outputs/apk/release/SHA256SUMS.txt
+
+      - name: Publish immutable public release
+        if: ${{ !inputs.dryRun }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WATCHIO_RELEASE_NOTES: ${{ inputs.releaseNotes }}
+        run: |
+          printf '%s\n' "$WATCHIO_RELEASE_NOTES" > "$RUNNER_TEMP/public-release-notes.txt"
+          gh release create "$WATCHIO_TAG" --target '${{ inputs.sourceRef }}' --title "$WATCHIO_TAG" --notes-file "$RUNNER_TEMP/public-release-notes.txt" \
+            native-android/app/build/outputs/apk/release/app-release.apk \
+            native-android/app/build/outputs/apk/release/SHA256SUMS.txt

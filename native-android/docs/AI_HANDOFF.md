@@ -17,10 +17,11 @@ Updates are implemented under Settings -> Check for Updates. `UpdateRepository` 
 
 The Updates screen is intentionally user-driven: it may check on open, but it does not automatically download and does not automatically open Android's installer after verification. The user presses `Download Update`, then `Install Update`.
 
-Development release automation lives in `.github/workflows/dev-release.yml`. It is manual-only (`workflow_dispatch`) and must be run from `dev`. It requires GitHub secrets for the stable development keystore and repo variable `WATCHIO_DEV_CERT_SHA256`. Current local dev certificate fingerprint is:
+Development release automation lives in `.github/workflows/dev-release.yml`. It is manual-only (`workflow_dispatch`) and must be run from `dev`. DEV builds use the dedicated `watchio-dev` key locally and in CI. Public releases use the separate `watchio-public` key through `.github/workflows/public-release.yml`. Both builds fail closed when credentials are missing or certificate fingerprints differ. Current fingerprints are:
 
 ```text
-5fefc70d51dc15494aaa88a1c951c94349710a7a9c77b479c28b8e93967a981b
+DEV: 0A:7E:10:03:97:7E:5D:14:FB:35:E3:36:1D:61:42:E1:35:40:73:DA:43:D2:B9:A2:DC:00:10:9C:B9:10:09:4F
+PUBLIC: 8A:76:E2:0B:7C:B2:E1:68:12:F5:05:12:75:A3:D1:12:FC:FB:AB:7C:24:24:C5:E8:97:F5:58:87:6B:CC:6F:F0
 ```
 
 Do not commit keystores or signing passwords. Do not publish CI-built APKs unless the certificate fingerprint matches the installed development app certificate.

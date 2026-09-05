@@ -82,29 +82,31 @@ Updates is a standalone Watchio page with a shared `WatchioPageHeader` titled `U
 - only buttons are focusable; status and release-note cards are display-only
 - default TV focus lands on the active primary action when one is available
 
-## Development Signing Limits
+## Signing Identities
 
-The first GitHub update release is debug-signed. It can only update an existing app when:
+Watchio has two permanent signing identities. DEV signs `com.watchioiptv.nativeapp.debug` for local development builds and GitHub prereleases. PUBLIC signs `com.watchioiptv.nativeapp` for public releases. The keys, aliases, passwords, and certificates are independent. Neither identity may fall back to Android's default debug keystore.
+
+A DEV update is compatible only when:
 
 - application ID matches `com.watchioiptv.nativeapp.debug`
 - signing certificate matches the installed debug build
 - `versionCode` is greater than or equal to the installed update path requirements
 
-This is not a production signed release. Do not commit keystores, signing passwords, or release signing credentials.
-
-Current local development signing source:
+Local keystores are stored outside Git:
 
 ```text
-C:\Users\mrsko\.android\debug.keystore
+%USERPROFILE%\.watchio\signing\watchio-dev.jks
+%USERPROFILE%\.watchio\signing\watchio-public.jks
 ```
 
-Current development certificate SHA-256 fingerprint:
+Current certificate SHA-256 fingerprints:
 
 ```text
-5fefc70d51dc15494aaa88a1c951c94349710a7a9c77b479c28b8e93967a981b
+DEV: 0A:7E:10:03:97:7E:5D:14:FB:35:E3:36:1D:61:42:E1:35:40:73:DA:43:D2:B9:A2:DC:00:10:9C:B9:10:09:4F
+PUBLIC: 8A:76:E2:0B:7C:B2:E1:68:12:F5:05:12:75:A3:D1:12:FC:FB:AB:7C:24:24:C5:E8:97:F5:58:87:6B:CC:6F:F0
 ```
 
-This key can be used for CI only if the same keystore is provided through GitHub Actions secrets. Do not rotate this signing certificate silently because existing development installs on S22 and BRAVIA require the same certificate for in-place updates.
+Gradle verifies each requested identity against its expected fingerprint and fails when credentials are missing or mismatched. The isolated LOCAL (`com.watchioiptv.nativeapp.local`) and UITEST packages may use Android's default debug key because they never share a DEV or PUBLIC package ID.
 
 Required GitHub configuration for automated dev releases:
 
@@ -115,6 +117,8 @@ Required GitHub configuration for automated dev releases:
 - secret: `WATCHIO_DEV_KEY_PASSWORD`
 
 The keystore secret must contain the base64-encoded keystore file. The private keystore file and passwords must never be committed.
+
+PUBLIC releases use the equivalent `WATCHIO_PUBLIC_*` secrets and `WATCHIO_PUBLIC_CERT_SHA256` repository variable through `.github/workflows/public-release.yml`. Public tags use `vX.Y.Z`; DEV tags use `vX.Y.Z-dev.N`. Tags are immutable.
 
 ## Automated Development Release Workflow
 
@@ -157,7 +161,7 @@ The workflow intentionally fails before publishing if signing secrets or `WATCHI
 
 ## Manual Device Rules
 
-Direct ADB installs for this workflow-validation phase are allowed only on the Samsung Galaxy S22 test device. Do not direct-install the real Watchio app on the BRAVIA at `192.168.1.49:5555`; use Watchio's in-app updater there.
+Use `scripts/install-dev.ps1` for local DEV APK validation and scoped installs. It verifies package and certificate before `adb install -r`, retries with `-d` only for `INSTALL_FAILED_VERSION_DOWNGRADE`, and never uninstalls or clears data automatically.
 
 ## Policy Notes
 
