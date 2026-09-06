@@ -140,7 +140,7 @@ class QuickLoginViewModel(
             _state.value = _state.value.copy(isBusy = true, invitation = null, expiresAtEpochMs = null, status = "Connecting provider…", errorMessage = null)
             runCatching {
                 QuickLoginBootstrapTrace.mark("quicklogin_sync_started")
-                xtreamRepository.addProvider(
+                xtreamRepository.addProviderTwoPhase(
                     XtreamCredentialsInput(
                         displayName = credentials.providerName,
                         serverUrl = credentials.serverUrl,

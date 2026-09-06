@@ -12,6 +12,8 @@ import com.watchioiptv.nativeapp.core.security.SecretStore
 import com.watchioiptv.nativeapp.core.util.WatchioClock
 import com.watchioiptv.nativeapp.data.RoomProviderRepository
 import com.watchioiptv.nativeapp.data.xtream.XtreamCredentialsInput
+import com.watchioiptv.nativeapp.data.xtream.CatalogSyncKey
+import com.watchioiptv.nativeapp.data.xtream.CatalogSyncState
 import com.watchioiptv.nativeapp.data.xtream.XtreamRepository
 import com.watchioiptv.nativeapp.domain.model.InputMode
 import com.watchioiptv.nativeapp.domain.model.StreamFormat
@@ -22,6 +24,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.Dispatcher
+import okhttp3.mockwebserver.RecordedRequest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -30,6 +34,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 @RunWith(AndroidJUnit4::class)
 class XtreamRepositoryInstrumentedTest {
@@ -136,6 +143,99 @@ class XtreamRepositoryInstrumentedTest {
         assertEquals(10_000, database.liveStreamDao().countByProvider(result.providerId.value))
         assertEquals(10_000, database.vodDao().countByProvider(result.providerId.value))
         assertEquals(5_000, database.seriesDao().countByProvider(result.providerId.value))
+    }
+
+    @Test
+    fun twoPhaseReturnsAfterLiveWhileMoviesAndSeriesRunConcurrently() = runBlocking {
+        val deferredRequests = CountDownLatch(2)
+        val releaseDeferred = CountDownLatch(1)
+        server.dispatcher = twoPhaseDispatcher(deferredRequests, releaseDeferred)
+
+        val result = repository.addProviderTwoPhase(input())
+
+        assertEquals(1, result.liveCount)
+        assertEquals(0, result.movieCount)
+        assertEquals(0, result.seriesCount)
+        assertEquals(result.providerId, settings.selected.value)
+        assertNotNull(credentialStore.getXtreamCredentials(result.providerId.value))
+        assertEquals(1, database.liveStreamDao().countByProvider(result.providerId.value))
+        assertEquals(0, database.vodDao().countByProvider(result.providerId.value))
+        assertEquals(0, database.seriesDao().countByProvider(result.providerId.value))
+        assertEquals(0, database.episodeDao().getByProvider(result.providerId.value).size)
+        assertEquals(CatalogSyncState.Syncing, repository.catalogSyncStates.value[CatalogSyncKey(result.providerId, com.watchioiptv.nativeapp.domain.model.ContentType.Movie)])
+        assertEquals(CatalogSyncState.Syncing, repository.catalogSyncStates.value[CatalogSyncKey(result.providerId, com.watchioiptv.nativeapp.domain.model.ContentType.Series)])
+        assertTrue(deferredRequests.await(5, TimeUnit.SECONDS))
+
+        releaseDeferred.countDown()
+        repository.awaitDeferredCatalogSync(result.providerId)
+        assertEquals(1, database.vodDao().countByProvider(result.providerId.value))
+        assertEquals(1, database.seriesDao().countByProvider(result.providerId.value))
+        assertEquals(CatalogSyncState.Ready, repository.catalogSyncStates.value[CatalogSyncKey(result.providerId, com.watchioiptv.nativeapp.domain.model.ContentType.Movie)])
+        assertEquals(CatalogSyncState.Ready, repository.catalogSyncStates.value[CatalogSyncKey(result.providerId, com.watchioiptv.nativeapp.domain.model.ContentType.Series)])
+    }
+
+    @Test
+    fun duplicateTwoPhaseImportReusesProviderAndDoesNotDuplicateActiveDeferredSync() = runBlocking {
+        val deferredRequests = CountDownLatch(2)
+        val releaseDeferred = CountDownLatch(1)
+        val deferredStarts = AtomicInteger()
+        repository.onDeferredSyncStarted = { deferredStarts.incrementAndGet() }
+        server.dispatcher = twoPhaseDispatcher(deferredRequests, releaseDeferred)
+
+        val first = repository.addProviderTwoPhase(input())
+        assertTrue(deferredRequests.await(5, TimeUnit.SECONDS))
+        val second = repository.addProviderTwoPhase(input())
+
+        assertEquals(first.providerId, second.providerId)
+        assertEquals(1, database.providerDao().getAll().size)
+        assertEquals(1, deferredStarts.get())
+        releaseDeferred.countDown()
+        repository.awaitDeferredCatalogSync(first.providerId)
+    }
+
+    @Test
+    fun deferredFailureKeepsPhaseOneProviderUsable() = runBlocking {
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse = when {
+                request.path?.contains("action=get_vod_categories") == true -> MockResponse().setResponseCode(500)
+                else -> twoPhaseResponse(request)
+            }
+        }
+        val result = repository.addProviderTwoPhase(input())
+        repository.awaitDeferredCatalogSync(result.providerId)
+
+        assertNotNull(database.providerDao().findById(result.providerId.value))
+        assertEquals(result.providerId, settings.selected.value)
+        assertEquals(1, database.liveStreamDao().countByProvider(result.providerId.value))
+        assertEquals(CatalogSyncState.Failed, repository.catalogSyncStates.value[CatalogSyncKey(result.providerId, com.watchioiptv.nativeapp.domain.model.ContentType.Movie)])
+    }
+
+    @Test
+    fun twoPhaseAuthenticationFailureCreatesNothing() = runBlocking {
+        server.enqueue(json("""{"user_info":{"auth":0,"status":"Disabled"}}"""))
+        assertTrue(runCatching { repository.addProviderTwoPhase(input()) }.isFailure)
+        assertTrue(database.providerDao().getAll().isEmpty())
+        assertTrue(secretStore.isEmpty())
+    }
+
+    private fun twoPhaseDispatcher(started: CountDownLatch, release: CountDownLatch) = object : Dispatcher() {
+        override fun dispatch(request: RecordedRequest): MockResponse {
+            if (request.path?.contains("action=get_vod_categories") == true || request.path?.contains("action=get_series_categories") == true) {
+                started.countDown()
+                release.await(10, TimeUnit.SECONDS)
+            }
+            return twoPhaseResponse(request)
+        }
+    }
+
+    private fun twoPhaseResponse(request: RecordedRequest): MockResponse = when {
+        request.path?.contains("action=get_live_categories") == true -> json(categories("live", 1))
+        request.path?.contains("action=get_live_streams") == true -> json(liveStreams(1))
+        request.path?.contains("action=get_vod_categories") == true -> json(categories("movie", 1))
+        request.path?.contains("action=get_vod_streams") == true -> json(vodStreams(1))
+        request.path?.contains("action=get_series_categories") == true -> json(categories("series", 1))
+        request.path?.contains("action=get_series") == true -> json(series(1))
+        else -> json("""{"user_info":{"username":"fake-user","auth":1,"status":"Active"},"server_info":{}}""")
     }
 
     private fun input(displayName: String = "Provider A") = XtreamCredentialsInput(

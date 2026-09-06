@@ -15,8 +15,19 @@ import com.watchioiptv.nativeapp.domain.model.WatchioProvider
 import com.watchioiptv.nativeapp.domain.repository.SettingsRepository
 import com.watchioiptv.nativeapp.domain.repository.XtreamAccountMetadata
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import retrofit2.HttpException
 import retrofit2.Retrofit
@@ -24,17 +35,26 @@ import java.io.IOException
 import java.net.SocketTimeoutException
 import java.util.UUID
 
+enum class CatalogSyncState { Idle, Syncing, Ready, Failed }
+
+data class CatalogSyncKey(val providerId: ProviderId, val contentType: ContentType)
+
 class XtreamRepository(
     private val database: WatchioDatabase,
     private val credentialStore: ProviderCredentialStore,
     private val settingsRepository: SettingsRepository,
     private val retrofitFactory: (String) -> Retrofit,
     private val clock: WatchioClock,
+    private val backgroundScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) {
     var onMoviesUpdated: ((ProviderId) -> Unit)? = null
     var onSeriesUpdated: ((ProviderId) -> Unit)? = null
+    internal var onDeferredSyncStarted: ((ProviderId) -> Unit)? = null
     private val _state = MutableStateFlow<XtreamImportState>(XtreamImportState.Idle)
     val state: Flow<XtreamImportState> = _state
+    private val _catalogSyncStates = MutableStateFlow<Map<CatalogSyncKey, CatalogSyncState>>(emptyMap())
+    val catalogSyncStates: StateFlow<Map<CatalogSyncKey, CatalogSyncState>> = _catalogSyncStates.asStateFlow()
+    private val deferredJobs = mutableMapOf<ProviderId, Job>()
 
     suspend fun addProvider(input: XtreamCredentialsInput): XtreamImportState.Success {
         val normalizedUrl = XtreamUrlNormalizer.normalize(input.serverUrl)
@@ -272,6 +292,11 @@ class XtreamRepository(
         if (duplicate) throw DuplicateXtreamProviderException()
     }
 
+    private suspend fun findExistingProvider(serverUrl: String, username: String) =
+        database.providerDao().findByTypeAndServer(ProviderType.Xtream.persisted, serverUrl).firstOrNull { provider ->
+            credentialStore.getXtreamCredentials(provider.id)?.username == username
+        }
+
     private fun api(serverUrl: String): XtreamApi =
         retrofitFactory(serverUrl.toHttpUrl().newBuilder().addPathSegment("").build().toString())
             .create(XtreamApi::class.java)
@@ -288,6 +313,158 @@ class XtreamRepository(
                 QuickLoginBootstrapTrace.mark("quicklogin_network_request_completed", started, "request_type=$type success=false")
             }
             .getOrThrow()
+    }
+
+    suspend fun addProviderTwoPhase(input: XtreamCredentialsInput): XtreamImportState.Success = withContext(Dispatchers.IO) {
+        val normalizedUrl = XtreamUrlNormalizer.normalize(input.serverUrl)
+            ?: throw IllegalArgumentException("Enter a valid server URL.")
+        val name = input.displayName.trim().takeIf { it.isNotBlank() }
+            ?: throw IllegalArgumentException("Provider name is required.")
+        val username = input.username.trim().takeIf { it.isNotBlank() }
+            ?: throw IllegalArgumentException("Username is required.")
+        val password = input.password.takeIf { it.isNotBlank() }
+            ?: throw IllegalArgumentException("Password is required.")
+        val existing = findExistingProvider(normalizedUrl, username)
+        val providerId = existing?.let { ProviderId(it.id) } ?: ProviderId("xtream-${UUID.randomUUID()}")
+        val previousCredentials = existing?.let { credentialStore.getXtreamCredentials(it.id) }
+        var credentialsSaved = false
+        var providerCreated = false
+        try {
+            val api = api(normalizedUrl)
+            var started = QuickLoginBootstrapTrace.now()
+            QuickLoginBootstrapTrace.mark("quicklogin_auth_started")
+            val auth = timedRequest("player_api_authentication") { api.playerInfo(username, password) }.toAuthInfo()
+            if (!auth.authenticated) throw IllegalArgumentException("Incorrect username or password.")
+            QuickLoginBootstrapTrace.mark("quicklogin_auth_completed", started)
+
+            started = QuickLoginBootstrapTrace.now()
+            QuickLoginBootstrapTrace.mark("quicklogin_credentials_save_started")
+            credentialStore.saveXtreamCredentials(providerId.value, XtreamCredentials(username, password))
+            credentialsSaved = true
+            QuickLoginBootstrapTrace.mark("quicklogin_credentials_save_completed", started)
+
+            val now = clock.nowEpochMs()
+            val provider = WatchioProvider(
+                id = providerId,
+                displayName = name,
+                type = ProviderType.Xtream,
+                serverUrl = normalizedUrl,
+                createdAtEpochMs = existing?.createdAtEpochMs ?: now,
+                updatedAtEpochMs = now,
+                lastRefreshAtEpochMs = existing?.lastRefreshAtEpochMs,
+                enabled = true,
+            )
+            started = QuickLoginBootstrapTrace.now()
+            QuickLoginBootstrapTrace.mark("quicklogin_provider_save_started")
+            database.providerDao().upsert(provider.toEntity())
+            providerCreated = existing == null
+            QuickLoginBootstrapTrace.mark("quicklogin_provider_save_completed", started, "row_count=1 reused=${existing != null}")
+
+            started = QuickLoginBootstrapTrace.now()
+            QuickLoginBootstrapTrace.mark("quicklogin_live_sync_started")
+            val liveCategories = timedRequest("live_categories") { api.liveCategories(username, password) }
+                .mapIndexedNotNull { index, dto -> dto.toDomain(providerId, ContentType.Live, index) }
+            val live = timedRequest("live_streams") { api.liveStreams(username, password) }
+                .mapIndexedNotNull { index, dto -> dto.toDomain(providerId, index) }
+            database.withTransaction {
+                database.categoryDao().replaceCategories(providerId.value, ContentType.Live.persisted, liveCategories.map { it.toEntity() })
+                database.liveStreamDao().replaceLiveStreams(providerId.value, live.map { it.toEntity(now) })
+                database.providerDao().upsert(provider.copy(lastRefreshAtEpochMs = now).toEntity())
+            }
+            QuickLoginBootstrapTrace.mark("quicklogin_live_sync_completed", started, "category_count=${liveCategories.size} item_count=${live.size}")
+
+            started = QuickLoginBootstrapTrace.now()
+            QuickLoginBootstrapTrace.mark("quicklogin_provider_select_started")
+            settingsRepository.setSelectedProviderId(providerId)
+            settingsRepository.setProviderExpiryEpochMs(providerId, auth.expiration?.toLongOrNull()?.let { it * 1_000L })
+            settingsRepository.persistAccountMetadata(providerId, auth)
+            settingsRepository.setDeviceModeOnboardingCompleted(true)
+            settingsRepository.setSectionRefreshEpochMs(providerId, ContentType.Live, now)
+            QuickLoginBootstrapTrace.mark("quicklogin_provider_select_completed", started)
+
+            startDeferredCatalogSync(providerId, api, username, password)
+            XtreamImportState.Success(providerId, live.size, 0, 0).also { _state.value = it }
+        } catch (throwable: Throwable) {
+            if (providerCreated) database.providerDao().deleteProviderAndCatalog(providerId.value)
+            if (credentialsSaved) {
+                if (previousCredentials == null) credentialStore.deleteProviderSecrets(providerId.value)
+                else credentialStore.saveXtreamCredentials(providerId.value, previousCredentials)
+            }
+            throw throwable
+        }
+    }
+
+    private fun startDeferredCatalogSync(providerId: ProviderId, api: XtreamApi, username: String, password: String) {
+        synchronized(deferredJobs) {
+            if (deferredJobs[providerId]?.isActive == true) return
+            setCatalogSyncState(providerId, ContentType.Movie, CatalogSyncState.Syncing)
+            setCatalogSyncState(providerId, ContentType.Series, CatalogSyncState.Syncing)
+            deferredJobs[providerId] = backgroundScope.launch {
+                onDeferredSyncStarted?.invoke(providerId)
+                QuickLoginBootstrapTrace.mark("quicklogin_deferred_sync_started")
+                coroutineScope {
+                    val movies = async { syncDeferredMovies(providerId, api, username, password) }
+                    val series = async { syncDeferredSeries(providerId, api, username, password) }
+                    movies.await()
+                    series.await()
+                }
+                QuickLoginBootstrapTrace.finishDeferredSync()
+            }
+        }
+    }
+
+    internal suspend fun awaitDeferredCatalogSync(providerId: ProviderId) {
+        synchronized(deferredJobs) { deferredJobs[providerId] }?.join()
+    }
+
+    private suspend fun syncDeferredMovies(providerId: ProviderId, api: XtreamApi, username: String, password: String) {
+        val started = QuickLoginBootstrapTrace.now()
+        QuickLoginBootstrapTrace.mark("quicklogin_movies_background_started")
+        runCatching {
+            val categories = timedRequest("vod_categories") { api.vodCategories(username, password) }
+                .mapIndexedNotNull { index, dto -> dto.toDomain(providerId, ContentType.Movie, index) }
+            val movies = timedRequest("vod_streams") { api.vodStreams(username, password) }
+                .mapIndexedNotNull { index, dto -> dto.toDomain(providerId, index) }
+            val now = clock.nowEpochMs()
+            database.withTransaction {
+                database.categoryDao().replaceCategories(providerId.value, ContentType.Movie.persisted, categories.map { it.toEntity() })
+                database.vodDao().replaceMovies(providerId.value, movies.map { it.toEntity(now) })
+            }
+            onMoviesUpdated?.invoke(providerId)
+            settingsRepository.setSectionRefreshEpochMs(providerId, ContentType.Movie, now)
+            setCatalogSyncState(providerId, ContentType.Movie, CatalogSyncState.Ready)
+            QuickLoginBootstrapTrace.mark("quicklogin_movies_background_completed", started, "success=true item_count=${movies.size}")
+        }.onFailure {
+            setCatalogSyncState(providerId, ContentType.Movie, CatalogSyncState.Failed)
+            QuickLoginBootstrapTrace.mark("quicklogin_movies_background_completed", started, "success=false")
+        }
+    }
+
+    private suspend fun syncDeferredSeries(providerId: ProviderId, api: XtreamApi, username: String, password: String) {
+        val started = QuickLoginBootstrapTrace.now()
+        QuickLoginBootstrapTrace.mark("quicklogin_series_background_started")
+        runCatching {
+            val categories = timedRequest("series_categories") { api.seriesCategories(username, password) }
+                .mapIndexedNotNull { index, dto -> dto.toDomain(providerId, ContentType.Series, index) }
+            val series = timedRequest("series_list") { api.series(username, password) }
+                .mapIndexedNotNull { index, dto -> dto.toDomain(providerId, index) }
+            val now = clock.nowEpochMs()
+            database.withTransaction {
+                database.categoryDao().replaceCategories(providerId.value, ContentType.Series.persisted, categories.map { it.toEntity() })
+                database.seriesDao().replaceSeries(providerId.value, series.map { it.toEntity(now) })
+            }
+            onSeriesUpdated?.invoke(providerId)
+            settingsRepository.setSectionRefreshEpochMs(providerId, ContentType.Series, now)
+            setCatalogSyncState(providerId, ContentType.Series, CatalogSyncState.Ready)
+            QuickLoginBootstrapTrace.mark("quicklogin_series_background_completed", started, "success=true item_count=${series.size}")
+        }.onFailure {
+            setCatalogSyncState(providerId, ContentType.Series, CatalogSyncState.Failed)
+            QuickLoginBootstrapTrace.mark("quicklogin_series_background_completed", started, "success=false")
+        }
+    }
+
+    private fun setCatalogSyncState(providerId: ProviderId, contentType: ContentType, state: CatalogSyncState) {
+        _catalogSyncStates.update { it + (CatalogSyncKey(providerId, contentType) to state) }
     }
 
     private suspend fun <T> timedRoom(operation: String, rowCount: Int, block: suspend () -> T): T {

@@ -25,6 +25,11 @@ object QuickLoginBootstrapTrace {
     @Synchronized
     fun finishUiReady() {
         mark("quicklogin_ui_ready")
+    }
+
+    @Synchronized
+    fun finishDeferredSync() {
+        mark("quicklogin_deferred_sync_completed")
         applyStartedAtMs = null
     }
 }
