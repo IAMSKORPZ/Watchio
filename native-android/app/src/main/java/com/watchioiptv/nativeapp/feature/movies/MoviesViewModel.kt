@@ -10,6 +10,9 @@ import com.watchioiptv.nativeapp.data.movies.MovieCategory
 import com.watchioiptv.nativeapp.data.movies.MovieDetails
 import com.watchioiptv.nativeapp.data.movies.MoviesRepository
 import com.watchioiptv.nativeapp.data.movies.WatchioMovieItem
+import com.watchioiptv.nativeapp.data.xtream.CatalogSyncKey
+import com.watchioiptv.nativeapp.data.xtream.CatalogSyncState
+import com.watchioiptv.nativeapp.data.xtream.XtreamRepository
 import com.watchioiptv.nativeapp.domain.model.ContentType
 import com.watchioiptv.nativeapp.domain.repository.FavoriteItem
 import com.watchioiptv.nativeapp.domain.repository.FavoritesRepository
@@ -23,6 +26,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -38,6 +42,7 @@ data class MoviesUiState(
     val categorySearchQuery: String = "",
     val loadingMore: Boolean = false,
     val hasMore: Boolean = false,
+    val catalogSyncState: CatalogSyncState = CatalogSyncState.Idle,
 )
 
 data class MovieDetailsUiState(
@@ -55,6 +60,7 @@ class MoviesViewModel(
     private val settingsRepository: SettingsRepository,
     private val playerManager: WatchioPlayerManager,
     private val clock: WatchioClock,
+    private val xtreamRepository: XtreamRepository,
 ) : ViewModel() {
     private val mutableMovies = MutableStateFlow(MoviesUiState())
     private val mutableDetails = MutableStateFlow(MovieDetailsUiState())
@@ -70,7 +76,14 @@ class MoviesViewModel(
     val playerState = playerManager.state
 
     init {
-        loadMovies()
+        viewModelScope.launch {
+            combine(settingsRepository.selectedProviderId, xtreamRepository.catalogSyncStates) { providerId, states ->
+                providerId to providerId?.let { states[CatalogSyncKey(it, ContentType.Movie)] }.orIdle()
+            }.distinctUntilChanged().collectLatest { (_, syncState) ->
+                mutableMovies.value = mutableMovies.value.copy(catalogSyncState = syncState)
+                loadMovies()
+            }
+        }
         viewModelScope.launch {
             searchQueryFlow
                 .debounce(250L)
@@ -121,10 +134,12 @@ class MoviesViewModel(
             val items = selected?.let { moviesRepository.moviePage(providerId, it, 0, MoviesRepository.PAGE_SIZE) }.orEmpty()
             mutableMovies.value = MoviesUiState(
                 loading = false,
+                errorMessage = if (mutableMovies.value.catalogSyncState == CatalogSyncState.Failed) "Movies couldn't finish syncing." else null,
                 categories = categories,
                 selectedCategory = selected,
                 movies = items,
                 hasMore = items.size == MoviesRepository.PAGE_SIZE,
+                catalogSyncState = mutableMovies.value.catalogSyncState,
             )
         }
     }
@@ -338,3 +353,5 @@ class MoviesViewModel(
         super.onCleared()
     }
 }
+
+private fun CatalogSyncState?.orIdle(): CatalogSyncState = this ?: CatalogSyncState.Idle

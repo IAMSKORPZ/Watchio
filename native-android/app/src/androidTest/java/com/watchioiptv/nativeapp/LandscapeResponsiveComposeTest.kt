@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -47,6 +48,7 @@ import com.watchioiptv.nativeapp.data.series.SeriesDetails
 import com.watchioiptv.nativeapp.data.series.WatchioEpisodeItem
 import com.watchioiptv.nativeapp.data.series.WatchioSeason
 import com.watchioiptv.nativeapp.data.series.WatchioSeriesItem
+import com.watchioiptv.nativeapp.data.xtream.CatalogSyncState
 import com.watchioiptv.nativeapp.domain.model.ProviderType
 import com.watchioiptv.nativeapp.feature.live.LiveTvScreen
 import com.watchioiptv.nativeapp.feature.live.LiveTvUiState
@@ -84,6 +86,72 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 class LandscapeResponsiveComposeTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+    @Test
+    fun moviesEmptySyncingShowsProgressInsteadOfEmptyMessage() {
+        setMoviesSyncContent(MoviesUiState(loading = false, catalogSyncState = CatalogSyncState.Syncing))
+        composeRule.onNodeWithText("Movies are loading…").assertIsDisplayed()
+        composeRule.onAllNodesWithText("No movies in this category.").assertCountEquals(0)
+    }
+
+    @Test
+    fun moviesContentDuringSyncStaysVisible() {
+        setMoviesSyncContent(MoviesUiState(loading = false, movies = listOf(movie("sync")), catalogSyncState = CatalogSyncState.Syncing))
+        composeRule.onNodeWithTag("movie-card").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Movies are loading…").assertCountEquals(0)
+    }
+
+    @Test
+    fun moviesReadyEmptyShowsTrueEmptyState() {
+        setMoviesSyncContent(MoviesUiState(loading = false, catalogSyncState = CatalogSyncState.Ready))
+        composeRule.onNodeWithText("No movies in this category.").assertIsDisplayed()
+    }
+
+    @Test
+    fun moviesContentAppearsWithoutRecreatingScreen() {
+        var state by mutableStateOf(MoviesUiState(loading = false, catalogSyncState = CatalogSyncState.Syncing))
+        setLandscapeContent { WatchioTheme { MoviesScreen(state, {}, {}, {}, {}, {}) } }
+        composeRule.onNodeWithText("Movies are loading…").assertIsDisplayed()
+        composeRule.runOnIdle { state = state.copy(movies = listOf(movie("arrived")), catalogSyncState = CatalogSyncState.Ready) }
+        composeRule.onNodeWithTag("movie-card").assertIsDisplayed()
+    }
+
+    @Test
+    fun seriesEmptySyncingShowsProgressInsteadOfEmptyMessage() {
+        setSeriesSyncContent(SeriesUiState(loading = false, catalogSyncState = CatalogSyncState.Syncing))
+        composeRule.onNodeWithText("Series are loading…").assertIsDisplayed()
+        composeRule.onAllNodesWithText("No series in this category.").assertCountEquals(0)
+    }
+
+    @Test
+    fun seriesContentDuringSyncStaysVisible() {
+        setSeriesSyncContent(SeriesUiState(loading = false, series = listOf(SeriesCardUiModel(series("sync"))), catalogSyncState = CatalogSyncState.Syncing))
+        composeRule.onNodeWithTag("series-card").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Series are loading…").assertCountEquals(0)
+    }
+
+    @Test
+    fun seriesReadyEmptyShowsTrueEmptyState() {
+        setSeriesSyncContent(SeriesUiState(loading = false, catalogSyncState = CatalogSyncState.Ready))
+        composeRule.onNodeWithText("No series in this category.").assertIsDisplayed()
+    }
+
+    @Test
+    fun seriesContentAppearsWithoutRecreatingScreen() {
+        var state by mutableStateOf(SeriesUiState(loading = false, catalogSyncState = CatalogSyncState.Syncing))
+        setLandscapeContent { WatchioTheme { SeriesScreen(state, {}, {}, {}, {}, {}) } }
+        composeRule.onNodeWithText("Series are loading…").assertIsDisplayed()
+        composeRule.runOnIdle { state = state.copy(series = listOf(SeriesCardUiModel(series("arrived"))), catalogSyncState = CatalogSyncState.Ready) }
+        composeRule.onNodeWithTag("series-card").assertIsDisplayed()
+    }
+
+    private fun setMoviesSyncContent(state: MoviesUiState) = setLandscapeContent {
+        WatchioTheme { MoviesScreen(state, {}, {}, {}, {}, {}) }
+    }
+
+    private fun setSeriesSyncContent(state: SeriesUiState) = setLandscapeContent {
+        WatchioTheme { SeriesScreen(state, {}, {}, {}, {}, {}) }
+    }
 
     @Test
     fun s22LandscapeLiveTvKeepsReadableChannelColumnAndPreview() {

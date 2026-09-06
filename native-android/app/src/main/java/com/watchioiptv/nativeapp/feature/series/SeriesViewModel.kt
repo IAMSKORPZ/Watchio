@@ -13,6 +13,9 @@ import com.watchioiptv.nativeapp.data.series.SeriesDetails
 import com.watchioiptv.nativeapp.data.series.SeriesRepository
 import com.watchioiptv.nativeapp.data.series.WatchioEpisodeItem
 import com.watchioiptv.nativeapp.data.series.WatchioSeriesItem
+import com.watchioiptv.nativeapp.data.xtream.CatalogSyncKey
+import com.watchioiptv.nativeapp.data.xtream.CatalogSyncState
+import com.watchioiptv.nativeapp.data.xtream.XtreamRepository
 import com.watchioiptv.nativeapp.domain.model.ContentType
 import com.watchioiptv.nativeapp.domain.repository.FavoriteItem
 import com.watchioiptv.nativeapp.domain.repository.FavoritesRepository
@@ -26,6 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -39,6 +43,7 @@ data class SeriesUiState(
     val searchQuery: String = "",
     val loadingMore: Boolean = false,
     val hasMore: Boolean = false,
+    val catalogSyncState: CatalogSyncState = CatalogSyncState.Idle,
 )
 
 data class SeriesDetailsUiState(
@@ -65,6 +70,7 @@ class SeriesViewModel(
     private val settingsRepository: SettingsRepository,
     private val playerManager: WatchioPlayerManager,
     private val clock: WatchioClock,
+    private val xtreamRepository: XtreamRepository,
 ) : ViewModel() {
     private val mutableSeries = MutableStateFlow(SeriesUiState())
     private val mutableDetails = MutableStateFlow(SeriesDetailsUiState())
@@ -88,7 +94,14 @@ class SeriesViewModel(
     val playerState = playerManager.state
 
     init {
-        loadSeries()
+        viewModelScope.launch {
+            combine(settingsRepository.selectedProviderId, xtreamRepository.catalogSyncStates) { providerId, states ->
+                providerId to providerId?.let { states[CatalogSyncKey(it, ContentType.Series)] }.orIdle()
+            }.distinctUntilChanged().collectLatest { (_, syncState) ->
+                mutableSeries.value = mutableSeries.value.copy(catalogSyncState = syncState)
+                loadSeries()
+            }
+        }
         viewModelScope.launch {
             searchQueryFlow
                 .debounce(250)
@@ -172,10 +185,12 @@ class SeriesViewModel(
             val items = selected?.let { seriesRepository.seriesPage(providerId, it, 0, SeriesRepository.PAGE_SIZE) }.orEmpty()
             mutableSeries.value = SeriesUiState(
                 loading = false,
+                errorMessage = if (mutableSeries.value.catalogSyncState == CatalogSyncState.Failed) "Series couldn't finish syncing." else null,
                 categories = categories,
                 selectedCategory = selected,
                 series = items,
                 hasMore = items.size == SeriesRepository.PAGE_SIZE,
+                catalogSyncState = mutableSeries.value.catalogSyncState,
             )
         }
     }
@@ -653,3 +668,5 @@ class SeriesViewModel(
         super.onCleared()
     }
 }
+
+private fun CatalogSyncState?.orIdle(): CatalogSyncState = this ?: CatalogSyncState.Idle

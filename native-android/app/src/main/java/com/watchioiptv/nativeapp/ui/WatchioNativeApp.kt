@@ -2161,6 +2161,7 @@ private fun moviesFactory(container: AppContainer): ViewModelProvider.Factory =
                 settingsRepository = container.settingsRepository,
                 playerManager = container.playerManager,
                 clock = SystemWatchioClock,
+                xtreamRepository = container.xtreamRepository,
             ) as T
         }
     }
@@ -2176,6 +2177,7 @@ private fun seriesFactory(container: AppContainer): ViewModelProvider.Factory =
                 settingsRepository = container.settingsRepository,
                 playerManager = container.playerManager,
                 clock = SystemWatchioClock,
+                xtreamRepository = container.xtreamRepository,
             ) as T
         }
     }

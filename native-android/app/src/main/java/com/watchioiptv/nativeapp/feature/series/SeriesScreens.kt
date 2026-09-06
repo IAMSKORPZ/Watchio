@@ -81,6 +81,7 @@ import com.watchioiptv.nativeapp.data.series.SeriesRepository
 import com.watchioiptv.nativeapp.data.series.WatchioEpisodeItem
 import com.watchioiptv.nativeapp.data.series.WatchioSeason
 import com.watchioiptv.nativeapp.data.series.WatchioSeriesItem
+import com.watchioiptv.nativeapp.data.xtream.CatalogSyncState
 import com.watchioiptv.nativeapp.feature.movies.HeartIcon
 import com.watchioiptv.nativeapp.feature.movies.extractReleaseYear
 import com.watchioiptv.nativeapp.feature.movies.formatRating
@@ -182,13 +183,22 @@ fun SeriesScreen(
                         Column(Modifier.fillMaxSize().padding(12.dp)) {
                             if (state.series.isEmpty()) {
                                 Box(Modifier.fillMaxSize().testTag("series-empty"), contentAlignment = Alignment.Center) {
-                                    Text(
-                                        if (state.selectedCategory?.kind == SeriesCategoryKind.ContinueWatching || state.selectedCategory?.id == "continue_watching") "Nothing to continue watching"
-                                        else if (state.selectedCategory?.kind == SeriesCategoryKind.Favorites || state.selectedCategory?.id == "favorites") "No favourite series yet."
-                                        else if (state.selectedCategory?.kind == SeriesCategoryKind.History || state.selectedCategory?.id == "history") "No series history yet."
-                                        else "No series in this category.",
-                                        color = colors.textSecondary,
-                                    )
+                                    when (state.catalogSyncState) {
+                                        CatalogSyncState.Syncing -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            CircularProgressIndicator(color = colors.seriesAccent, modifier = Modifier.testTag("series-sync-progress"))
+                                            Spacer(Modifier.height(16.dp))
+                                            Text("Series are loading…", color = colors.textPrimary)
+                                            Text("Your provider is still syncing. This screen will update automatically.", color = colors.textSecondary)
+                                        }
+                                        CatalogSyncState.Failed -> Text("Series couldn't finish syncing.", color = colors.liveTvAccent)
+                                        else -> Text(
+                                            if (state.selectedCategory?.kind == SeriesCategoryKind.ContinueWatching || state.selectedCategory?.id == "continue_watching") "Nothing to continue watching"
+                                            else if (state.selectedCategory?.kind == SeriesCategoryKind.Favorites || state.selectedCategory?.id == "favorites") "No favourite series yet."
+                                            else if (state.selectedCategory?.kind == SeriesCategoryKind.History || state.selectedCategory?.id == "history") "No series history yet."
+                                            else "No series in this category.",
+                                            color = colors.textSecondary,
+                                        )
+                                    }
                                 }
                             } else {
                                 LazyVerticalGrid(

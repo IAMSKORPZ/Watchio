@@ -90,6 +90,7 @@ import com.watchioiptv.nativeapp.data.movies.MovieCategory
 import com.watchioiptv.nativeapp.data.movies.MovieCategoryKind
 import com.watchioiptv.nativeapp.data.movies.MovieDetails
 import com.watchioiptv.nativeapp.data.movies.WatchioMovieItem
+import com.watchioiptv.nativeapp.data.xtream.CatalogSyncState
 import com.watchioiptv.nativeapp.domain.repository.ControlAutoHideDelay
 import com.watchioiptv.nativeapp.domain.repository.PlayerSettings
 import com.watchioiptv.nativeapp.ui.components.ResumePlaybackDialog
@@ -186,13 +187,22 @@ fun MoviesScreen(
                         Column(Modifier.fillMaxSize().padding(12.dp)) {
                             if (state.movies.isEmpty()) {
                                 Box(Modifier.fillMaxSize().testTag("movie-empty"), contentAlignment = Alignment.Center) {
-                                    Text(
-                                        if (state.selectedCategory?.kind == MovieCategoryKind.ContinueWatching || state.selectedCategory?.id == "continue_watching") "Nothing to continue watching"
-                                        else if (state.selectedCategory?.id == "favorites") "No favourite movies yet."
-                                        else if (state.selectedCategory?.id == "history") "No movie history yet."
-                                        else "No movies in this category.",
-                                        color = colors.textSecondary,
-                                    )
+                                    when (state.catalogSyncState) {
+                                        CatalogSyncState.Syncing -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            CircularProgressIndicator(color = colors.moviesAccent, modifier = Modifier.testTag("movies-sync-progress"))
+                                            Spacer(Modifier.height(16.dp))
+                                            Text("Movies are loading…", color = colors.textPrimary)
+                                            Text("Your provider is still syncing. This screen will update automatically.", color = colors.textSecondary)
+                                        }
+                                        CatalogSyncState.Failed -> Text("Movies couldn't finish syncing.", color = colors.liveTvAccent)
+                                        else -> Text(
+                                            if (state.selectedCategory?.kind == MovieCategoryKind.ContinueWatching || state.selectedCategory?.id == "continue_watching") "Nothing to continue watching"
+                                            else if (state.selectedCategory?.id == "favorites") "No favourite movies yet."
+                                            else if (state.selectedCategory?.id == "history") "No movie history yet."
+                                            else "No movies in this category.",
+                                            color = colors.textSecondary,
+                                        )
+                                    }
                                 }
                             } else {
                                 val isContinueWatching = state.selectedCategory?.kind == MovieCategoryKind.ContinueWatching || state.selectedCategory?.id == "continue_watching"
