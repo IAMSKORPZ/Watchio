@@ -87,6 +87,8 @@ import com.watchioiptv.nativeapp.core.player.WatchioPlayerManager
 import com.watchioiptv.nativeapp.core.player.WatchioPlayerMetadata
 import com.watchioiptv.nativeapp.core.player.WatchioPlayerState
 import com.watchioiptv.nativeapp.core.player.shouldKeepScreenOn
+import com.watchioiptv.nativeapp.core.player.isAudioOnlyPlayback
+import com.watchioiptv.nativeapp.core.player.isLoadingPlayback
 import com.watchioiptv.nativeapp.core.player.WatchioSubtitleTrack
 import com.watchioiptv.nativeapp.data.series.NextEpisodeState
 import com.watchioiptv.nativeapp.domain.repository.ControlAutoHideDelay
@@ -604,6 +606,31 @@ fun WatchioFullscreenPlayerScreen(
             .focusRequester(surfaceFocus)
             .focusable()
             .onPreviewKeyEvent { event ->
+                if (event.key == Key.Escape || event.key == Key.Back) {
+                    if (event.type == KeyEventType.KeyDown) {
+                        // Keep key release on fullscreen; navigating on key-down leaks key-up to return screen.
+                        return@onPreviewKeyEvent true
+                    }
+                    if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent true
+                    lastInteractionEpochMs = System.currentTimeMillis()
+                    if (System.currentTimeMillis() - screenMountEpochMs < 500L) {
+                        // Ignore back key from long-press transition that launched fullscreen.
+                        return@onPreviewKeyEvent true
+                    }
+                    if (contentContext is PlayerContentContext.Episode && contentContext.nextEpisodeState !is NextEpisodeState.None) {
+                        contentContext.onCancelNext()
+                    } else if (activeDialog != null) {
+                        activeDialog = null
+                    } else if (controlsVisible) {
+                        controlsVisible = false
+                    } else if (channelHudVisible) {
+                        channelHudJob?.cancel()
+                        channelHudVisible = false
+                    } else {
+                        onClose()
+                    }
+                    return@onPreviewKeyEvent true
+                }
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 lastInteractionEpochMs = System.currentTimeMillis()
                 when (event.key) {
@@ -643,34 +670,6 @@ fun WatchioFullscreenPlayerScreen(
                             firstFocus.requestFocus()
                             true
                         } else false
-                    }
-                    Key.Escape, Key.Back -> {
-                        val nativeEvent = event.nativeKeyEvent
-                        if (nativeEvent.repeatCount > 0) {
-                            // Ignore repeated auto-fire while back key is held down
-                            return@onPreviewKeyEvent true
-                        }
-                        if (System.currentTimeMillis() - screenMountEpochMs < 500L) {
-                            // Ignore back key from long-press transition that launched fullscreen
-                            return@onPreviewKeyEvent true
-                        }
-                        if (contentContext is PlayerContentContext.Episode && contentContext.nextEpisodeState !is NextEpisodeState.None) {
-                            contentContext.onCancelNext()
-                            true
-                        } else if (activeDialog != null) {
-                            activeDialog = null
-                            true
-                        } else if (controlsVisible) {
-                            controlsVisible = false
-                            true
-                        } else if (channelHudVisible) {
-                            channelHudJob?.cancel()
-                            channelHudVisible = false
-                            true
-                        } else {
-                            onClose()
-                            true
-                        }
                     }
                     else -> false
                 }
@@ -739,7 +738,7 @@ fun WatchioFullscreenPlayerScreen(
         }
 
         // Center HUD: Buffering / Connecting
-        if (playerState is WatchioPlayerState.Buffering || playerState is WatchioPlayerState.Connecting) {
+        if (playerState.isLoadingPlayback()) {
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -753,6 +752,14 @@ fun WatchioFullscreenPlayerScreen(
                     modifier = Modifier.size(48.dp),
                 )
             }
+        }
+
+        if (playerState.isAudioOnlyPlayback()) {
+            Text(
+                text = "Audio only",
+                color = Color.White,
+                modifier = Modifier.align(Alignment.Center).testTag("player-audio-only"),
+            )
         }
 
         // Center HUD: Recovering / Reconnecting (non-terminal compact indicator)

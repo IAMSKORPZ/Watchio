@@ -258,6 +258,9 @@ class Media3WatchioPlayerManager(
         val subtitleTracks = exoPlayer?.let { extractSubtitleTracks(it) } ?: currentMetadata.subtitleTracks
         val speed = exoPlayer?.playbackParameters?.speed ?: currentMetadata.playbackSpeed
         val isMuted = exoPlayer?.volume == 0f
+        val currentTracks = exoPlayer?.currentTracks
+        val hasVideo = currentTracks?.groups?.any { it.type == C.TRACK_TYPE_VIDEO && it.isSelected } ?: false
+        val hasAudio = currentTracks?.groups?.any { it.type == C.TRACK_TYPE_AUDIO && it.isSelected } ?: false
 
         return currentMetadata.copy(
             positionMs = exoPlayer?.currentPosition ?: currentMetadata.positionMs,
@@ -270,6 +273,8 @@ class Media3WatchioPlayerManager(
             playbackSpeed = speed,
             videoScalingMode = currentVideoScalingMode,
             isMuted = isMuted,
+            hasVideo = hasVideo,
+            hasAudio = hasAudio,
         )
     }
 
@@ -438,7 +443,7 @@ class Media3WatchioPlayerManager(
                 }
 
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    currentMetadata = snapshot().copy(firstFrameRendered = currentMetadata.firstFrameRendered || isPlaying)
+                    currentMetadata = snapshot().copy(firstFrameRendered = currentMetadata.firstFrameRendered)
                     if (isPlaying) {
                         retryJob?.cancel()
                         retryCount = 0
@@ -450,6 +455,15 @@ class Media3WatchioPlayerManager(
 
                 override fun onTracksChanged(tracks: Tracks) {
                     updateMetadataState()
+                }
+
+                override fun onRenderedFirstFrame() {
+                    currentMetadata = snapshot().copy(firstFrameRendered = true)
+                    mutableState.value = if (exoPlayer.isPlaying) {
+                        WatchioPlayerState.Playing(currentMetadata)
+                    } else {
+                        WatchioPlayerState.Paused(currentMetadata)
+                    }
                 }
 
                 override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {

@@ -58,6 +58,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import androidx.compose.ui.focus.FocusRequester
@@ -147,6 +148,8 @@ import com.watchioiptv.nativeapp.feature.settings.UpdatesScreen
 import com.watchioiptv.nativeapp.feature.settings.UpdatesViewModel
 import com.watchioiptv.nativeapp.feature.tvguide.TvGuideScreen
 import com.watchioiptv.nativeapp.feature.tvguide.TvGuideViewModel
+import com.watchioiptv.nativeapp.feature.sports.SportsScreen
+import com.watchioiptv.nativeapp.feature.sports.SportsViewModel
 import com.watchioiptv.nativeapp.core.util.SystemWatchioClock
 import com.watchioiptv.nativeapp.domain.model.InputMode
 import com.watchioiptv.nativeapp.domain.model.AnnouncementAction
@@ -176,12 +179,31 @@ import com.watchioiptv.nativeapp.ui.theme.LocalWatchioSpacing
 import com.watchioiptv.nativeapp.ui.theme.LocalWatchioTypography
 import com.watchioiptv.nativeapp.ui.theme.WatchioTheme
 import com.watchioiptv.nativeapp.ui.theme.WatchioThemeState
+import com.watchioiptv.nativeapp.data.live.LiveTvChannel
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
+
+internal enum class LivePlaybackOrigin {
+    Live,
+    Sports,
+}
+
+internal fun closeLiveFullscreen(
+    navController: NavHostController,
+    origin: LivePlaybackOrigin,
+) {
+    if (origin == LivePlaybackOrigin.Sports) {
+        if (!navController.popBackStack("sports", inclusive = false)) {
+            navController.popBackStack()
+        }
+    } else {
+        navController.popBackStack()
+    }
+}
 
 @Composable
 fun WatchioNativeApp(
@@ -202,6 +224,8 @@ fun WatchioNativeApp(
     val announcementsState by announcementsViewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { announcementsViewModel.refresh() }
     var backgroundPlaybackHandler by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var pendingLiveChannel by remember { mutableStateOf<LiveTvChannel?>(null) }
+    var livePlaybackOrigin by rememberSaveable { mutableStateOf(LivePlaybackOrigin.Live) }
     AppBackgroundPlaybackEffect(
         onBackground = { (backgroundPlaybackHandler ?: container.playerManager::pause).invoke() },
     )
@@ -304,12 +328,15 @@ fun WatchioNativeApp(
                     onAddM3uFileProvider = { navController.navigate("providers/m3u/file/add") },
                     onProviders = { navController.navigate("providers/home") },
                     onSettings = { navController.navigate("settings") },
-                    onLiveTv = { navController.navigate("live") },
+                    onLiveTv = {
+                        livePlaybackOrigin = LivePlaybackOrigin.Live
+                        navController.navigate("live")
+                    },
                     onTvGuide = { navController.navigate("tv-guide") },
                     onMovies = { navController.navigate("movies") },
                     onSeries = { navController.navigate("series") },
                     onSearch = { navController.navigate("search") },
-                    onSports = { navController.navigate("sports-placeholder") },
+                    onSports = { navController.navigate("sports") },
                     onAnnouncements = { navController.navigate("announcements") },
                     announcementUnreadCount = announcementsState.snapshot.unreadCount,
                     onRefreshLive = homeViewModel::refreshLive,
@@ -317,8 +344,30 @@ fun WatchioNativeApp(
                     onRefreshSeries = homeViewModel::refreshSeries,
                 )
             }
-            composable("sports-placeholder") {
-                HomePlaceholderScreen("Sports", "Sports will be added in a later Watchio phase.", onBack = { navController.popBackStack() })
+            composable("sports") {
+                val sportsViewModel: SportsViewModel = viewModel(
+                    factory = object : ViewModelProvider.Factory {
+                        @Suppress("UNCHECKED_CAST")
+                        override fun <T : ViewModel> create(modelClass: Class<T>): T = SportsViewModel(container.sportsRepository) as T
+                    },
+                )
+                val sportsState by sportsViewModel.state.collectAsStateWithLifecycle()
+                SportsScreen(
+                    state = sportsState,
+                    onPreviousDay = sportsViewModel::previousDay,
+                    onToday = sportsViewModel::today,
+                    onNextDay = sportsViewModel::nextDay,
+                    onRetry = sportsViewModel::retry,
+                    onWatch = sportsViewModel::watch,
+                    onCloseCandidates = sportsViewModel::closeCandidates,
+                    onPlay = { channel ->
+                        sportsViewModel.closeCandidates()
+                        pendingLiveChannel = channel
+                        livePlaybackOrigin = LivePlaybackOrigin.Sports
+                        navController.navigate("live")
+                    },
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable("announcements") {
                 LaunchedEffect(Unit) { announcementsViewModel.refresh() }
@@ -607,39 +656,20 @@ fun WatchioNativeApp(
                 )
             }
             composable("live") {
-                val liveViewModel: LiveTvViewModel = viewModel(factory = liveTvFactory(container))
+                val requestedChannel = pendingLiveChannel
+                val liveViewModel: LiveTvViewModel = viewModel(factory = liveTvFactory(container, requestedChannel))
                 val state by liveViewModel.combinedState.collectAsStateWithLifecycle()
-                PlaybackBackgroundHandler(
-                    onBackground = liveViewModel::pauseForBackground,
-                    setHandler = { backgroundPlaybackHandler = it },
-                )
-                LiveTvScreen(
-                    uiState = state.first,
-                    playerState = state.second,
-                    playerManager = container.playerManager,
-                    onCategory = liveViewModel::selectCategory,
-                    onCategorySearch = liveViewModel::updateCategorySearch,
-                    onLiveSearch = liveViewModel::updateLiveSearch,
-                    onChannel = liveViewModel::selectChannel,
-                    onFavorite = liveViewModel::toggleFavorite,
-                    onRetry = liveViewModel::retry,
-                    onRefreshEpg = liveViewModel::refreshEpg,
-                    onFullscreen = { navController.navigate("live/fullscreen") },
-                    onBack = {
-                        liveViewModel.leaveLiveTv()
-                        navController.popBackStack()
-                    },
-                )
-            }
-            composable("live/{channelId}") { backStackEntry ->
-                val channelId = backStackEntry.arguments?.getString("channelId")
-                val liveViewModel: LiveTvViewModel = viewModel(factory = liveTvFactory(container))
-                LaunchedEffect(channelId) {
-                    if (!channelId.isNullOrBlank()) {
-                        liveViewModel.selectChannelById(channelId)
+                LaunchedEffect(requestedChannel, state.first.selectedChannel, state.second) {
+                    if (
+                        requestedChannel != null &&
+                        state.first.selectedChannel?.providerId == requestedChannel.providerId &&
+                        state.first.selectedChannel?.id == requestedChannel.id &&
+                        state.second !is com.watchioiptv.nativeapp.core.player.WatchioPlayerState.Idle
+                    ) {
+                        pendingLiveChannel = null
+                        navController.navigate("live/fullscreen")
                     }
                 }
-                val state by liveViewModel.combinedState.collectAsStateWithLifecycle()
                 PlaybackBackgroundHandler(
                     onBackground = liveViewModel::pauseForBackground,
                     setHandler = { backgroundPlaybackHandler = it },
@@ -655,7 +685,10 @@ fun WatchioNativeApp(
                     onFavorite = liveViewModel::toggleFavorite,
                     onRetry = liveViewModel::retry,
                     onRefreshEpg = liveViewModel::refreshEpg,
-                    onFullscreen = { navController.navigate("live/fullscreen") },
+                    onFullscreen = {
+                        livePlaybackOrigin = LivePlaybackOrigin.Live
+                        navController.navigate("live/fullscreen")
+                    },
                     onBack = {
                         liveViewModel.leaveLiveTv()
                         navController.popBackStack()
@@ -703,7 +736,10 @@ fun WatchioNativeApp(
                     onSeek = { delta -> container.playerManager.seekBy(delta) },
                     onRestart = container.playerManager::restart,
                     onRetry = container.playerManager::retry,
-                    onClose = { navController.popBackStack() },
+                    onClose = {
+                        closeLiveFullscreen(navController, livePlaybackOrigin)
+                        livePlaybackOrigin = LivePlaybackOrigin.Live
+                    },
                 )
             }
             composable("tv-guide") {
@@ -719,6 +755,7 @@ fun WatchioNativeApp(
                     onProgramme = guideViewModel::selectProgramme,
                     onPlayLive = {
                         guideViewModel.playLive {
+                            livePlaybackOrigin = LivePlaybackOrigin.Live
                             navController.navigate("live/fullscreen")
                         }
                     },
@@ -2866,7 +2903,7 @@ private fun settingsFactory(container: AppContainer): ViewModelProvider.Factory 
         }
     }
 
-private fun liveTvFactory(container: AppContainer): ViewModelProvider.Factory =
+private fun liveTvFactory(container: AppContainer, initialChannel: LiveTvChannel? = null): ViewModelProvider.Factory =
     object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -2878,6 +2915,7 @@ private fun liveTvFactory(container: AppContainer): ViewModelProvider.Factory =
                 epgRefreshCoordinator = container.epgRefreshCoordinator,
                 playerManager = container.playerManager,
                 clock = SystemWatchioClock,
+                initialChannel = initialChannel,
             ) as T
         }
     }

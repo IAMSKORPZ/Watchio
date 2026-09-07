@@ -4,12 +4,24 @@ import com.watchioiptv.nativeapp.core.player.PlaybackMedia
 import com.watchioiptv.nativeapp.core.player.PlayerReliability
 import com.watchioiptv.nativeapp.core.player.WatchioPlayerMetadata
 import com.watchioiptv.nativeapp.core.player.WatchioPlayerState
+import com.watchioiptv.nativeapp.core.player.isAudioOnlyPlayback
+import com.watchioiptv.nativeapp.core.player.isLoadingPlayback
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlayerStateModelTest {
+    @Test
+    fun loadingAndAudioOnlyStatesFollowPlayerEvidence() {
+        val metadata = WatchioPlayerMetadata(hasAudio = true, hasVideo = false)
+        assertTrue(WatchioPlayerState.Buffering(metadata).isLoadingPlayback())
+        assertTrue(WatchioPlayerState.Connecting(metadata).isLoadingPlayback())
+        assertFalse(WatchioPlayerState.Playing(metadata).isLoadingPlayback())
+        assertTrue(WatchioPlayerState.Playing(metadata).isAudioOnlyPlayback())
+        assertFalse(WatchioPlayerState.Playing(metadata.copy(hasVideo = true)).isAudioOnlyPlayback())
+    }
+
     @Test
     fun stateCarriesSingleSessionMetadataAcrossSurfaceHandoff() {
         val media = PlaybackMedia("http://example.invalid/live/1.ts", "News")

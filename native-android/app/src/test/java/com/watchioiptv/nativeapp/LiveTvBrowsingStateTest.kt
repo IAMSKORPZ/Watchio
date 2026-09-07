@@ -128,8 +128,10 @@ class LiveTvBrowsingStateTest {
         private val mutableState = MutableStateFlow<WatchioPlayerState>(WatchioPlayerState.Idle(metadata))
         override val state: StateFlow<WatchioPlayerState> = mutableState
         var lastLoadedMedia: PlaybackMedia? = null
+        var loadCount: Int = 0
 
         override suspend fun load(media: PlaybackMedia) {
+            loadCount++
             lastLoadedMedia = media
             metadata = metadata.copy(currentMedia = media, isSeekable = !media.isLive)
             mutableState.value = WatchioPlayerState.Playing(metadata)
@@ -200,6 +202,40 @@ class LiveTvBrowsingStateTest {
     private class FakeEpgCoordinator : EpgRefreshCoordinator() {
         override suspend fun refreshProvider(providerId: String): EpgImportResult =
             EpgImportResult(providerId, 0, 0)
+    }
+
+    @Test
+    fun sportsInitialChannelUsesCanonicalLivePlaybackWithoutDuplicatePlayer() = runTest(testDispatcher) {
+        val providerId = ProviderId("provider-1")
+        val all = LiveTvCategory("all", "ALL CHANNELS", LiveTvCategoryKind.All)
+        val sports = LiveTvCategory("sports", "Sports", LiveTvCategoryKind.Provider)
+        val channel = testChannel(providerId, "sports-1", "Sky Sports Main Event", "sports")
+        val repository = FakeLiveTvRepo(
+            mapOf(providerId.value to listOf(all, sports)),
+            mapOf(providerId.value to mapOf("all" to listOf(channel), "sports" to listOf(channel))),
+        )
+        val playerManager = FakePlayerManager()
+
+        val viewModel = LiveTvViewModel(
+            liveTvRepository = repository,
+            favoritesRepository = FakeFavoritesRepository(),
+            historyRepository = FakeHistoryRepository(),
+            settingsRepository = FakeSettingsRepository(),
+            epgRefreshCoordinator = FakeEpgCoordinator(),
+            playerManager = playerManager,
+            clock = object : WatchioClock { override fun nowEpochMs(): Long = 1000L },
+            initialChannel = channel,
+        )
+
+        testScheduler.runCurrent()
+
+        assertEquals(providerId, viewModel.uiState.value.selectedChannel?.providerId)
+        assertEquals(channel.id, viewModel.uiState.value.selectedChannel?.id)
+        assertEquals("http://example.com/${channel.id}.ts", playerManager.lastLoadedMedia?.url)
+        assertEquals(channel.name, playerManager.lastLoadedMedia?.title)
+        assertEquals(true, playerManager.lastLoadedMedia?.isLive)
+        assertEquals(1, playerManager.loadCount)
+        viewModel.leaveLiveTv()
     }
 
     @Test

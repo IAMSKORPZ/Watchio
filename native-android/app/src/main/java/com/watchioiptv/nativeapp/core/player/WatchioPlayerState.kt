@@ -13,3 +13,9 @@ sealed interface WatchioPlayerState {
     data class Failed(val message: String, override val metadata: WatchioPlayerMetadata) : WatchioPlayerState
     data class Released(override val metadata: WatchioPlayerMetadata = WatchioPlayerMetadata()) : WatchioPlayerState
 }
+
+fun WatchioPlayerState.isLoadingPlayback(): Boolean =
+    this is WatchioPlayerState.Buffering || this is WatchioPlayerState.Connecting
+
+fun WatchioPlayerState.isAudioOnlyPlayback(): Boolean =
+    this is WatchioPlayerState.Playing && metadata.hasAudio && !metadata.hasVideo

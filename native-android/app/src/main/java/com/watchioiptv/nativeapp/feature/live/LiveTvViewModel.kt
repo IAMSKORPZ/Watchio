@@ -54,6 +54,7 @@ class LiveTvViewModel(
     private val epgRefreshCoordinator: EpgRefreshCoordinator,
     private val playerManager: WatchioPlayerManager,
     private val clock: WatchioClock,
+    private val initialChannel: LiveTvChannel? = null,
 ) : ViewModel() {
     private val mutableUi = MutableStateFlow(LiveTvUiState())
     private var playbackJob: Job? = null
@@ -93,7 +94,10 @@ class LiveTvViewModel(
             // 1. Stable ID match
             // 2. Name match (case-insensitive)
             // 3. Default first category (All Channels)
-            val targetCategory = savedState.categoryId?.let { id ->
+            val requestedChannel = initialChannel?.takeIf { it.providerId == providerId }
+            val targetCategory = requestedChannel?.let {
+                categories.firstOrNull { category -> category.kind == LiveTvCategoryKind.All }
+            } ?: savedState.categoryId?.let { id ->
                 categories.firstOrNull { it.id == id || it.sourceCategoryId == id }
             } ?: savedState.categoryName?.let { name ->
                 categories.firstOrNull { it.name.equals(name, ignoreCase = true) }
@@ -106,7 +110,9 @@ class LiveTvViewModel(
             // 2. Name match (case-insensitive)
             // 3. Saved list index fallback
             // 4. Default first channel in category
-            val targetChannel = savedState.channelId?.let { id ->
+            val targetChannel = requestedChannel?.let { requested ->
+                channels.firstOrNull { it.providerId == requested.providerId && it.id == requested.id }
+            } ?: savedState.channelId?.let { id ->
                 channels.firstOrNull { it.id == id }
             } ?: savedState.channelName?.let { name ->
                 channels.firstOrNull { it.name.equals(name, ignoreCase = true) }
@@ -131,7 +137,7 @@ class LiveTvViewModel(
 
             if (targetChannel != null) {
                 updateNowNext(targetChannel)
-                if (settings.autoPlayLiveChannel) {
+                if (requestedChannel != null || settings.autoPlayLiveChannel) {
                     selectChannel(targetChannel)
                 }
             }

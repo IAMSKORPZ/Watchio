@@ -43,6 +43,10 @@ import com.watchioiptv.nativeapp.domain.repository.FavoritesRepository
 import com.watchioiptv.nativeapp.domain.repository.HistoryRepository
 import com.watchioiptv.nativeapp.domain.repository.ProviderRepository
 import com.watchioiptv.nativeapp.feature.tvguide.TvGuideRepository
+import com.watchioiptv.nativeapp.feature.sports.FootballDataApi
+import com.watchioiptv.nativeapp.feature.sports.FootballDataScheduleSource
+import com.watchioiptv.nativeapp.feature.sports.SportsRepository
+import com.watchioiptv.nativeapp.feature.sports.UitestFootballScheduleSource
 
 private val Context.watchioDataStore by preferencesDataStore(name = "watchio_native_settings")
 
@@ -133,6 +137,15 @@ class AppContainer(context: Context) {
         epgRepository = epgRepository,
         epgRefreshCoordinator = epgRefreshCoordinator,
     )
+    private val footballScheduleSource = if (BuildConfig.APPLICATION_ID.endsWith(".uitest")) {
+        UitestFootballScheduleSource()
+    } else {
+        FootballDataScheduleSource(
+            networkModule.retrofit("https://api.football-data.org/").create(FootballDataApi::class.java),
+            BuildConfig.FOOTBALL_DATA_API_KEY,
+        )
+    }
+    val sportsRepository = SportsRepository(footballScheduleSource, tvGuideRepository)
     val moviesRepository = MoviesRepository(
         database = database,
         settingsRepository = settingsRepository,
