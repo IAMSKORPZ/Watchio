@@ -1,18 +1,41 @@
 {
   "schemaVersion": 1,
   "channel": "dev",
-  "versionCode": 11,
-  "versionName": "0.1.0-dev.10-debug",
+  "versionCode": 12,
+  "versionName": "0.1.0-dev.11-debug",
   "minimumSupportedVersionCode": 1,
   "mandatory": false,
-  "publishedAt": "2026-09-05T20:03:33.979632Z",
+  "publishedAt": "2026-09-07T16:05:38.068213Z",
   "releaseNotes": [
-    "Reset Watchio development signing to dedicated DEV identity."
+    "Watchio DEV \u2014 Sports Beta",
+    "New:",
+    "- Football fixtures in Sports",
+    "- Competition grouping",
+    "- Previous / Today / Next date navigation",
+    "- WATCH button for provider channel matches",
+    "- EPG-based likely channel matching",
+    "- Sports-category fallback channels",
+    "- Playback through existing Watchio Live player",
+    "- Improved Sports background/layout",
+    "Fixed:",
+    "- Sports fixture date handling",
+    "- football-data.org rate-limit handling",
+    "- Sports playback video loading issue",
+    "- Sports Back navigation now returns directly to Sports",
+    "Tester focus:",
+    "- different IPTV providers",
+    "- channel naming differences",
+    "- EPG matching accuracy",
+    "- Android TV / Fire TV navigation",
+    "- phone layouts",
+    "- Live / Movies / Series regressions",
+    "- Quick Login regressions",
+    "Watchio only plays channels from the user's own configured provider."
   ],
-  "githubRelease": "https://github.com/IAMSKORPZ/Watchio-IPTV/releases/tag/v0.1.0-dev.10",
+  "githubRelease": "https://github.com/IAMSKORPZ/Watchio-IPTV/releases/tag/v0.1.0-dev.11",
   "apk": {
-    "fileName": "watchio-dev-0.1.0-dev.10-debug.apk",
-    "downloadUrl": "https://github.com/IAMSKORPZ/Watchio-IPTV/releases/download/v0.1.0-dev.10/watchio-dev-0.1.0-dev.10-debug.apk",
-    "sha256": "7e72b9d1bd2db54f7e2c6976e8b1d9c9be5d8872e8a266fd5cddecff7245dba5"
+    "fileName": "watchio-dev-0.1.0-dev.11-debug.apk",
+    "downloadUrl": "https://github.com/IAMSKORPZ/Watchio-IPTV/releases/download/v0.1.0-dev.11/watchio-dev-0.1.0-dev.11-debug.apk",
+    "sha256": "0974a707ea69c837e9843f3ca5652a97cfbbf50401261958f6815e992a41e9a8"
   }
 }
