@@ -122,6 +122,26 @@ class SportsScreenComposeTest {
         composeRule.onNodeWithText("Try again shortly").assertHasNoClickAction()
     }
 
+    @Test fun missingKeyShowsSetupActions() {
+        var configure = false
+        var register = false
+        setContent(
+            SportsUiState(day, SportsLoadState.SetupRequired),
+            onConfigure = { configure = true },
+            onRegister = { register = true },
+        )
+        composeRule.onNodeWithTag("sports-api-setup").assertIsDisplayed()
+        composeRule.onNodeWithText("Get Free API Key").performClick()
+        composeRule.onNodeWithText("Enter API Key").performClick()
+        composeRule.runOnIdle { assertTrue(register && configure) }
+    }
+
+    @Test fun rejectedKeyShowsUpdateAction() {
+        setContent(SportsUiState(day, SportsLoadState.CredentialNeedsAttention))
+        composeRule.onNodeWithText("API key needs attention").assertIsDisplayed()
+        composeRule.onNodeWithText("Enter API Key").assertIsDisplayed()
+    }
+
     @Test fun dialogCloseReturnsToFixtureList() {
         var closed = false
         setContent(readyState().copy(selectedFixture = fixture), onClose = { closed = true })
@@ -134,6 +154,8 @@ class SportsScreenComposeTest {
         onWatch: (SportsFixture) -> Unit = {},
         onClose: () -> Unit = {},
         onPlay: (LiveTvChannel) -> Unit = {},
+        onConfigure: () -> Unit = {},
+        onRegister: () -> Unit = {},
         onBack: () -> Unit = {},
     ) {
         composeRule.runOnUiThread {
@@ -143,7 +165,7 @@ class SportsScreenComposeTest {
         }
         composeRule.waitForIdle()
         composeRule.setContent {
-            WatchioTheme { SportsScreen(state, {}, {}, {}, {}, onWatch, onClose, onPlay, onBack) }
+            WatchioTheme { SportsScreen(state, {}, {}, {}, {}, onWatch, onClose, onPlay, onConfigure, onRegister, onBack) }
         }
     }
 

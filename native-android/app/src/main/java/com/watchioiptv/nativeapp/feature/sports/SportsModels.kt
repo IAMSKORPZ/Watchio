@@ -33,6 +33,8 @@ data class SportsChannelCandidate(
 
 sealed interface SportsLoadState {
     data object Loading : SportsLoadState
+    data object SetupRequired : SportsLoadState
+    data object CredentialNeedsAttention : SportsLoadState
     data class Ready(val schedule: SportsDateSchedule) : SportsLoadState
     data class Error(
         val message: String,
@@ -45,6 +47,8 @@ sealed interface SportsLoadState {
 sealed class SportsScheduleException(message: String) : Exception(message) {
     class RateLimited(val retryAvailableAtEpochMs: Long) : SportsScheduleException("Too many fixture requests")
     data object ServiceUnavailable : SportsScheduleException("Sports service unavailable")
+    data object MissingCredential : SportsScheduleException("Football Data API key required")
+    data object InvalidCredential : SportsScheduleException("Football Data API key needs attention")
     data object TemporarilyUnavailable : SportsScheduleException("Fixtures are temporarily unavailable")
     data object NetworkUnavailable : SportsScheduleException("Unable to load fixtures")
 }

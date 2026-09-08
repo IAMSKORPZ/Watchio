@@ -83,6 +83,8 @@ class SportsViewModel private constructor(
     private fun applyError(error: Throwable) {
         cooldownJob?.cancel()
         val state = when (error) {
+            SportsScheduleException.MissingCredential -> SportsLoadState.SetupRequired
+            SportsScheduleException.InvalidCredential -> SportsLoadState.CredentialNeedsAttention
             is SportsScheduleException.RateLimited -> SportsLoadState.Error(
                 message = "Too many fixture requests",
                 detail = "Please wait a moment and try again.",
@@ -94,7 +96,7 @@ class SportsViewModel private constructor(
             else -> SportsLoadState.Error("Unable to load fixtures")
         }
         mutableState.value = mutableState.value.copy(loadState = state)
-        if (!state.retryEnabled && state.retryAvailableAtEpochMs != null) {
+        if (state is SportsLoadState.Error && !state.retryEnabled && state.retryAvailableAtEpochMs != null) {
             cooldownJob = viewModelScope.launch {
                 delay((state.retryAvailableAtEpochMs - clock.millis()).coerceAtLeast(1L))
                 val current = mutableState.value.loadState as? SportsLoadState.Error ?: return@launch

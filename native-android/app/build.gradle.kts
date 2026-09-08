@@ -51,11 +51,6 @@ android {
             .orElse("")
             .get()
         buildConfigField("String", "TMDB_API_KEY", "\"$tmdbApiKey\"")
-        val footballDataApiKey = providers.gradleProperty("FOOTBALL_DATA_API_KEY")
-            .orElse(providers.environmentVariable("FOOTBALL_DATA_API_KEY"))
-            .orElse("")
-            .get()
-        buildConfigField("String", "FOOTBALL_DATA_API_KEY", "\"$footballDataApiKey\"")
     }
 
     buildFeatures {

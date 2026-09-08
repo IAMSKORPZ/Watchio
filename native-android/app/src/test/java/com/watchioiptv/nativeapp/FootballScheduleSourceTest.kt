@@ -2,6 +2,7 @@ package com.watchioiptv.nativeapp
 
 import com.watchioiptv.nativeapp.feature.sports.FootballDataApi
 import com.watchioiptv.nativeapp.feature.sports.FootballDataScheduleSource
+import com.watchioiptv.nativeapp.feature.sports.FootballDataCredentialStore
 import com.watchioiptv.nativeapp.feature.sports.SportsCompetitionCatalog
 import com.watchioiptv.nativeapp.feature.sports.SportsFixtureStatus
 import com.watchioiptv.nativeapp.feature.sports.SportsScheduleException
@@ -90,9 +91,16 @@ class FootballScheduleSourceTest {
         assertEquals(1, server.requestCount)
     }
 
-    @Test fun authenticationFailureMapsToServiceUnavailable() = runTest {
+    @Test fun authenticationFailureMapsToInvalidCredential() = runTest {
         server.enqueue(MockResponse().setResponseCode(401))
-        assertTrue(source("key").getFixtures(LocalDate.of(2026, 9, 6)).exceptionOrNull() is SportsScheduleException.ServiceUnavailable)
+        assertTrue(source("key").getFixtures(LocalDate.of(2026, 9, 6)).exceptionOrNull() is SportsScheduleException.InvalidCredential)
+    }
+
+    @Test fun forbiddenFailureMapsToInvalidCredentialWithoutLeakingKey() = runTest {
+        server.enqueue(MockResponse().setResponseCode(403))
+        val error = source("test-token").getFixtures(LocalDate.of(2026, 9, 6)).exceptionOrNull()
+        assertTrue(error is SportsScheduleException.InvalidCredential)
+        assertTrue(error?.message?.contains("test-token") == false)
     }
 
     @Test fun serverFailureMapsToTemporarilyUnavailable() = runTest {
@@ -100,7 +108,10 @@ class FootballScheduleSourceTest {
         assertTrue(source("key").getFixtures(LocalDate.of(2026, 9, 6)).exceptionOrNull() is SportsScheduleException.TemporarilyUnavailable)
     }
 
-    @Test fun missingKeyFailsWithoutNetwork() = runTest { assertTrue(source("").getFixtures(LocalDate.of(2026, 9, 6)).isFailure) }
+    @Test fun missingKeyRequiresSetupWithoutNetwork() = runTest {
+        assertTrue(source("").getFixtures(LocalDate.of(2026, 9, 6)).exceptionOrNull() is SportsScheduleException.MissingCredential)
+        assertEquals(0, server.requestCount)
+    }
     @Test fun competitionOrderPrioritizesConfiguredCodes() { assertTrue(SportsCompetitionCatalog.displayOrder("PL") < SportsCompetitionCatalog.displayOrder("XYZ")) }
 
     private fun source(
@@ -109,7 +120,13 @@ class FootballScheduleSourceTest {
         zoneId: ZoneId = ZoneId.systemDefault(),
     ): FootballDataScheduleSource {
         val retrofit = Retrofit.Builder().baseUrl(server.url("/")).addConverterFactory(Json { ignoreUnknownKeys = true }.asConverterFactory("application/json".toMediaType())).build()
-        return FootballDataScheduleSource(retrofit.create(FootballDataApi::class.java), key, clock, zoneId)
+        return FootballDataScheduleSource(retrofit.create(FootballDataApi::class.java), FakeCredentialStore(key), clock, zoneId)
+    }
+
+    private class FakeCredentialStore(private val value: String?) : FootballDataCredentialStore {
+        override suspend fun get() = value
+        override suspend fun save(value: String) = Unit
+        override suspend fun remove() = Unit
     }
 
     private fun jsonResponse(body: String) = MockResponse().setBody(body).setHeader("Content-Type", "application/json")

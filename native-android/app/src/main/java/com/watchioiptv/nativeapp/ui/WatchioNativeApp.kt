@@ -144,6 +144,9 @@ import com.watchioiptv.nativeapp.feature.settings.AccountInformationUiState
 import com.watchioiptv.nativeapp.feature.settings.AccountInformationViewModel
 import com.watchioiptv.nativeapp.feature.settings.SettingsUiState
 import com.watchioiptv.nativeapp.feature.settings.SettingsViewModel
+import com.watchioiptv.nativeapp.feature.settings.FootballDataConnectionStatus
+import com.watchioiptv.nativeapp.feature.settings.FootballDataSettingsUiState
+import com.watchioiptv.nativeapp.feature.settings.FootballDataSettingsViewModel
 import com.watchioiptv.nativeapp.feature.settings.UpdatesScreen
 import com.watchioiptv.nativeapp.feature.settings.UpdatesViewModel
 import com.watchioiptv.nativeapp.feature.tvguide.TvGuideScreen
@@ -352,6 +355,7 @@ fun WatchioNativeApp(
                     },
                 )
                 val sportsState by sportsViewModel.state.collectAsStateWithLifecycle()
+                LaunchedEffect(Unit) { sportsViewModel.retry() }
                 SportsScreen(
                     state = sportsState,
                     onPreviousDay = sportsViewModel::previousDay,
@@ -366,6 +370,8 @@ fun WatchioNativeApp(
                         livePlaybackOrigin = LivePlaybackOrigin.Sports
                         navController.navigate("live")
                     },
+                    onConfigureApiKey = { navController.navigate("settings/football-data") },
+                    onGetFreeApiKey = { openExternalUrl(context, FOOTBALL_DATA_REGISTRATION_URL) },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -875,6 +881,7 @@ fun WatchioNativeApp(
                     onQuickLogin = { navController.navigate("quick-login") },
                     onPlayer = { navController.navigate("settings/player") },
                     onEpg = { navController.navigate("settings/epg") },
+                    onFootballData = { navController.navigate("settings/football-data") },
                     onParental = { navController.navigate("settings/parental") },
                     onStreamFormat = { navController.navigate("settings/stream-format") },
                     onInputMode = { navController.navigate("settings/input-mode") },
@@ -956,6 +963,22 @@ fun WatchioNativeApp(
                         onEpgAutoRefresh = settingsViewModel::setEpgAutoRefreshEnabled,
                         onEpgRefreshInterval = settingsViewModel::setEpgRefreshInterval,
                         onRefreshEpgNow = settingsViewModel::refreshEpgNow,
+                    )
+                }
+            }
+            composable("settings/football-data") {
+                val footballDataViewModel: FootballDataSettingsViewModel = viewModel(factory = footballDataSettingsFactory(container))
+                val state by footballDataViewModel.state.collectAsStateWithLifecycle()
+                SettingsDetailScreen("Football Data", onBack = { navController.popBackStack() }) {
+                    FootballDataSettingsContent(
+                        state = state,
+                        onInputChanged = footballDataViewModel::updateInput,
+                        onSave = footballDataViewModel::validateAndSave,
+                        onRemove = footballDataViewModel::requestRemove,
+                        onCancelRemove = footballDataViewModel::cancelRemove,
+                        onConfirmRemove = footballDataViewModel::confirmRemove,
+                        onGetFreeApiKey = { openExternalUrl(context, FOOTBALL_DATA_REGISTRATION_URL) },
+                        onOpenAttribution = { openExternalUrl(context, FOOTBALL_DATA_HOME_URL) },
                     )
                 }
             }
@@ -2267,6 +2290,18 @@ private fun updatesFactory(container: AppContainer): ViewModelProvider.Factory =
         }
     }
 
+private fun footballDataSettingsFactory(container: AppContainer): ViewModelProvider.Factory =
+    object : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            return FootballDataSettingsViewModel(
+                credentialStore = container.footballDataCredentialStore,
+                validator = container.footballDataCredentialValidator,
+                invalidateSportsCache = container::invalidateSportsCache,
+            ) as T
+        }
+    }
+
 @Composable
 private fun SettingsRootScreen(
     onProviderManagement: () -> Unit,
@@ -2274,6 +2309,7 @@ private fun SettingsRootScreen(
     onQuickLogin: () -> Unit,
     onPlayer: () -> Unit,
     onEpg: () -> Unit,
+    onFootballData: () -> Unit,
     onParental: () -> Unit,
     onStreamFormat: () -> Unit,
     onInputMode: () -> Unit,
@@ -2292,6 +2328,7 @@ private fun SettingsRootScreen(
             SettingsCategory("Quick Login", "Move your login from phone to TV", HomeIconKind.Provider, colors.seriesAccent, onQuickLogin, "settings-quick-login"),
             SettingsCategory("Player Settings", "Playback and video settings", HomeIconKind.Movie, colors.seriesAccent, onPlayer, "settings-player-settings"),
             SettingsCategory("EPG Settings", "Guide and programme settings", HomeIconKind.Guide, colors.liveTvAccent, onEpg, "settings-epg-settings"),
+            SettingsCategory("Football Data", "Configure Sports fixture data", HomeIconKind.Guide, colors.seriesAccent, onFootballData, "settings-football-data"),
             SettingsCategory("Parental Controls", "Restrict content and settings", HomeIconKind.Settings, colors.moviesAccent, onParental, "settings-parental-controls"),
             SettingsCategory("Stream Format", "Choose your preferred format", HomeIconKind.List, colors.seriesAccent, onStreamFormat, "settings-stream-format"),
             SettingsCategory("Input Mode", "Mobile touch or TV remote controls", HomeIconKind.Provider, colors.liveTvAccent, onInputMode, "settings-input-mode"),
@@ -2403,6 +2440,79 @@ private fun SettingsPlaceholderScreen(title: String, message: String, onBack: ()
         }
     }
 }
+
+@Composable
+private fun FootballDataSettingsContent(
+    state: FootballDataSettingsUiState,
+    onInputChanged: (String) -> Unit,
+    onSave: () -> Unit,
+    onRemove: () -> Unit,
+    onCancelRemove: () -> Unit,
+    onConfirmRemove: () -> Unit,
+    onGetFreeApiKey: () -> Unit,
+    onOpenAttribution: () -> Unit,
+) {
+    val colors = LocalWatchioColors.current
+    val spacing = LocalWatchioSpacing.current
+    val checking = state.status == FootballDataConnectionStatus.Checking
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag("football-data-settings"),
+        verticalArrangement = Arrangement.spacedBy(spacing.md),
+    ) {
+        Text("Football fixtures in Watchio use football-data.org.", color = colors.textSecondary)
+        WatchioButton("Get Free API Key", onGetFreeApiKey, modifier = Modifier.testTag("football-data-register"), variant = WatchioButtonVariant.Secondary)
+        OutlinedTextField(
+            value = state.input,
+            onValueChange = onInputChanged,
+            label = { Text("API Key") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { if (state.input.isNotBlank() && !checking) onSave() }),
+            enabled = !checking,
+            modifier = Modifier.fillMaxWidth().testTag("football-data-api-key"),
+        )
+        Text(footballDataStatusText(state.status), color = if (state.status == FootballDataConnectionStatus.Invalid) colors.liveTvAccent else colors.textSecondary, modifier = Modifier.testTag("football-data-status"))
+        Row(horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
+            WatchioButton(
+                if (checking) "Checkingâ€¦" else "Save",
+                onSave,
+                enabled = state.input.isNotBlank() && !checking,
+                modifier = Modifier.testTag("football-data-save"),
+            )
+            if (state.configured) WatchioButton("Remove Key", onRemove, modifier = Modifier.testTag("football-data-remove"), variant = WatchioButtonVariant.Secondary)
+        }
+        TextButton(onClick = onOpenAttribution, modifier = Modifier.testTag("football-data-attribution")) {
+            Text("Data provided by football-data.org")
+        }
+    }
+    if (state.removeConfirmationVisible) {
+        AlertDialog(
+            onDismissRequest = onCancelRemove,
+            title = { Text("Remove Football Data API key?") },
+            text = { Text("Sports fixture data will require setup again. IPTV providers and other Watchio data are not affected.") },
+            confirmButton = { TextButton(onClick = onConfirmRemove) { Text("Remove Key") } },
+            dismissButton = { TextButton(onClick = onCancelRemove) { Text("Cancel") } },
+        )
+    }
+}
+
+private fun footballDataStatusText(status: FootballDataConnectionStatus): String = when (status) {
+    FootballDataConnectionStatus.NotConfigured -> "Not configured"
+    FootballDataConnectionStatus.Checking -> "Checkingâ€¦"
+    FootballDataConnectionStatus.Connected -> "Connected â€” API key configured"
+    FootballDataConnectionStatus.Invalid -> "Invalid key"
+    FootballDataConnectionStatus.RateLimited -> "The key appears configured, but football-data.org is temporarily rate limiting requests. Try again shortly."
+    FootballDataConnectionStatus.UnableToVerify -> "Unable to verify API key. Check your connection and try again."
+}
+
+private fun openExternalUrl(context: Context, url: String) {
+    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+        .onFailure { Toast.makeText(context, "No browser is available to open this link.", Toast.LENGTH_LONG).show() }
+}
+
+private const val FOOTBALL_DATA_REGISTRATION_URL = "https://www.football-data.org/client/register"
+private const val FOOTBALL_DATA_HOME_URL = "https://www.football-data.org/"
 
 @Composable
 private fun AccountInformationContent(state: AccountInformationUiState) {

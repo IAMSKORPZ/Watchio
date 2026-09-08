@@ -54,6 +54,8 @@ fun SportsScreen(
     onWatch: (SportsFixture) -> Unit,
     onCloseCandidates: () -> Unit,
     onPlay: (LiveTvChannel) -> Unit,
+    onConfigureApiKey: () -> Unit,
+    onGetFreeApiKey: () -> Unit,
     onBack: () -> Unit,
 ) {
     val colors = LocalWatchioColors.current
@@ -67,6 +69,20 @@ fun SportsScreen(
         Box(Modifier.fillMaxWidth().weight(1f).testTag("sports-content")) {
             when (val load = state.loadState) {
                 SportsLoadState.Loading -> WatchioLoading("Loading fixtures…", Modifier.align(Alignment.Center).testTag("sports-loading"))
+                SportsLoadState.SetupRequired -> FootballDataSetupState(
+                    title = "Football Data setup required",
+                    detail = "Football fixtures require a free football-data.org API key.",
+                    onConfigureApiKey = onConfigureApiKey,
+                    onGetFreeApiKey = onGetFreeApiKey,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+                SportsLoadState.CredentialNeedsAttention -> FootballDataSetupState(
+                    title = "API key needs attention",
+                    detail = "Update your football-data.org API key to continue loading fixtures.",
+                    onConfigureApiKey = onConfigureApiKey,
+                    onGetFreeApiKey = onGetFreeApiKey,
+                    modifier = Modifier.align(Alignment.Center),
+                )
                 is SportsLoadState.Error -> Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(load.message, color = colors.textPrimary, fontWeight = FontWeight.Bold)
                     load.detail?.let { Spacer(Modifier.height(6.dp)); Text(it, color = colors.textSecondary) }
@@ -96,6 +112,30 @@ fun SportsScreen(
     }
     }
     if (state.selectedFixture != null) CandidateDialog(state, onCloseCandidates, onPlay)
+}
+
+@Composable
+private fun FootballDataSetupState(
+    title: String,
+    detail: String,
+    onConfigureApiKey: () -> Unit,
+    onGetFreeApiKey: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalWatchioColors.current
+    Column(
+        modifier = modifier.testTag("sports-api-setup"),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(title, color = colors.textPrimary, fontWeight = FontWeight.Bold)
+        Text(detail, color = colors.textSecondary)
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            WatchioButton("Get Free API Key", onGetFreeApiKey, variant = WatchioButtonVariant.Secondary)
+            WatchioButton("Enter API Key", onConfigureApiKey)
+        }
+        Text("Data provided by football-data.org", color = colors.textSecondary)
+    }
 }
 
 @Composable

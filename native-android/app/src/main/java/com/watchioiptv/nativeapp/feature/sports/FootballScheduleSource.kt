@@ -16,6 +16,7 @@ import kotlinx.serialization.Serializable
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Query
+import retrofit2.Response
 import retrofit2.HttpException
 
 interface FootballScheduleSource {
@@ -23,6 +24,9 @@ interface FootballScheduleSource {
 }
 
 interface FootballDataApi {
+    @GET("v4/competitions/PL")
+    suspend fun validate(@Header("X-Auth-Token") token: String): Response<Unit>
+
     @GET("v4/matches")
     suspend fun matches(
         @Header("X-Auth-Token") token: String,
@@ -49,7 +53,7 @@ interface FootballDataApi {
 
 class FootballDataScheduleSource(
     private val api: FootballDataApi,
-    private val apiKey: String,
+    private val credentialStore: FootballDataCredentialStore,
     private val clock: Clock = Clock.systemUTC(),
     private val zoneId: ZoneId = ZoneId.systemDefault(),
     private val fallbackCooldownMs: Long = 60_000L,
@@ -60,7 +64,8 @@ class FootballDataScheduleSource(
 
     override suspend fun getFixtures(date: LocalDate): Result<List<SportsFixture>> = requestMutex.withLock {
         cache[date]?.let { return@withLock Result.success(it) }
-        if (apiKey.isBlank()) return@withLock Result.failure(SportsScheduleException.ServiceUnavailable)
+        val apiKey = credentialStore.get()?.trim().takeIf { !it.isNullOrBlank() }
+            ?: return@withLock Result.failure(SportsScheduleException.MissingCredential)
         val now = clock.millis()
         if (now < retryAvailableAtEpochMs) {
             return@withLock Result.failure(SportsScheduleException.RateLimited(retryAvailableAtEpochMs))
@@ -88,9 +93,13 @@ class FootballDataScheduleSource(
             retryAvailableAtEpochMs = maxOf(retryAvailableAtEpochMs, retryAt)
             SportsScheduleException.RateLimited(retryAvailableAtEpochMs)
         }
-        401, 403 -> SportsScheduleException.ServiceUnavailable
+        401, 403 -> SportsScheduleException.InvalidCredential
         in 500..599 -> SportsScheduleException.TemporarilyUnavailable
         else -> SportsScheduleException.NetworkUnavailable
+    }
+
+    fun invalidateCache() {
+        cache.clear()
     }
 
     private fun parseRetryAfter(value: String?, now: Long): Long {

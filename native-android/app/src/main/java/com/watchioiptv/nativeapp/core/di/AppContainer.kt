@@ -44,6 +44,8 @@ import com.watchioiptv.nativeapp.domain.repository.HistoryRepository
 import com.watchioiptv.nativeapp.domain.repository.ProviderRepository
 import com.watchioiptv.nativeapp.feature.tvguide.TvGuideRepository
 import com.watchioiptv.nativeapp.feature.sports.FootballDataApi
+import com.watchioiptv.nativeapp.feature.sports.RemoteFootballDataCredentialValidator
+import com.watchioiptv.nativeapp.feature.sports.SecureFootballDataCredentialStore
 import com.watchioiptv.nativeapp.feature.sports.FootballDataScheduleSource
 import com.watchioiptv.nativeapp.feature.sports.SportsRepository
 import com.watchioiptv.nativeapp.feature.sports.UitestFootballScheduleSource
@@ -137,13 +139,19 @@ class AppContainer(context: Context) {
         epgRepository = epgRepository,
         epgRefreshCoordinator = epgRefreshCoordinator,
     )
+    private val footballDataApi = networkModule.retrofit("https://api.football-data.org/").create(FootballDataApi::class.java)
+    val footballDataCredentialStore = SecureFootballDataCredentialStore(secretStore)
+    val footballDataCredentialValidator = RemoteFootballDataCredentialValidator(footballDataApi)
     private val footballScheduleSource = if (BuildConfig.APPLICATION_ID.endsWith(".uitest")) {
         UitestFootballScheduleSource()
     } else {
         FootballDataScheduleSource(
-            networkModule.retrofit("https://api.football-data.org/").create(FootballDataApi::class.java),
-            BuildConfig.FOOTBALL_DATA_API_KEY,
+            footballDataApi,
+            footballDataCredentialStore,
         )
+    }
+    fun invalidateSportsCache() {
+        (footballScheduleSource as? FootballDataScheduleSource)?.invalidateCache()
     }
     val sportsRepository = SportsRepository(footballScheduleSource, tvGuideRepository)
     val moviesRepository = MoviesRepository(

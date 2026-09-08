@@ -3,6 +3,7 @@ package com.watchioiptv.nativeapp
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
@@ -43,6 +44,7 @@ class SettingsMenuComposeTest {
         composeRule.onNodeWithTag("settings-quick-login").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Player Settings").assertIsDisplayed()
         composeRule.onNodeWithText("EPG Settings").assertIsDisplayed()
+        composeRule.onNodeWithTag("settings-football-data").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Parental Controls").assertIsDisplayed()
         composeRule.onNodeWithText("Stream Format").assertIsDisplayed()
         composeRule.onNodeWithText("Input Mode").assertIsDisplayed()
@@ -50,6 +52,22 @@ class SettingsMenuComposeTest {
         composeRule.onNodeWithText("Backup & Restore").assertIsDisplayed()
         composeRule.onNodeWithTag("settings-check-updates").performScrollTo().assertIsDisplayed()
         assertTrue(composeRule.onAllNodes(hasText("My List")).fetchSemanticsNodes().isEmpty())
+    }
+
+    @Test
+    @OptIn(ExperimentalTestApi::class)
+    fun footballDataSettingsOpensWithSecureEntryActions() {
+        openSettingsOrSkip()
+        if (composeRule.onAllNodesWithTag("settings-root").fetchSemanticsNodes().isEmpty()) return
+        composeRule.onNodeWithTag("settings-football-data").performScrollTo().performClick()
+        composeRule.waitUntilAtLeastOneExists(hasText("FOOTBALL DATA"), 5_000)
+        composeRule.onNodeWithTag("football-data-settings").assertIsDisplayed()
+        composeRule.onNodeWithTag("football-data-register").assertIsDisplayed()
+        composeRule.onNodeWithTag("football-data-api-key").assertIsDisplayed()
+        composeRule.onNodeWithTag("football-data-save").assertHasNoClickAction()
+        composeRule.onNodeWithText("Data provided by football-data.org").assertIsDisplayed()
+        pressBack()
+        composeRule.waitUntilAtLeastOneExists(hasText("SETTINGS"), 5_000)
     }
 
     @Test

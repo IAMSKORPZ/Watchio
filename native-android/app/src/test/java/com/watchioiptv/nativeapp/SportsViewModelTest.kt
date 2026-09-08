@@ -76,6 +76,18 @@ class SportsViewModelTest {
         assertTrue(viewModel.state.value.loadState is SportsLoadState.Ready)
     }
 
+    @Test fun missingCredentialShowsSetupRequired() = runTest(dispatcher) {
+        val viewModel = SportsViewModel(Clock.systemUTC()) { Result.failure(SportsScheduleException.MissingCredential) }
+        advanceUntilIdle()
+        assertTrue(viewModel.state.value.loadState is SportsLoadState.SetupRequired)
+    }
+
+    @Test fun rejectedStoredCredentialNeedsAttention() = runTest(dispatcher) {
+        val viewModel = SportsViewModel(Clock.systemUTC()) { Result.failure(SportsScheduleException.InvalidCredential) }
+        advanceUntilIdle()
+        assertTrue(viewModel.state.value.loadState is SportsLoadState.CredentialNeedsAttention)
+    }
+
     private class MutableClock(private var now: Instant) : Clock() {
         override fun getZone(): ZoneId = ZoneOffset.UTC
         override fun withZone(zone: ZoneId): Clock = this
